@@ -38,6 +38,7 @@ else()
     else()
         add_executable(qt-test
             ${PROJECT_SOURCES}
+            README.md
         )
     endif()
 endif()
