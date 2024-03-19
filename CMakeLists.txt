@@ -38,7 +38,6 @@ else()
     else()
         add_executable(qt-test
             ${PROJECT_SOURCES}
-            README.md
         )
     endif()
 endif()
@@ -69,3 +68,7 @@ install(TARGETS qt-test
 if(QT_VERSION_MAJOR EQUAL 6)
     qt_finalize_executable(qt-test)
 endif()
+
+
+find_package(Qt6 REQUIRED COMPONENTS Charts)
+target_link_libraries(qt-test PRIVATE Qt6::Charts)
