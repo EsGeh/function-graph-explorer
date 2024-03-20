@@ -4,10 +4,8 @@ Little project to get hands dirty with Qt development.
 
 # Build
 
-    $ mkdir build/
-    $ cmake -B build
-    $ cmake --build build --target all 
+    $ ./scripts/build.fish
 
 # Run
 
-    $ ./build/qt-test
+    $ ./build/run.fish
