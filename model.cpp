@@ -22,7 +22,7 @@ std::vector<std::pair<T,T>> Model::getPoints() {
 		return {};
 	}
 	std::vector<std::pair<T,T>> graph;
-	for( int i=0; i<RES+1; i++ ) {
+	for( unsigned int i=0; i<RES+1; i++ ) {
 		T x = xMin + (T(i) / RES)*(xMax - xMin);
 		graph.push_back(
 				{

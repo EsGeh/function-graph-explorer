@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.5)
 
-project(qt-test
+set(TARGET_NAME qt-test)
+
+project(${TARGET_NAME}
     VERSION 0.1
     LANGUAGES CXX
 )
@@ -24,16 +26,22 @@ find_package(Qt6 REQUIRED COMPONENTS Charts)
 
 find_package(exprtk REQUIRED)
 
-add_executable(qt-test
+add_executable(${TARGET_NAME}
     ${PROJECT_SOURCES}
     controller.h controller.cpp
 )
 
-target_link_libraries(qt-test PRIVATE Qt6::Widgets)
-target_link_libraries(qt-test PRIVATE Qt6::Charts)
-target_link_libraries(qt-test PRIVATE exprtk::exprtk)
+if(MSVC)
+  target_compile_options(${TARGET_NAME} PRIVATE /W4 /WX)
+else()
+  target_compile_options(${TARGET_NAME} PRIVATE -Wall -Werror)
+endif()
 
-set_target_properties(qt-test PROPERTIES
+target_link_libraries(${TARGET_NAME} PRIVATE Qt6::Widgets)
+target_link_libraries(${TARGET_NAME} PRIVATE Qt6::Charts)
+target_link_libraries(${TARGET_NAME} PRIVATE exprtk::exprtk)
+
+set_target_properties(${TARGET_NAME} PROPERTIES
     ${BUNDLE_ID_OPTION}
     MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
     MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
