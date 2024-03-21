@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
 #include <QChart>
+#include <QDoubleSpinBox>
 #include <QValueAxis>
 #include <QtCharts/QLineSeries>
 #include <QtCharts/QAreaSeries>
@@ -16,9 +17,43 @@ MainWindow::MainWindow(QWidget *parent)
 	connect(
 		ui->formulaEdit,
 		&QLineEdit::textChanged,
-		[=](QString val) {
+		[=](QString value) {
 			// qDebug() << "changed";
-			emit formulaChanged(val);
+			emit formulaChanged(value);
+		}
+	);
+	connect(
+		ui->xMinFix,
+		&QCheckBox::stateChanged,
+		[=](int value) {
+			ui->xMin->setEnabled(value);
+			if( value == 0 ) {
+				emit xMinReset();
+			}
+		}
+	);
+	connect(
+		ui->xMaxFix,
+		&QCheckBox::stateChanged,
+		[=](int value) {
+			ui->xMax->setEnabled(value);
+			if( value == 0 ) {
+				emit xMaxReset();
+			}
+		}
+	);
+	connect(
+		ui->xMin,
+		&QDoubleSpinBox::valueChanged,
+		[=](double value) {
+			emit xMinChanged( value );
+		}
+	);
+	connect(
+		ui->xMax,
+		&QDoubleSpinBox::valueChanged,
+		[=](double value) {
+			emit xMaxChanged( value );
 		}
 	);
 
@@ -39,18 +74,17 @@ MainWindow::~MainWindow()
 	delete ui;
 }
 
-void MainWindow::init()
-{
-	ui->formulaEdit->setText("x^2");
-}
-
-void MainWindow::set_formula_error( const QString& str )
+void MainWindow::setFormulaError( const QString& str )
 {
   // qWarning() << str;
 	init_graph();
 }
 
-void MainWindow::set_graph(
+void MainWindow::setFormula( const QString& str ) {
+	ui->formulaEdit->setText( str );
+}
+
+void MainWindow::setGraph(
     const std::vector<std::pair<T,T>>& values
 )
 {
@@ -60,8 +94,8 @@ void MainWindow::set_graph(
 
 	QLineSeries* series0 = new QLineSeries();
 	{
-		for( auto val: values ) {
-			*series0 << QPointF( val.first, val.second );
+		for( auto value: values ) {
+			*series0 << QPointF( value.first, value.second );
 		}
 		series0->setName("f(x)");
 	}
@@ -89,6 +123,11 @@ void MainWindow::set_graph(
   }
 
 	chartView->fitInView(chart);
+}
+
+void MainWindow::setXRange( T xMin, T xMax ) {
+	ui->xMin->setValue( xMin );
+	ui->xMax->setValue( xMax );
 }
 
 void MainWindow::init_graph() {

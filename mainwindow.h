@@ -22,15 +22,19 @@ public:
   );
   ~MainWindow();
 
-	void init();
-
-  void set_formula_error( const QString& str );
-  void set_graph(
+  void setFormulaError( const QString& str );
+  void setFormula( const QString& str );
+  void setGraph(
       const std::vector<std::pair<T,T>>& values
   );
+  void setXRange( T xMin, T xMax );
 
 signals:
   void formulaChanged(QString formula);
+  void xMinChanged(T value);
+  void xMaxChanged(T value);
+  void xMinReset();
+  void xMaxReset();
 
 private:
     Ui::MainWindow *ui;
@@ -38,4 +42,5 @@ private:
 
 		void init_graph();
 };
+
 #endif // MAINWINDOW_H

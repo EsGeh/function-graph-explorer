@@ -16,8 +16,9 @@ public:
 	);
 	void run();
 
-signals:
-	void formulaChanged(QString formula);
+private:
+
+	void updateGraph();
 
 private:
 	Model* model;

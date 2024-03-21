@@ -1,8 +1,6 @@
 #include "controller.h"
 
 
-const T MIN = -1;
-const T MAX = 1;
 const unsigned int RES = 100;
 
 Controller::Controller(
@@ -15,31 +13,67 @@ Controller::Controller(
 	connect(
 		view,
 		&MainWindow::formulaChanged,
-		[=](QString val) {
-			// qDebug() << "changed";
-			try {
-				model->set(val);
-				std::vector<std::pair<T,T>> graph;
-				for( int i=0; i<RES+1; i++ ) {
-					T x = MIN + (T(i) / RES)*(MAX - MIN);
-					graph.push_back(
-							{
-								x,
-								model->get( x ),
-							}
-					);
-				}
-				view->set_graph( graph );
-			}
-			catch( ... ) {
-				view->set_formula_error( "invalid formula" );
-			}
+		[=](QString value) {
+			// qDebug() << "Formula changed";
+			model->set( value );
+			updateGraph();
+		}
+	);
+	connect(
+		view,
+		&MainWindow::xMinChanged,
+		[=](T value) {
+			// qDebug() << "xMin changed";
+			model->setXMin( value );
+			updateGraph();
+		}
+	);
+
+	connect(
+		view,
+		&MainWindow::xMaxChanged,
+		[=](T value) {
+			// qDebug() << "xMax changed";
+			model->setXMax( value );
+			updateGraph();
+		}
+	);
+	connect(
+		view,
+		&MainWindow::xMinReset,
+		[=]() {
+			// qDebug() << "xMin reset";
+			model->resetXMin();
+			view->setXRange( model->getXMin(), model->getXMax() );
+			updateGraph();
+		}
+	);
+	connect(
+		view,
+		&MainWindow::xMaxReset,
+		[=]() {
+			//qDebug() << "xMax reset";
+			model->resetXMax();
+			view->setXRange( model->getXMin(), model->getXMax() );
+			updateGraph();
 		}
 	);
 
 }
 
 void Controller::run() {
-	view->init();
+	view->setFormula( "x^2" );
+	model->set( "x^2" );
+	view->setXRange( model->getXMin(), model->getXMax() );
+	updateGraph();
 	view->show();
+}
+
+void Controller::updateGraph() {
+	if( !model->getIsValidExpression() ) {
+		view->setFormulaError( "invalid formula" );
+		return;
+	}
+	auto graph = model->getPoints();
+	view->setGraph( graph );
 }

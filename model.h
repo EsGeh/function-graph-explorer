@@ -21,14 +21,27 @@ class Model
 public:
 	Model();
 
+	// get:
+	bool getIsValidExpression() const;
+	std::vector<std::pair<T,T>> getPoints();
+	T getXMin();
+	T getXMax();
+
+	// set:
 	void set(const QString& formula_str);
-	T get( T x );
+	void setXMin(T value);
+	void setXMax(T value);
+	void resetXMin();
+	void resetXMax();
 
 private:
+	bool isValidExpression;
 	symbol_table_t sym_table;
 	expression_t formula;
-	T var_x;
+	T varX;
+	T xMin, xMax;
 
+	T get( T x );
 };
 
 #endif // MODEL_H
