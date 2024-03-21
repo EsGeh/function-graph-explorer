@@ -10,6 +10,7 @@ set(PROJECT_SOURCES
         mainwindow.cpp
         mainwindow.h
         mainwindow.ui
+        model.h model.cpp
 )
 
 set(CMAKE_CXX_STANDARD 17)
@@ -21,13 +22,16 @@ qt_standard_project_setup()
 find_package(Qt6 REQUIRED COMPONENTS Widgets)
 find_package(Qt6 REQUIRED COMPONENTS Charts)
 
+find_package(exprtk REQUIRED)
+
 add_executable(qt-test
     ${PROJECT_SOURCES}
-    README.md
+    controller.h controller.cpp
 )
 
 target_link_libraries(qt-test PRIVATE Qt6::Widgets)
 target_link_libraries(qt-test PRIVATE Qt6::Charts)
+target_link_libraries(qt-test PRIVATE exprtk::exprtk)
 
 set_target_properties(qt-test PROPERTIES
     ${BUNDLE_ID_OPTION}

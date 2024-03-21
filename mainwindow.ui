@@ -18,23 +18,20 @@
     <item>
      <layout class="QHBoxLayout" name="horizontalLayout">
       <item>
-       <widget class="QLabel" name="label">
+       <widget class="QLabel" name="formulaLabel">
         <property name="text">
-         <string>Formula:</string>
+         <string>f(x) = </string>
         </property>
        </widget>
       </item>
       <item>
-       <widget class="QLineEdit" name="lineEdit"/>
+       <widget class="QLineEdit" name="formulaEdit">
+        <property name="placeholderText">
+					<string>Example: x^2</string>
+        </property>
+       </widget>
       </item>
      </layout>
-    </item>
-    <item>
-     <widget class="QPushButton" name="pushButton">
-      <property name="text">
-       <string>Update</string>
-      </property>
-     </widget>
     </item>
    </layout>
   </widget>

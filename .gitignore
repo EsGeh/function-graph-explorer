@@ -3,6 +3,9 @@
 
 /build/
 
+# conan:
+CMakeUserPresets.json
+
 *~
 *.autosave
 *.a
