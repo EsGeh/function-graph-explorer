@@ -35,9 +35,9 @@ public:
 	void resetXMax();
 
 private:
-	bool isValidExpression;
 	symbol_table_t sym_table;
 	expression_t formula;
+	bool isValidExpression;
 	T varX;
 	T xMin, xMax;
 
