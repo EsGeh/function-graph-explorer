@@ -1,7 +1,8 @@
 #include "graphview.h"
 #include <math.h>
 #include <QValueAxis>
-#include <QtCharts/QLineSeries>
+#include <QtCharts/QSplineSeries>
+
 
 GraphView::GraphView(QWidget *parent)
     : QChartView{parent},
@@ -61,6 +62,7 @@ void GraphView::mousePressEvent( QMouseEvent *event ) {
 
 void GraphView::wheelEvent(QWheelEvent *event) {
 
+
 	QPoint numPixels = event->pixelDelta();
 	QPoint numDegrees = event->angleDelta() / 8;
 
@@ -71,11 +73,24 @@ void GraphView::wheelEvent(QWheelEvent *event) {
 		QPoint numSteps = numDegrees / 15;
 		val = numSteps.y();
 	}
+	auto step = 0;
 	if( val > 0 ) {
-		scaleExp.first +=1;
+		step = -1;
 	}
 	else if( val < 0 ) {
-		scaleExp.first -=1;
+		step = +1;
+	}
+	switch ( event->modifiers() ) {
+		case Qt::NoModifier:
+			scaleExp.first += step;
+			scaleExp.second += step;
+		break;
+		case Qt::ShiftModifier:
+			scaleExp.first += step;
+		break;
+		case Qt::ControlModifier:
+			scaleExp.second += step;
+		break;
 	}
 	// updateAxes();
 	emit viewChanged();
@@ -99,7 +114,7 @@ void GraphView::setGraph(
 	reset();
 	QChart *chart = this->chart();
 
-	QLineSeries* series0 = new QLineSeries();
+	auto series0 = new QSplineSeries();
 	{
 		for( auto value: values ) {
 			*series0 << QPointF( value.first, value.second );
