@@ -9,6 +9,7 @@ Model::Model()
 	varX(0),
 	xMin(-1), xMax(1)
 {
+	sym_table.add_constant("pi", acos(-1));
 	sym_table.add_variable("x", varX);
 	formula.register_symbol_table( sym_table );
 }
