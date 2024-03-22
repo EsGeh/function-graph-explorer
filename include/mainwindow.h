@@ -2,9 +2,9 @@
 #define MAINWINDOW_H
 
 #include "model.h"
+#include "graphview.h"
 
 #include <QMainWindow>
-#include <QChartView>
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -35,12 +35,11 @@ signals:
   void xMaxChanged(T value);
   void xMinReset();
   void xMaxReset();
+  void zoom(int delta);
 
 private:
     Ui::MainWindow *ui;
-    QChartView* chartView;
-
-		void init_graph();
+    GraphView* chartView;
 };
 
 #endif // MAINWINDOW_H

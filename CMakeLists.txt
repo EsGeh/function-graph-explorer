@@ -15,9 +15,11 @@ set(PROJECT_SOURCES
 	${SRC_DIR}/mainwindow.cpp
 	${SRC_DIR}/model.cpp
 	${SRC_DIR}/controller.cpp
+	${SRC_DIR}/graphview.cpp
 	${INCLUDE_DIR}/mainwindow.h
 	${INCLUDE_DIR}/model.h
 	${INCLUDE_DIR}/controller.h
+	${INCLUDE_DIR}/graphview.h
 	${UI_DIR}/mainwindow.ui
 )
 
@@ -35,9 +37,7 @@ find_package(Qt6 REQUIRED COMPONENTS Charts)
 
 find_package(exprtk REQUIRED)
 
-add_executable(${TARGET_NAME}
-    ${PROJECT_SOURCES}
-)
+add_executable(${TARGET_NAME} ${PROJECT_SOURCES})
 
 target_include_directories(${TARGET_NAME} PRIVATE "${PROJECT_SOURCE_DIR}/${INCLUDE_DIR}")
 

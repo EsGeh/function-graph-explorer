@@ -59,6 +59,24 @@ Controller::Controller(
 		}
 	);
 
+	connect(
+		view,
+		&MainWindow::zoom,
+		[=]( int value ) {
+			const auto range = model->getXMax() - model->getXMin();
+			if( value > 0 ) {
+				view->setXRange( model->getXMin()-range/2, model->getXMax()+range/2 );
+			}
+			else {
+				view->setXRange(
+						std::min(T(-1.0/pow(2,4)), model->getXMin()+range/4 ),
+						std::max(T(+1.0/pow(2,4)), model->getXMax()-range/4 )
+				);
+			}
+			updateGraph();
+		}
+	);
+
 }
 
 void Controller::run() {
