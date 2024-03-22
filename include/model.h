@@ -2,7 +2,6 @@
 #define MODEL_H
 
 #include "exprtk.hpp"
-
 #include <QString>
 
 

@@ -1,9 +1,10 @@
 #ifndef CONTROLLER_H
 #define CONTROLLER_H
 
-#include <QObject>
 #include "model.h"
 #include "mainwindow.h"
+
+#include <QObject>
 
 class Controller : public QObject
 {

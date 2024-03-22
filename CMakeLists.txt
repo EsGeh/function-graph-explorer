@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.5)
 
 set(TARGET_NAME qt-test)
+set(INCLUDE_DIR include)
+set(SRC_DIR src)
+set(UI_DIR ui)
 
 project(${TARGET_NAME}
     VERSION 0.1
@@ -8,15 +11,21 @@ project(${TARGET_NAME}
 )
 
 set(PROJECT_SOURCES
-        main.cpp
-        mainwindow.cpp
-        mainwindow.h
-        mainwindow.ui
-        model.h model.cpp
+	${SRC_DIR}/main.cpp
+	${SRC_DIR}/mainwindow.cpp
+	${SRC_DIR}/model.cpp
+	${SRC_DIR}/controller.cpp
+	${INCLUDE_DIR}/mainwindow.h
+	${INCLUDE_DIR}/model.h
+	${INCLUDE_DIR}/controller.h
+	${UI_DIR}/mainwindow.ui
 )
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+set(CMAKE_AUTOUIC_SEARCH_PATHS ui/)
+set(AUTOMOC_PATH_PREFIX ON)
 
 find_package(Qt6 REQUIRED COMPONENTS Core)
 qt_standard_project_setup()
@@ -28,8 +37,9 @@ find_package(exprtk REQUIRED)
 
 add_executable(${TARGET_NAME}
     ${PROJECT_SOURCES}
-    controller.h controller.cpp
 )
+
+target_include_directories(${TARGET_NAME} PRIVATE "${PROJECT_SOURCE_DIR}/${INCLUDE_DIR}")
 
 if(MSVC)
   target_compile_options(${TARGET_NAME} PRIVATE /W4 /WX)
