@@ -22,20 +22,18 @@ public:
   );
   ~MainWindow();
 
-  void setFormulaError( const QString& str );
+	QString getFormula();
+	GraphView* getGraphView();
+
   void setFormula( const QString& str );
+
   void setGraph(
       const std::vector<std::pair<T,T>>& values
   );
-  void setXRange( T xMin, T xMax );
+  void setFormulaError( const QString& str );
 
 signals:
-  void formulaChanged(QString formula);
-  void xMinChanged(T value);
-  void xMaxChanged(T value);
-  void xMinReset();
-  void xMaxReset();
-  void zoom(int delta);
+  void updateGraph();
 
 private:
     Ui::MainWindow *ui;

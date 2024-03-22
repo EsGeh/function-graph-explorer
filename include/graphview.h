@@ -8,27 +8,40 @@ typedef float T;
 class GraphView : public QChartView
 {
 	Q_OBJECT
+
 public:
   explicit GraphView(QWidget *parent = nullptr);
+
+	std::pair<T,T> getOrigin() const;
+	std::pair<T,T> getScale() const;
 
 	std::pair<T,T> getXRange() const;
 	std::pair<T,T> getYRange() const;
 
-	// void mouseMoveEvent(QMouseEvent *event);
+	void setOrigin( const std::pair<T,T>& value );
+	void setScale( const std::pair<T,T>& value );
+
+	void mousePressEvent( QMouseEvent *event );
 	void setGraph(
     const std::vector<std::pair<T,T>>& values
 	);
 
-	void setXRange( const std::pair<T,T>& value );
-	void setYRange( const std::pair<T,T>& value );
-
 	void reset();
 
+signals:
+	void viewChanged();
+
 private:
+	void updateAxes();
+
 	void wheelEvent(QWheelEvent *event);
 
-signals:
-  void zoom(int delta);
+private:
+	std::pair<T,T> origin;
+	std::pair<T,T> scaleExp;
+
+	QPoint lastClickPos;
+
 };
 
 #endif // GRAPHVIEW_H

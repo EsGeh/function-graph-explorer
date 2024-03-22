@@ -22,23 +22,18 @@ public:
 
 	// get:
 	bool getIsValidExpression() const;
-	std::vector<std::pair<T,T>> getPoints();
-	T getXMin();
-	T getXMax();
+	std::vector<std::pair<T,T>> getPoints(
+			const std::pair<T,T>& range
+	);
 
 	// set:
 	void set(const QString& formula_str);
-	void setXMin(T value);
-	void setXMax(T value);
-	void resetXMin();
-	void resetXMax();
 
 private:
 	symbol_table_t sym_table;
 	expression_t formula;
 	bool isValidExpression;
 	T varX;
-	T xMin, xMax;
 
 	T get( T x );
 };

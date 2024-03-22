@@ -19,57 +19,90 @@ MainWindow::MainWindow(QWidget *parent)
 		&QLineEdit::textChanged,
 		[=](QString value) {
 			// qDebug() << "changed";
-			emit formulaChanged(value);
+			emit updateGraph();
 		}
 	);
 	connect(
-		ui->xMinFix,
-		&QCheckBox::stateChanged,
-		[=](int value) {
-			ui->xMin->setEnabled(value);
-			if( value == 0 ) {
-				emit xMinReset();
-			}
-		}
-	);
-	connect(
-		ui->xMaxFix,
-		&QCheckBox::stateChanged,
-		[=](int value) {
-			ui->xMax->setEnabled(value);
-			if( value == 0 ) {
-				emit xMaxReset();
-			}
-		}
-	);
-	connect(
-		ui->xMin,
-		&QDoubleSpinBox::valueChanged,
-		[=](double value) {
-			emit xMinChanged( value );
-		}
-	);
-	connect(
-		ui->xMax,
-		&QDoubleSpinBox::valueChanged,
-		[=](double value) {
-			emit xMaxChanged( value );
+		this->chartView,
+		&GraphView::viewChanged,
+		[=]() {
+			// qDebug() << "changed";
+			ui->originX->setValue(
+					chartView->getOrigin().first
+			);
+			ui->originY->setValue(
+					chartView->getOrigin().second
+			);
+			ui->scaleX->setValue(
+					chartView->getScale().first
+			);
+			ui->scaleY->setValue(
+					chartView->getScale().second
+			);
+			emit updateGraph();
 		}
 	);
 
 	connect(
-		this->chartView,
-		&GraphView::zoom,
-		[=](int delta) {
-			// qDebug() << "zoom: " << delta;
-			emit zoom( delta );
+		ui->originX,
+		&QDoubleSpinBox::valueChanged,
+		[=](double value) {
+			chartView->setOrigin( {
+					value,
+					chartView->getOrigin().second
+			} );
+			emit updateGraph();
 		}
 	);
+
+	connect(
+		ui->originY,
+		&QDoubleSpinBox::valueChanged,
+		[=](double value) {
+			chartView->setOrigin( {
+					chartView->getOrigin().first,
+					value
+			} );
+			emit updateGraph();
+		}
+	);
+
+	connect(
+		ui->scaleX,
+		&QDoubleSpinBox::valueChanged,
+		[=](double value) {
+			chartView->setScale( {
+					value,
+					chartView->getScale().second
+			} );
+			emit updateGraph();
+		}
+	);
+
+	connect(
+		ui->scaleY,
+		&QDoubleSpinBox::valueChanged,
+		[=](double value) {
+			chartView->setScale( {
+					chartView->getScale().first,
+					value
+			} );
+			emit updateGraph();
+		}
+	);
+
 }
 
 MainWindow::~MainWindow()
 {
 	delete ui;
+}
+
+QString MainWindow::getFormula() {
+	return ui->formulaEdit->text();
+}
+GraphView* MainWindow::getGraphView() {
+	return chartView;
 }
 
 void MainWindow::setFormulaError( const QString& str )
@@ -87,11 +120,5 @@ void MainWindow::setGraph(
 )
 {
   // qDebug() << "setting graph";
-	chartView->reset();
 	chartView->setGraph( values );
-}
-
-void MainWindow::setXRange( T xMin, T xMax ) {
-	ui->xMin->setValue( xMin );
-	ui->xMax->setValue( xMax );
 }

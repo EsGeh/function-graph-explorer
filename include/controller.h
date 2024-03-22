@@ -18,10 +18,6 @@ public:
 	void run();
 
 private:
-
-	void updateGraph();
-
-private:
 	Model* model;
 	MainWindow* view;
 

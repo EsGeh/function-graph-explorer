@@ -4,7 +4,9 @@
 #include <QtCharts/QLineSeries>
 
 GraphView::GraphView(QWidget *parent)
-    : QChartView{parent}
+    : QChartView{parent},
+		origin({0,0}),
+		scaleExp({0,0})
 {
 	setAlignment(Qt::AlignRight);
 	setBackgroundBrush(QBrush(Qt::white));
@@ -16,48 +18,85 @@ GraphView::GraphView(QWidget *parent)
 	// X:
 	{
 		QValueAxis* axis = new QValueAxis();
-		axis->setMin(1); axis->setMax(1);
 		chart->addAxis( axis, Qt::AlignBottom );
 	}
 	// Y:
 	{
 		QValueAxis* axis = new QValueAxis();
-		axis->setMin(-1); axis->setMax(1);
 		chart->addAxis( axis, Qt::AlignLeft );
 	}
+	updateAxes();
+}
+
+std::pair<T,T> GraphView::getOrigin() const {
+	return origin;
+}
+
+std::pair<T,T> GraphView::getScale() const {
+	return {
+		pow(2,scaleExp.first),
+		pow(2,scaleExp.second)
+	};
 }
 
 std::pair<T,T> GraphView::getXRange() const {
-	QChart *chart = this->chart();
-	return {
-		dynamic_cast<QValueAxis*>(chart->axes(Qt::Horizontal).first())->min(),
-		dynamic_cast<QValueAxis*>(chart->axes(Qt::Horizontal).first())->max()
-	};
+	return { origin.first - getScale().first, origin.first + getScale().first };
 }
+
 std::pair<T,T> GraphView::getYRange() const {
-	QChart *chart = this->chart();
-	return {
-		dynamic_cast<QValueAxis*>(chart->axes(Qt::Vertical).first())->min(),
-		dynamic_cast<QValueAxis*>(chart->axes(Qt::Vertical).first())->max()
-	};
+	return { origin.second - getScale().second, origin.second + getScale().second };
+}
+
+void GraphView::mousePressEvent( QMouseEvent *event ) {
+	if ( event->button() == Qt::LeftButton )
+	{
+		auto const widgetPos = event->position();
+		auto const scenePos = mapToScene(QPoint(static_cast<int>(widgetPos.x()), static_cast<int>(widgetPos.y()))); 
+		auto const chartItemPos = chart()->mapFromScene(scenePos); 
+		auto const pos = chart()->mapToValue(chartItemPos); 
+		setOrigin({ pos.x(), pos.y() });
+	}
+	emit viewChanged();
 }
 
 void GraphView::wheelEvent(QWheelEvent *event) {
-    QPoint numPixels = event->pixelDelta();
-    QPoint numDegrees = event->angleDelta() / 8;
 
-    if (!numPixels.isNull()) {
-        emit zoom(numPixels.y());
-    } else if (!numDegrees.isNull()) {
-        QPoint numSteps = numDegrees / 15;
-        emit zoom(numSteps.y());
-    }
+	QPoint numPixels = event->pixelDelta();
+	QPoint numDegrees = event->angleDelta() / 8;
+
+	auto val = 0;
+	if (!numPixels.isNull()) {
+		val = numPixels.y();
+	} else if (!numDegrees.isNull()) {
+		QPoint numSteps = numDegrees / 15;
+		val = numSteps.y();
+	}
+	if( val > 0 ) {
+		scaleExp.first +=1;
+	}
+	else if( val < 0 ) {
+		scaleExp.first -=1;
+	}
+	// updateAxes();
+	emit viewChanged();
+}
+
+void GraphView::setOrigin( const std::pair<T,T>& value ) {
+	origin = value;
+}
+
+void GraphView::setScale( const std::pair<T,T>& value ) {
+	scaleExp = {
+		log2( value.first ),
+		log2( value.second )
+	};
 }
 
 void GraphView::setGraph(
 	const std::vector<std::pair<T,T>>& values
 )
 {
+	reset();
 	QChart *chart = this->chart();
 
 	QLineSeries* series0 = new QLineSeries();
@@ -69,43 +108,25 @@ void GraphView::setGraph(
 	}
 
 	chart->addSeries(series0);
-	// create Axes based on series:
-	// chart->createDefaultAxes();
+	series0->attachAxis( chart->axes(Qt::Horizontal).first() );
+	series0->attachAxis( chart->axes(Qt::Vertical).first() );
+	updateAxes();
 
-  // xrange:
-  {
-    T min = (float )std::min_element(values.cbegin(), values.cend(), [](const std::pair<T,T>& v1, const std::pair<T,T>& v2){ return v1.first < v2.first; })->first;
-    T max =  (float )std::max_element(values.cbegin(), values.cend(), [](const std::pair<T,T>& v1, const std::pair<T,T>& v2){ return v1.first < v2.first; })->first;
-		setXRange( { min, max } ); 
-  }
-  // yrange:
-  {
-    T min = (float )std::min_element(values.cbegin(), values.cend(), [](const std::pair<T,T>& v1, const std::pair<T,T>& v2){ return v1.second < v2.second; })->second;
-    T max =  (float )std::max_element(values.cbegin(), values.cend(), [](const std::pair<T,T>& v1, const std::pair<T,T>& v2){ return v1.second < v2.second; })->second;
-		setYRange( { min, max } ); 
-  }
-
-	fitInView(chart);
 }
 
-void GraphView::setXRange( const std::pair<T,T>& range ) {
+void GraphView::updateAxes() {
 	QChart *chart = this->chart();
 	chart->axes(Qt::Horizontal).first()->setRange(
-			range.first,
-			range.second
+			getXRange().first,
+			getXRange().second
 	);
-}
-
-void GraphView::setYRange( const std::pair<T,T>& range ) {
-	QChart *chart = this->chart();
 	chart->axes(Qt::Vertical).first()->setRange(
-			range.first,
-			range.second
+			getYRange().first,
+			getYRange().second
 	);
 }
 
 void GraphView::reset() {
 	QChart *chart = this->chart();
 	chart->removeAllSeries();
-	setXRange( { -1, 1 } );
 }

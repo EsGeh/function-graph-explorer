@@ -6,9 +6,7 @@ const unsigned int RES = 100;
 Model::Model()
 :
 	sym_table(symbol_table_t::symtab_mutability_type::e_immutable),
-	isValidExpression(false),
-	varX(0),
-	xMin(-1), xMax(1)
+	isValidExpression(false)
 {
 	sym_table.add_constant("pi", acos(-1));
 	sym_table.add_variable("x", varX);
@@ -19,7 +17,13 @@ bool Model::getIsValidExpression() const {
 	return isValidExpression;
 }
 
-std::vector<std::pair<T,T>> Model::getPoints() {
+std::vector<std::pair<T,T>> Model::getPoints(
+		const std::pair<T,T>& range
+) {
+	auto
+		xMin = range.first,
+		xMax = range.second
+	;
 	if( !isValidExpression) {
 		return {};
 	}
@@ -36,13 +40,6 @@ std::vector<std::pair<T,T>> Model::getPoints() {
 	return graph;
 }
 
-T Model::getXMin() {
-	return xMin;
-}
-T Model::getXMax() {
-	return xMax;
-}
-
 void Model::set(const QString& formula_str) {
 	parser_t parser;
 	parser.settings().disable_all_control_structures();
@@ -52,20 +49,6 @@ void Model::set(const QString& formula_str) {
 		return;
 	}
 	isValidExpression = true;
-}
-
-void Model::setXMin(T value) {
-	xMin = value;
-}
-void Model::setXMax(T value) {
-	xMax = value;
-}
-
-void Model:: resetXMin() {
-	xMin = -1;
-}
-void Model:: resetXMax() {
-	xMax = 1;
 }
 
 T Model::get( T x ) {
