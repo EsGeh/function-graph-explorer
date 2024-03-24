@@ -1,6 +1,8 @@
-# Qt Test Project
+# Function Graph Explorer
 
-Little project to get hands dirty with Qt development.
+This project is in an early stage. Functionality is still incomplete and will change rapidly.
+Eventually, some time this might become a educational tool for exploring function graphs, the Fourier Transform, filter design and audio signal analysis.
+Work in progress.
 
 # Build
 
