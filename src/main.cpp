@@ -3,7 +3,12 @@
 #include "controller.h"
 
 #include <QApplication>
+#include <memory>
 
+
+std::shared_ptr<Model> modelFactory();
+
+void init(Model* model);
 
 int main(int argc, char *argv[])
 {
@@ -11,9 +16,21 @@ int main(int argc, char *argv[])
 	qInfo() << "DEBUG configuration!\n";
 	#endif
   QApplication a(argc, argv);
-  Model model;
-  MainWindow view;
-  Controller controller(&model, &view);
-  controller.run();
+  auto model = Model();
+  auto view = MainWindow();
+	init( &model );
+	Controller controller( &model, &view );
+	controller.run();
+
   return a.exec();
+}
+
+void init(Model* model) {
+	{
+		const auto formulaStr = "sin(2pi*x)";
+		auto formula = formulaFunctionFactory(
+				formulaStr
+		);
+		model->push_back( formula );
+	}
 }

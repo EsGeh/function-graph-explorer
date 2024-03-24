@@ -5,6 +5,7 @@
 #include "mainwindow.h"
 
 #include <QObject>
+#include <cstddef>
 
 class Controller : public QObject
 {
@@ -16,6 +17,12 @@ public:
 		MainWindow* view
 	);
 	void run();
+
+private:
+	// view.formula <- model.formula:
+	void updateFormula(const size_t iFunction);
+	// view.graph <- model.formula:
+	void updateGraph( const size_t iFunction);
 
 private:
 	Model* model;

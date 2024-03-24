@@ -19,7 +19,7 @@ MainWindow::MainWindow(QWidget *parent)
 		&QLineEdit::textChanged,
 		[=](QString value) {
 			// qDebug() << "changed";
-			emit updateGraph();
+			emit formulaChanged();
 		}
 	);
 	connect(
@@ -39,7 +39,7 @@ MainWindow::MainWindow(QWidget *parent)
 			ui->scaleY->setValue(
 					chartView->getScale().second
 			);
-			emit updateGraph();
+			emit viewParamsChanged();
 		}
 	);
 
@@ -51,7 +51,7 @@ MainWindow::MainWindow(QWidget *parent)
 					value,
 					chartView->getOrigin().second
 			} );
-			emit updateGraph();
+			emit viewParamsChanged();
 		}
 	);
 
@@ -63,7 +63,7 @@ MainWindow::MainWindow(QWidget *parent)
 					chartView->getOrigin().first,
 					value
 			} );
-			emit updateGraph();
+			emit viewParamsChanged();
 		}
 	);
 
@@ -75,7 +75,7 @@ MainWindow::MainWindow(QWidget *parent)
 					value,
 					chartView->getScale().second
 			} );
-			emit updateGraph();
+			emit viewParamsChanged();
 		}
 	);
 
@@ -87,7 +87,7 @@ MainWindow::MainWindow(QWidget *parent)
 					chartView->getScale().first,
 					value
 			} );
-			emit updateGraph();
+			emit viewParamsChanged();
 		}
 	);
 

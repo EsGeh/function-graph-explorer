@@ -33,7 +33,8 @@ public:
   void setFormulaError( const QString& str );
 
 signals:
-  void updateGraph();
+  void formulaChanged();
+  void viewParamsChanged();
 
 private:
     Ui::MainWindow *ui;

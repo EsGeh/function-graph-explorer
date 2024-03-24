@@ -3,6 +3,8 @@
 
 #include "exprtk.hpp"
 #include <QString>
+#include <memory>
+#include <optional>
 
 
 typedef float T;
@@ -14,28 +16,46 @@ typedef exprtk::expression<T>
 typedef exprtk::parser<T>
 	parser_t;
 
-class Model
+
+class Function {
+
+	public:
+		virtual T get( T x ) = 0;
+		virtual QString toString() const = 0;
+
+		std::vector<std::pair<T,T>> getPoints(
+				const std::pair<T,T>& range
+		);
+};
+
+class FormulaFunction: public Function
 {
 
-public:
-	Model();
+	public:
+		// get:
+		virtual T get( T x );
+		virtual QString toString() const;
 
-	// get:
-	bool getIsValidExpression() const;
-	std::vector<std::pair<T,T>> getPoints(
-			const std::pair<T,T>& range
-	);
+	private:
+		FormulaFunction();
+		bool init(const QString& formula_str);
+		friend std::optional<std::shared_ptr<Function>> formulaFunctionFactory(
+			const QString& formulaStr
+		);
 
-	// set:
-	void set(const QString& formula_str);
+	private:
+		QString formulaStr;
+		symbol_table_t sym_table;
+		expression_t formula;
+		T varX;
 
-private:
-	symbol_table_t sym_table;
-	expression_t formula;
-	bool isValidExpression;
-	T varX;
-
-	T get( T x );
 };
+
+std::optional<std::shared_ptr<Function>> formulaFunctionFactory(
+	const QString& formulaStr
+);
+
+
+typedef std::vector<std::optional<std::shared_ptr<Function>>> Model;
 
 #endif // MODEL_H
