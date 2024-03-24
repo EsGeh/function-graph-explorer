@@ -19,8 +19,11 @@ public:
 	void run();
 
 private:
+	void setFunctionCount(const size_t size);
+
 	// view.formula <- model.formula:
 	void updateFormula(const size_t iFunction);
+
 	// view.graph <- model.formula:
 	void updateGraph( const size_t iFunction);
 

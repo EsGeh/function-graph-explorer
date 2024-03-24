@@ -92,7 +92,6 @@ void GraphView::wheelEvent(QWheelEvent *event) {
 			scaleExp.second += step;
 		break;
 	}
-	// updateAxes();
 	emit viewChanged();
 }
 

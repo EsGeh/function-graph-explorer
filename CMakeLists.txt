@@ -13,14 +13,17 @@ project(${TARGET_NAME}
 set(PROJECT_SOURCES
 	${SRC_DIR}/main.cpp
 	${SRC_DIR}/mainwindow.cpp
+	${SRC_DIR}/functionview.cpp
 	${SRC_DIR}/model.cpp
 	${SRC_DIR}/controller.cpp
 	${SRC_DIR}/graphview.cpp
 	${INCLUDE_DIR}/mainwindow.h
+	${INCLUDE_DIR}/functionview.h
 	${INCLUDE_DIR}/model.h
 	${INCLUDE_DIR}/controller.h
 	${INCLUDE_DIR}/graphview.h
 	${UI_DIR}/mainwindow.ui
+	${UI_DIR}/functionview.ui
 )
 
 set(CMAKE_CXX_STANDARD 17)

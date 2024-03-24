@@ -9,49 +9,78 @@ Controller::Controller(
 	model(model),
 	view(view)
 {
-	updateFormula(0);
-	updateGraph(0);
-	// Model -> View:
+
 	connect(
 		view,
-		&MainWindow::formulaChanged,
-		[=]() {
-			updateGraph(0);
+		&MainWindow::functionCountChanged,
+		[=]( size_t value ) {
+			setFunctionCount( value );
 		}
 	);
-	connect(
-		view,
-		&MainWindow::viewParamsChanged,
-		[=]() {
-			updateGraph(0);
+	setFunctionCount( view->getFunctionViewCount() );
+}
+
+void Controller::setFunctionCount(const size_t size) {
+	const auto oldSize = model->size();
+	if( oldSize > size ) {
+		model->resize( size );
+	}
+	else if( oldSize < size ) {
+		while( model->size() < size ) {
+			const auto formulaStr = "sin(2pi*x)";
+			auto formula = formulaFunctionFactory(
+					formulaStr
+			);
+			model->push_back( formula );
 		}
-	);
+	}
+	view->resizeFunctionView( size );
+	for( size_t i=oldSize; i<model->size(); i++ ) {
+		updateFormula(i);
+		updateGraph(i);
+		auto functionView = view->getFunctionView(i);
+		// Model -> View:
+		connect(
+			functionView,
+			&FunctionView::formulaChanged,
+			[=]() {
+				updateGraph(i);
+			}
+		);
+		connect(
+			functionView,
+			&FunctionView::viewParamsChanged,
+			[=]() {
+				updateGraph(i);
+			}
+		);
+	}
 }
 
 void Controller::updateFormula(const size_t iFunction) {
-	assert( iFunction < model->size() );
 	const auto maybeFormula = model->at(iFunction);
+	const auto functionView = view->getFunctionView(iFunction);
 	if( !maybeFormula ) {
-		view->setFormulaError("error initializing");
+		functionView->setFormulaError("error initializing");
 	}
 	else {
-		view->setFormula( maybeFormula.value()->toString() );
+		functionView->setFormula( maybeFormula.value()->toString() );
 	}
 }
 
 void Controller::updateGraph(const size_t iFunction) {
-	assert( iFunction < model->size() );
 	auto& maybeFormula = model->at(iFunction);
+	const auto functionView = view->getFunctionView(iFunction);
 	maybeFormula = formulaFunctionFactory(
-			view->getFormula()
+			functionView->getFormula()
 	);
 	if( !maybeFormula ) {
-		view->setFormulaError( "invalid function" );
+		functionView->setFormulaError( "invalid function" );
 		return;
 	}
-	view->setGraph(
+	functionView->setGraph(
 			maybeFormula.value()->getPoints(
-				view->getGraphView()->getXRange()
+				functionView->getGraphView()->getXRange()
 			)
 	);
 }

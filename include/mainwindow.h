@@ -2,7 +2,7 @@
 #define MAINWINDOW_H
 
 #include "model.h"
-#include "graphview.h"
+#include "functionview.h"
 
 #include <QMainWindow>
 
@@ -22,23 +22,17 @@ public:
   );
   ~MainWindow();
 
-	QString getFormula();
-	GraphView* getGraphView();
+	FunctionView* getFunctionView(const size_t index) const;
+	size_t getFunctionViewCount() const;
 
-  void setFormula( const QString& str );
-
-  void setGraph(
-      const std::vector<std::pair<T,T>>& values
-  );
-  void setFormulaError( const QString& str );
+	void resizeFunctionView(const size_t size);
 
 signals:
-  void formulaChanged();
-  void viewParamsChanged();
+	void functionCountChanged(const size_t count);
 
 private:
-    Ui::MainWindow *ui;
-    GraphView* chartView;
+	Ui::MainWindow *ui;
+	std::vector<FunctionView*> functionViews;
 };
 
 #endif // MAINWINDOW_H

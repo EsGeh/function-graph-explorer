@@ -8,89 +8,16 @@
 MainWindow::MainWindow(QWidget *parent)
 		: QMainWindow(parent)
 		, ui(new Ui::MainWindow)
+		, functionViews()
 {
 	ui->setupUi(this);
-
-	chartView = new GraphView();
-	ui->verticalLayout->addWidget(chartView);
-
 	connect(
-		ui->formulaEdit,
-		&QLineEdit::textChanged,
-		[=](QString value) {
-			// qDebug() << "changed";
-			emit formulaChanged();
+		ui->functionCount,
+		&QSpinBox::valueChanged,
+		[=]( int value ) {
+			emit functionCountChanged( value );
 		}
 	);
-	connect(
-		this->chartView,
-		&GraphView::viewChanged,
-		[=]() {
-			// qDebug() << "changed";
-			ui->originX->setValue(
-					chartView->getOrigin().first
-			);
-			ui->originY->setValue(
-					chartView->getOrigin().second
-			);
-			ui->scaleX->setValue(
-					chartView->getScale().first
-			);
-			ui->scaleY->setValue(
-					chartView->getScale().second
-			);
-			emit viewParamsChanged();
-		}
-	);
-
-	connect(
-		ui->originX,
-		&QDoubleSpinBox::valueChanged,
-		[=](double value) {
-			chartView->setOrigin( {
-					value,
-					chartView->getOrigin().second
-			} );
-			emit viewParamsChanged();
-		}
-	);
-
-	connect(
-		ui->originY,
-		&QDoubleSpinBox::valueChanged,
-		[=](double value) {
-			chartView->setOrigin( {
-					chartView->getOrigin().first,
-					value
-			} );
-			emit viewParamsChanged();
-		}
-	);
-
-	connect(
-		ui->scaleX,
-		&QDoubleSpinBox::valueChanged,
-		[=](double value) {
-			chartView->setScale( {
-					value,
-					chartView->getScale().second
-			} );
-			emit viewParamsChanged();
-		}
-	);
-
-	connect(
-		ui->scaleY,
-		&QDoubleSpinBox::valueChanged,
-		[=](double value) {
-			chartView->setScale( {
-					chartView->getScale().first,
-					value
-			} );
-			emit viewParamsChanged();
-		}
-	);
-
 }
 
 MainWindow::~MainWindow()
@@ -98,27 +25,30 @@ MainWindow::~MainWindow()
 	delete ui;
 }
 
-QString MainWindow::getFormula() {
-	return ui->formulaEdit->text();
-}
-GraphView* MainWindow::getGraphView() {
-	return chartView;
+FunctionView* MainWindow::getFunctionView(const size_t index) const {
+	return functionViews.at( index );
 }
 
-void MainWindow::setFormulaError( const QString& str )
-{
-  // qWarning() << str;
-	chartView->reset();
+size_t MainWindow::getFunctionViewCount() const {
+	return ui->functionCount->value();
 }
 
-void MainWindow::setFormula( const QString& str ) {
-	ui->formulaEdit->setText( str );
-}
-
-void MainWindow::setGraph(
-    const std::vector<std::pair<T,T>>& values
-)
-{
-  // qDebug() << "setting graph";
-	chartView->setGraph( values );
+void MainWindow::resizeFunctionView(const size_t size) {
+	if( functionViews.size() > size ) {
+		while( functionViews.size() > size ) {
+			auto last = functionViews.back();
+			ui->verticalLayout->removeWidget( last );
+			last->deleteLater();
+			functionViews.pop_back();
+		}
+	}
+	else if( functionViews.size() < size ) {
+		while( functionViews.size() < size ) {
+			auto funcView = new FunctionView();
+			ui->verticalLayout->addWidget(funcView);
+			functionViews.push_back(
+					funcView
+			);
+		}
+	}
 }
