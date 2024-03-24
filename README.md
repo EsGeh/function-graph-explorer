@@ -22,7 +22,7 @@ You need [conan](https://conan.io/) installed. Issuing the following command wil
 
 # Run
 
-    $ ./build/run.fish
+    $ ./scripts/run.fish
 
 # Clean Output
 
