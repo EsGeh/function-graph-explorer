@@ -1,7 +1,7 @@
 #include "model.h"
 
 
-const unsigned int RES = 100;
+const unsigned int RES = 1024;
 
 
 std::vector<std::pair<T,T>> Function::getPoints(
