@@ -19,14 +19,17 @@ set(PROJECT_SOURCES
 	${SRC_DIR}/function.cpp
 	${SRC_DIR}/controller.cpp
 	${SRC_DIR}/graphview.cpp
+	${SRC_DIR}/functiondisplayoptions.cpp
 	${INCLUDE_DIR}/mainwindow.h
 	${INCLUDE_DIR}/functionview.h
 	${INCLUDE_DIR}/model.h
 	${INCLUDE_DIR}/function.h
 	${INCLUDE_DIR}/controller.h
 	${INCLUDE_DIR}/graphview.h
+	${INCLUDE_DIR}/functiondisplayoptions.h
 	${UI_DIR}/mainwindow.ui
 	${UI_DIR}/functionview.ui
+	${UI_DIR}/functiondisplayoptions.ui
 )
 
 set(CMAKE_CXX_STANDARD 23)

@@ -44,7 +44,9 @@ void MainWindow::resizeFunctionView(const size_t size) {
 	}
 	else if( functionViews.size() < size ) {
 		while( functionViews.size() < size ) {
-			auto funcView = new FunctionView();
+			auto funcView = new FunctionView(
+					QString("f%1(x) =").arg(functionViews.size()) // title
+			);
 			ui->verticalLayout->addWidget(funcView);
 			functionViews.push_back(
 					funcView

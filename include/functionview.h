@@ -3,6 +3,7 @@
 
 #include <QWidget>
 #include "graphview.h"
+#include "functiondisplayoptions.h"
 
 namespace Ui {
 class FunctionView;
@@ -13,7 +14,10 @@ class FunctionView : public QWidget
   Q_OBJECT
 
 public:
-	explicit FunctionView(QWidget *parent = nullptr);
+	explicit FunctionView(
+			const QString& title,
+			QWidget *parent = nullptr
+	);
 	~FunctionView();
 
 	QString getFormula();
@@ -32,7 +36,8 @@ signals:
 
 private:
 	Ui::FunctionView *ui;
-  GraphView* chartView;
+  GraphView* graphView;
+	FunctionDisplayOptions* displayDialog;
 };
 
 #endif // FUNCTIONVIEW_H

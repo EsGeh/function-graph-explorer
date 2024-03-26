@@ -1,7 +1,7 @@
 #include "graphview.h"
 #include <math.h>
 #include <QValueAxis>
-#include <QtCharts/QSplineSeries>
+#include <QtCharts/QLineSeries>
 
 
 GraphView::GraphView(QWidget *parent)
@@ -12,10 +12,11 @@ GraphView::GraphView(QWidget *parent)
 	setAlignment(Qt::AlignRight);
 	setBackgroundBrush(QBrush(Qt::white));
 	setAutoFillBackground(true);
+	setRenderHint(QPainter::Antialiasing);
 
 	QChart *chart = new QChart();
+	chart->legend()->hide();
   setChart( chart );
-	chart->setTitle("Function Graph");
 	// X:
 	{
 		QValueAxis* axis = new QValueAxis();
@@ -113,12 +114,12 @@ void GraphView::setGraph(
 	reset();
 	QChart *chart = this->chart();
 
-	auto series0 = new QSplineSeries();
+	auto series0 = new QLineSeries();
 	{
 		for( auto value: values ) {
 			*series0 << QPointF( value.first, value.second );
 		}
-		series0->setName("f(x)");
+		// series0->setName("f(x)");
 	}
 
 	chart->addSeries(series0);

@@ -1,14 +1,23 @@
 #include "functionview.h"
 #include "ui_functionview.h"
 
-FunctionView::FunctionView(QWidget *parent)
+FunctionView::FunctionView(
+		const QString& title,
+		QWidget *parent
+)
     : QWidget(parent)
     , ui(new Ui::FunctionView)
+		, graphView(nullptr)
+		, displayDialog(nullptr)
 {
+	// init UI:
 	ui->setupUi(this);
 
-	chartView = new GraphView();
-	ui->verticalLayout->addWidget(chartView);
+	ui->formulaLabel->setText( title );
+	graphView = new GraphView();
+	ui->verticalLayout->addWidget(graphView);
+
+	displayDialog = new FunctionDisplayOptions(this);
 
 	connect(
 		ui->formulaEdit,
@@ -18,69 +27,37 @@ FunctionView::FunctionView(QWidget *parent)
 		}
 	);
 	connect(
-		this->chartView,
+		ui->optionsBtn,
+		&QPushButton::clicked,
+		[this]() {
+			displayDialog->show();
+		}
+	);
+	connect(
+		displayDialog,
+		&FunctionDisplayOptions::finished,
+		[this](int result) {
+			// qDebug() << "dialog closed with " << result;
+			if( !result ) return;
+			graphView->setOrigin(
+					displayDialog->getOrigin()
+			);
+			graphView->setScale(
+					displayDialog->getScale()
+			);
+			emit viewParamsChanged();
+		}
+	);
+	connect(
+		this->graphView,
 		&GraphView::viewChanged,
 		[this]() {
-			ui->originX->setValue(
-					chartView->getOrigin().first
+			displayDialog->setOrigin(
+					graphView->getOrigin()
 			);
-			ui->originY->setValue(
-					chartView->getOrigin().second
+			displayDialog->setScale(
+					graphView->getScale()
 			);
-			ui->scaleX->setValue(
-					chartView->getScale().first
-			);
-			ui->scaleY->setValue(
-					chartView->getScale().second
-			);
-			emit viewParamsChanged();
-		}
-	);
-
-	connect(
-		ui->originX,
-		&QDoubleSpinBox::valueChanged,
-		[this](double value) {
-			chartView->setOrigin( {
-					value,
-					chartView->getOrigin().second
-			} );
-			emit viewParamsChanged();
-		}
-	);
-
-	connect(
-		ui->originY,
-		&QDoubleSpinBox::valueChanged,
-		[this](double value) {
-			chartView->setOrigin( {
-					chartView->getOrigin().first,
-					value
-			} );
-			emit viewParamsChanged();
-		}
-	);
-
-	connect(
-		ui->scaleX,
-		&QDoubleSpinBox::valueChanged,
-		[this](double value) {
-			chartView->setScale( {
-					value,
-					chartView->getScale().second
-			} );
-			emit viewParamsChanged();
-		}
-	);
-
-	connect(
-		ui->scaleY,
-		&QDoubleSpinBox::valueChanged,
-		[this](double value) {
-			chartView->setScale( {
-					chartView->getScale().first,
-					value
-			} );
 			emit viewParamsChanged();
 		}
 	);
@@ -95,12 +72,12 @@ QString FunctionView::getFormula() {
 	return ui->formulaEdit->text();
 }
 GraphView* FunctionView::getGraphView() {
-	return chartView;
+	return graphView;
 }
 
 void FunctionView::setFormulaError( const QString& str )
 {
-	chartView->reset();
+	graphView->reset();
 }
 
 void FunctionView::setFormula( const QString& str ) {
@@ -111,5 +88,5 @@ void FunctionView::setGraph(
     const std::vector<std::pair<T,T>>& values
 )
 {
-	chartView->setGraph( values );
+	graphView->setGraph( values );
 }
