@@ -6,15 +6,21 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
+    <width>300</width>
     <height>300</height>
    </rect>
   </property>
   <property name="sizePolicy">
-   <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+   <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
     <horstretch>0</horstretch>
     <verstretch>0</verstretch>
    </sizepolicy>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>300</width>
+    <height>300</height>
+   </size>
   </property>
   <property name="windowTitle">
    <string>Form</string>
@@ -22,6 +28,9 @@
   <layout class="QVBoxLayout" name="verticalLayout_2" stretch="0">
    <property name="spacing">
     <number>2</number>
+   </property>
+   <property name="sizeConstraint">
+    <enum>QLayout::SetDefaultConstraint</enum>
    </property>
    <property name="leftMargin">
     <number>2</number>
@@ -37,10 +46,25 @@
    </property>
    <item>
     <widget class="QGroupBox" name="groupBox">
+     <property name="enabled">
+      <bool>true</bool>
+     </property>
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
      <property name="title">
       <string/>
      </property>
+     <property name="alignment">
+      <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+     </property>
      <layout class="QVBoxLayout" name="verticalLayout">
+      <property name="sizeConstraint">
+       <enum>QLayout::SetDefaultConstraint</enum>
+      </property>
       <property name="leftMargin">
        <number>6</number>
       </property>
@@ -54,7 +78,7 @@
        <number>6</number>
       </property>
       <item>
-       <layout class="QHBoxLayout" name="horizontalLayout">
+       <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0,0">
         <item>
          <widget class="QLabel" name="formulaLabel">
           <property name="text">
@@ -69,14 +93,14 @@
           </property>
          </widget>
         </item>
+        <item>
+         <widget class="QToolButton" name="optionsBtn">
+          <property name="text">
+           <string>...</string>
+          </property>
+         </widget>
+        </item>
        </layout>
-      </item>
-      <item>
-       <widget class="QPushButton" name="optionsBtn">
-        <property name="text">
-         <string>Options</string>
-        </property>
-       </widget>
       </item>
      </layout>
     </widget>

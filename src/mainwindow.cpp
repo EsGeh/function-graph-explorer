@@ -47,7 +47,18 @@ void MainWindow::resizeFunctionView(const size_t size) {
 			auto funcView = new FunctionView(
 					QString("f%1(x) =").arg(functionViews.size()) // title
 			);
-			ui->verticalLayout->addWidget(funcView);
+			// insert directly before the final spacer:
+			ui->verticalLayout->insertWidget(
+					ui->verticalLayout->count()-1,
+					funcView,
+					1
+			);
+			/*
+			qDebug() << funcView->objectName();
+			qDebug() << funcView->sizePolicy();
+			qDebug() << funcView->sizeHint();
+			qDebug() << funcView->minimumSizeHint();
+			*/
 			functionViews.push_back(
 					funcView
 			);

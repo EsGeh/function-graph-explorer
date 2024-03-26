@@ -3,6 +3,10 @@
 #include <stdexcept>
 
 
+inline QString functionName( const size_t index ) {
+	return QString("f%1").arg( index );
+}
+
 Model::Model()
 	: constantSymbols(symbol_table_t::symtab_mutability_type::e_immutable)
 	, functionSymbols(symbol_table_t::symtab_mutability_type::e_immutable)
@@ -27,7 +31,9 @@ void Model::resize( const size_t size ) {
 	else if( size > oldSize ) {
 		for( auto i=oldSize; i<size; i++ ) {
 			auto entry = std::shared_ptr<FunctionEntry>(new FunctionEntry {
-				"x",
+				(i>0)
+					? QString("%1(x)").arg( functionName(i-1) )
+					: "x",
 				{}
 			});
 			functions.push_back( entry );
@@ -43,10 +49,6 @@ ErrorOrFunction Model::set( const size_t index, const QString& functionStr ) {
 	entry->string = functionStr;
 	updateFormulas( index );
 	return entry->errorOrFunction;
-}
-
-inline QString functionName( const size_t index ) {
-	return QString("f%1").arg( index );
 }
 
 void Model::updateFormulas(const size_t startIndex) {

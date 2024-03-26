@@ -28,6 +28,9 @@ public:
 
 	void reset();
 
+	virtual QSize minimumSizeHint() const;
+	virtual QSize sizeHint() const;
+
 signals:
 	void viewChanged();
 

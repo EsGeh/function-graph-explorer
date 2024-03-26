@@ -10,12 +10,11 @@ FunctionView::FunctionView(
 		, graphView(nullptr)
 		, displayDialog(nullptr)
 {
-	// init UI:
 	ui->setupUi(this);
 
 	ui->formulaLabel->setText( title );
 	graphView = new GraphView();
-	ui->verticalLayout->addWidget(graphView);
+	ui->verticalLayout->addWidget( graphView, 1 );
 
 	displayDialog = new FunctionDisplayOptions(this);
 
@@ -28,7 +27,7 @@ FunctionView::FunctionView(
 	);
 	connect(
 		ui->optionsBtn,
-		&QPushButton::clicked,
+		&QAbstractButton::clicked,
 		[this]() {
 			displayDialog->show();
 		}

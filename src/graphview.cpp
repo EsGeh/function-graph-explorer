@@ -126,7 +126,14 @@ void GraphView::setGraph(
 	series0->attachAxis( chart->axes(Qt::Horizontal).first() );
 	series0->attachAxis( chart->axes(Qt::Vertical).first() );
 	updateAxes();
+}
 
+QSize GraphView::minimumSizeHint() const {
+	return {200, 200};
+}
+
+QSize GraphView::sizeHint() const {
+	return {200, 200};
 }
 
 void GraphView::updateAxes() {
