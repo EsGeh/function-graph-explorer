@@ -14,7 +14,7 @@ MainWindow::MainWindow(QWidget *parent)
 	connect(
 		ui->functionCount,
 		&QSpinBox::valueChanged,
-		[=]( int value ) {
+		[this]( int value ) {
 			emit functionCountChanged( value );
 		}
 	);

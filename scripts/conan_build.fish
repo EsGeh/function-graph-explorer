@@ -2,7 +2,7 @@
 
 set BASE_DIR (dirname (status dirname))
 
-set BUILD_TYPE Release
+set BUILD_TYPE Debug
 set BUILD_DIR $BASE_DIR/build/conan/$BUILD_TYPE
 
 # configure

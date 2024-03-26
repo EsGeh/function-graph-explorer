@@ -13,14 +13,14 @@ FunctionView::FunctionView(QWidget *parent)
 	connect(
 		ui->formulaEdit,
 		&QLineEdit::textChanged,
-		[=](QString value) {
+		[this](QString value) {
 			emit formulaChanged();
 		}
 	);
 	connect(
 		this->chartView,
 		&GraphView::viewChanged,
-		[=]() {
+		[this]() {
 			ui->originX->setValue(
 					chartView->getOrigin().first
 			);
@@ -40,7 +40,7 @@ FunctionView::FunctionView(QWidget *parent)
 	connect(
 		ui->originX,
 		&QDoubleSpinBox::valueChanged,
-		[=](double value) {
+		[this](double value) {
 			chartView->setOrigin( {
 					value,
 					chartView->getOrigin().second
@@ -52,7 +52,7 @@ FunctionView::FunctionView(QWidget *parent)
 	connect(
 		ui->originY,
 		&QDoubleSpinBox::valueChanged,
-		[=](double value) {
+		[this](double value) {
 			chartView->setOrigin( {
 					chartView->getOrigin().first,
 					value
@@ -64,7 +64,7 @@ FunctionView::FunctionView(QWidget *parent)
 	connect(
 		ui->scaleX,
 		&QDoubleSpinBox::valueChanged,
-		[=](double value) {
+		[this](double value) {
 			chartView->setScale( {
 					value,
 					chartView->getScale().second
@@ -76,7 +76,7 @@ FunctionView::FunctionView(QWidget *parent)
 	connect(
 		ui->scaleY,
 		&QDoubleSpinBox::valueChanged,
-		[=](double value) {
+		[this](double value) {
 			chartView->setScale( {
 					chartView->getScale().first,
 					value

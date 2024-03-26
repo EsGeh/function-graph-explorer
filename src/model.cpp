@@ -1,62 +1,89 @@
 #include "model.h"
+#include <QDebug>
+#include <stdexcept>
 
 
-const unsigned int RES = 1024;
+Model::Model()
+	: constantSymbols(symbol_table_t::symtab_mutability_type::e_immutable)
+	, functionSymbols(symbol_table_t::symtab_mutability_type::e_immutable)
+	, functions()
+{
+	constantSymbols.add_constant( "pi", acos(-1) );
+}
 
+size_t Model::size() const {
+	return functions.size();
+}
 
-std::vector<std::pair<T,T>> Function::getPoints(
-		const std::pair<T,T>& range
-) {
-	auto
-		xMin = range.first,
-		xMax = range.second
-	;
-	std::vector<std::pair<T,T>> graph;
-	for( unsigned int i=0; i<RES+1; i++ ) {
-		T x = xMin + (T(i) / RES)*(xMax - xMin);
-		graph.push_back(
+ErrorOrFunction Model::get(const size_t index) {
+	return functions.at( index )->errorOrFunction;
+}
+
+void Model::resize( const size_t size ) {
+	const auto oldSize = functions.size();
+	if( size < oldSize ) {
+		functions.resize( size );
+	}
+	else if( size > oldSize ) {
+		for( auto i=oldSize; i<size; i++ ) {
+			auto entry = std::shared_ptr<FunctionEntry>(new FunctionEntry {
+				"x",
+				{}
+			});
+			functions.push_back( entry );
+		}
+		updateFormulas(oldSize);
+	}
+	assert( this->size() == size );
+}
+
+ErrorOrFunction Model::set( const size_t index, const QString& functionStr ) {
+	// assert( index < size() );
+	auto entry = functions[index];
+	entry->string = functionStr;
+	updateFormulas( index );
+	return entry->errorOrFunction;
+}
+
+inline QString functionName( const size_t index ) {
+	return QString("f%1").arg( index );
+}
+
+void Model::updateFormulas(const size_t startIndex) {
+	functionSymbols.clear();
+	/* dont change entries
+	 * before start index
+	 * but add their
+	 * function symbols
+	 */
+	for( size_t i=0; i<startIndex; i++ ) {
+		auto entry = functions.at(i);
+		if( entry->errorOrFunction.index() == 1 ) {
+			functionSymbols.add_function(
+					functionName( i ).toStdString().c_str(),
+					*(std::get<std::shared_ptr<Function>>(
+							entry->errorOrFunction
+					).get())
+			);
+		}
+	}
+	/* update entries
+	 * from startIndex:
+	 */
+	for( size_t i=startIndex; i<functions.size(); i++ ) {
+		auto entry = functions.at(i);
+		entry->errorOrFunction = formulaFunctionFactory(
+				entry->string,
 				{
-					x,
-					get( x ),
+					&constantSymbols,
+					&functionSymbols
 				}
 		);
+		if( entry->errorOrFunction.index() == 1 ) {
+			functionSymbols.add_function(
+					functionName( i ).toStdString().c_str(),
+					*(std::get<std::shared_ptr<Function>>( entry->errorOrFunction ).get())
+			);
+		}
 	}
-	return graph;
-}
-
-FormulaFunction::FormulaFunction()
-	: Function(),
-	formulaStr(""),
-	sym_table(symbol_table_t::symtab_mutability_type::e_immutable)
-{
-	sym_table.add_constant("pi", acos(-1));
-	sym_table.add_variable("x", varX);
-	formula.register_symbol_table( sym_table );
-}
-
-T FormulaFunction::get( T x ) {
-	varX = x;
-	return formula.value();
-}
-
-QString FormulaFunction::toString() const {
-	return formulaStr;
-}
-
-bool FormulaFunction::init(const QString& formulaStr) {
-	this->formulaStr = formulaStr;
-	parser_t parser;
-	parser.settings().disable_all_control_structures();
-	parser.settings().disable_all_assignment_ops();
-	return parser.compile( formulaStr.toStdString(), formula);
-}
-
-std::optional<std::shared_ptr<Function>> formulaFunctionFactory(
-	const QString& formulaStr
-) {
-	auto ret = std::shared_ptr<FormulaFunction>(new FormulaFunction());
-	if( ! ret->init( formulaStr ) ) {
-		return {};
-	}
-	return ret;
 }

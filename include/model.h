@@ -1,61 +1,61 @@
 #ifndef MODEL_H
 #define MODEL_H
 
-#include "exprtk.hpp"
+#include "function.h"
 #include <QString>
 #include <memory>
 #include <optional>
 
 
-typedef float T;
+typedef
+	ErrorOrValue<std::shared_ptr<Function>>
+	ErrorOrFunction
+;
 
-typedef exprtk::symbol_table<T>
-	symbol_table_t;
-typedef exprtk::expression<T>
-	expression_t;
-typedef exprtk::parser<T>
-	parser_t;
-
-
-class Function {
-
-	public:
-		virtual T get( T x ) = 0;
-		virtual QString toString() const = 0;
-
-		std::vector<std::pair<T,T>> getPoints(
-				const std::pair<T,T>& range
-		);
+struct FunctionEntry {
+	QString string;
+	ErrorOrFunction errorOrFunction;
 };
 
-class FormulaFunction: public Function
+/*
+struct FunctionWrap: public exprtk::ifunction<T>
 {
+	FunctionWrap(
+			Function* function
+	)
+		: exprtk::ifunction<T>(1)
+		, function( function )
+	{}
 
-	public:
-		// get:
-		virtual T get( T x );
-		virtual QString toString() const;
-
+	T operator()(const T& x)
+	{
+		 return function->get( x );
+	}
 	private:
-		FormulaFunction();
-		bool init(const QString& formula_str);
-		friend std::optional<std::shared_ptr<Function>> formulaFunctionFactory(
-			const QString& formulaStr
-		);
-
-	private:
-		QString formulaStr;
-		symbol_table_t sym_table;
-		expression_t formula;
-		T varX;
-
+		Function* function;
 };
+*/
 
-std::optional<std::shared_ptr<Function>> formulaFunctionFactory(
-	const QString& formulaStr
-);
+class Model
+{
+	public:
+		Model();
 
+		// get:
+		size_t size() const;
+		ErrorOrFunction get(const size_t index);
 
-typedef std::vector<std::optional<std::shared_ptr<Function>>> Model;
+		// set:
+		void resize( const size_t size );
+		ErrorOrFunction set( const size_t index, const QString& functionStr );
+	
+	private:
+		void updateFormulas( const size_t startIndex );
+
+	private:
+		symbol_table_t constantSymbols;
+		symbol_table_t functionSymbols;;
+		std::vector<std::shared_ptr<FunctionEntry>> functions;
+};
 
 #endif // MODEL_H

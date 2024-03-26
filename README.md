@@ -27,3 +27,7 @@ You need [conan](https://conan.io/) installed. Issuing the following command wil
 # Clean Output
 
     $ ./scripts/clean.fish
+
+# Build and Run Tests
+
+    $ ./scripts/conan_test.fish
