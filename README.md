@@ -4,6 +4,9 @@ This project is in an early stage. Functionality is still incomplete and will ch
 Eventually, some time this might become a educational tool for exploring function graphs, the Fourier Transform, filter design and audio signal analysis.
 Work in progress.
 
+![screenshot1](doc/screenshot1.png)
+![screenshot2](doc/screenshot2.png)
+
 # Build
 
 ## Build Without Package Manager
