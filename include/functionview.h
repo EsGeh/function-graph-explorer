@@ -2,6 +2,7 @@
 #define FUNCTIONVIEW_H
 
 #include <QWidget>
+#include <QStatusBar>
 #include "graphview.h"
 #include "functiondisplayoptions.h"
 
@@ -38,6 +39,7 @@ private:
 	Ui::FunctionView *ui;
   GraphView* graphView;
 	FunctionDisplayOptions* displayDialog;
+	QStatusBar* statusBar;
 };
 
 #endif // FUNCTIONVIEW_H

@@ -9,10 +9,15 @@ FunctionView::FunctionView(
     , ui(new Ui::FunctionView)
 		, graphView(nullptr)
 		, displayDialog(nullptr)
+		, statusBar(nullptr)
 {
 	ui->setupUi(this);
 
 	ui->formulaLabel->setText( title );
+	statusBar = new QStatusBar();
+	statusBar->setVisible(false);
+	// statusBar->showMessage("ok");
+	ui->verticalLayout->addWidget( statusBar, 0 );
 	graphView = new GraphView();
 	ui->verticalLayout->addWidget( graphView, 1 );
 
@@ -76,6 +81,8 @@ GraphView* FunctionView::getGraphView() {
 
 void FunctionView::setFormulaError( const QString& str )
 {
+	statusBar->setVisible(true);
+	statusBar->showMessage(str);
 	graphView->reset();
 }
 
@@ -87,5 +94,6 @@ void FunctionView::setGraph(
     const std::vector<std::pair<T,T>>& values
 )
 {
+	statusBar->setVisible(false);
 	graphView->setGraph( values );
 }
