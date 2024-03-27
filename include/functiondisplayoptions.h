@@ -17,9 +17,11 @@ public:
 	explicit FunctionDisplayOptions(QWidget *parent = nullptr);
 	~FunctionDisplayOptions();
 
+	QString getFormula() const;
 	std::pair<T,T> getOrigin() const;
 	std::pair<T,T> getScale() const;
 
+	void setFormula( const QString& value );
 	void setOrigin( const std::pair<T,T>& value );
 	void setScale( const std::pair<T,T>& value );
 

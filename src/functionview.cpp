@@ -27,6 +27,7 @@ FunctionView::FunctionView(
 		ui->formulaEdit,
 		&QLineEdit::textChanged,
 		[this](QString value) {
+			displayDialog->setFormula( value );
 			emit formulaChanged();
 		}
 	);
@@ -43,13 +44,15 @@ FunctionView::FunctionView(
 		[this](int result) {
 			// qDebug() << "dialog closed with " << result;
 			if( !result ) return;
+			ui->formulaEdit->setText( displayDialog->getFormula() );
 			graphView->setOrigin(
 					displayDialog->getOrigin()
 			);
 			graphView->setScale(
 					displayDialog->getScale()
 			);
-			emit viewParamsChanged();
+			emit formulaChanged();
+			// emit viewParamsChanged();
 		}
 	);
 	connect(

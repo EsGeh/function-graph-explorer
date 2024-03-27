@@ -15,6 +15,9 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
+    <widget class="QPlainTextEdit" name="largeFormulaEdit"/>
+   </item>
+   <item>
     <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="0,1,1">
      <item>
       <widget class="QLabel" name="label_2">
