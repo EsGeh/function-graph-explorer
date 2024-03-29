@@ -42,11 +42,6 @@ void TestModel::testResizeUp() {
 						.arg( error )
 					.toStdString().c_str()
 			);
-			/*
-			QVERIFY_THROWS_NO_EXCEPTION(
-				std::get<std::shared_ptr<Function>>(errorOrFunc)
-			);
-			*/
 		}
 	}
 	QVERIFY_THROWS_EXCEPTION(
