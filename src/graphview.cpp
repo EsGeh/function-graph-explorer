@@ -42,11 +42,16 @@ std::pair<T,T> GraphView::getScale() const {
 }
 
 std::pair<T,T> GraphView::getXRange() const {
-	return { origin.first - getScale().first, origin.first + getScale().first };
+	return {
+		origin.first - getScale().first,
+		origin.first + getScale().first
+	};
 }
 
 std::pair<T,T> GraphView::getYRange() const {
-	return { origin.second - getScale().second, origin.second + getScale().second };
+	return {
+		origin.second - getScale().second,
+			origin.second + getScale().second };
 }
 
 void GraphView::mousePressEvent( QMouseEvent *event ) {
@@ -108,23 +113,38 @@ void GraphView::setScale( const std::pair<T,T>& value ) {
 }
 
 void GraphView::setGraph(
-	const std::vector<std::pair<T,T>>& values
+	const std::vector<std::pair<C,C>>& values
 )
 {
 	reset();
 	QChart *chart = this->chart();
 
 	auto series0 = new QLineSeries();
+	auto series1 = new QLineSeries();
 	{
 		for( auto value: values ) {
-			*series0 << QPointF( value.first, value.second );
+			*series0 << QPointF( value.first.c_.real(), value.second.c_.real() );
+			*series1 << QPointF( value.first.c_.real(), value.second.c_.imag() );
 		}
 		// series0->setName("f(x)");
 	}
 
-	chart->addSeries(series0);
+	{
+		QPen pen(Qt::green);
+		// pen.setWidth(2);
+		series1->setPen(pen);
+		chart->addSeries(series1);
+	}
+	{
+		QPen pen(Qt::blue);
+		// pen.setWidth(2);
+		series0->setPen(pen);
+		chart->addSeries(series0);
+	}
 	series0->attachAxis( chart->axes(Qt::Horizontal).first() );
 	series0->attachAxis( chart->axes(Qt::Vertical).first() );
+	series1->attachAxis( chart->axes(Qt::Horizontal).first() );
+	series1->attachAxis( chart->axes(Qt::Vertical).first() );
 	updateAxes();
 }
 

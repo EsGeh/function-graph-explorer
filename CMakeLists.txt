@@ -5,6 +5,7 @@ set(INCLUDE_DIR include)
 set(SRC_DIR src)
 set(UI_DIR ui)
 set(TEST_DIR tests)
+set(LOCAL_DEPS_DIR dependencies)
 
 project(${TARGET_NAME}
     VERSION 0.1
@@ -20,6 +21,9 @@ set(PROJECT_SOURCES
 	${SRC_DIR}/controller.cpp
 	${SRC_DIR}/graphview.cpp
 	${SRC_DIR}/functiondisplayoptions.cpp
+	${INCLUDE_DIR}/complex.h
+	${INCLUDE_DIR}/complex_adaptor.h
+	${INCLUDE_DIR}/global.h
 	${INCLUDE_DIR}/mainwindow.h
 	${INCLUDE_DIR}/functionview.h
 	${INCLUDE_DIR}/model.h
@@ -49,7 +53,10 @@ find_package(exprtk REQUIRED)
 
 add_executable(${TARGET_NAME} ${PROJECT_SOURCES})
 
-target_include_directories(${TARGET_NAME} PRIVATE "${PROJECT_SOURCE_DIR}/${INCLUDE_DIR}")
+target_include_directories(${TARGET_NAME} PRIVATE
+	"${PROJECT_SOURCE_DIR}/${INCLUDE_DIR}"
+	"${PROJECT_SOURCE_DIR}/${LOCAL_DEPS_DIR}/exprtk_complex"
+)
 
 if(MSVC)
   target_compile_options(${TARGET_NAME} PRIVATE /W4 /WX)
@@ -60,7 +67,6 @@ endif()
 target_link_libraries(${TARGET_NAME} PRIVATE Qt6::Widgets)
 target_link_libraries(${TARGET_NAME} PRIVATE Qt6::Charts)
 target_link_libraries(${TARGET_NAME} PRIVATE exprtk::exprtk)
-
 set_target_properties(${TARGET_NAME} PROPERTIES
     ${BUNDLE_ID_OPTION}
     MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
@@ -81,6 +87,7 @@ add_executable(testformulafunction
 )
 add_test(testformulafunction testformulafunction)
 target_include_directories(testformulafunction PRIVATE "${PROJECT_SOURCE_DIR}/${INCLUDE_DIR}")
+target_include_directories(testformulafunction PRIVATE "${PROJECT_SOURCE_DIR}/${LOCAL_DEPS_DIR}/exprtk_complex")
 target_include_directories(testformulafunction PRIVATE "${PROJECT_SOURCE_DIR}/${TEST_DIR}")
 target_link_libraries(testformulafunction PRIVATE Qt6::Test)
 target_link_libraries(testformulafunction PRIVATE exprtk::exprtk)
@@ -103,6 +110,7 @@ add_executable(testmodel
 
 add_test(testmodel testmodel)
 target_include_directories(testmodel PRIVATE "${PROJECT_SOURCE_DIR}/${INCLUDE_DIR}")
+target_include_directories(testmodel PRIVATE "${PROJECT_SOURCE_DIR}/${LOCAL_DEPS_DIR}/exprtk_complex")
 target_include_directories(testmodel PRIVATE "${PROJECT_SOURCE_DIR}/${TEST_DIR}")
 target_link_libraries(testmodel PRIVATE Qt6::Test)
 target_link_libraries(testmodel PRIVATE exprtk::exprtk)

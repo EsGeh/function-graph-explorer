@@ -4,7 +4,7 @@
 QTEST_MAIN(TestFormulaFunction)
 #include "testfunction.moc"
 
-typedef std::pair<QString,T> ConstDescr;
+typedef std::pair<QString,C> ConstDescr;
 typedef std::pair<QString,QString> FuncDescr;;
 typedef std::vector<ConstDescr> ConstDescrs;
 typedef std::vector<FuncDescr> FuncDescrs;
@@ -31,7 +31,7 @@ void TestFormulaFunction::testInit_data() {
 	{
 		QTest::newRow("const from symbol table")
 			<< "2pi*x"
-			<< ConstDescrs { {"pi", T(3.141)} }
+			<< ConstDescrs { {"pi", C(3.141, 0)} }
 			<< FuncDescrs {}
 			<< 1
 		;
@@ -108,11 +108,11 @@ void TestFormulaFunction::testEval() {
 	assert( errOrValue.index() == 1 );
 	auto function = std::get<std::shared_ptr<Function>>( errOrValue );
 	{
-		auto ret = function->get( T(0) );
-		QCOMPARE( ret, 0 );
+		auto ret = function->get( C(0,0) );
+		QCOMPARE( ret, C(0,0) );
 	}
 	{
-		auto ret = function->get( T(2) );
-		QCOMPARE( ret, 4 );
+		auto ret = function->get( C(2,0) );
+		QCOMPARE( ret, C(4,0) );
 	}
 }

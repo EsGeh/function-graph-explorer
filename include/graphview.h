@@ -1,9 +1,9 @@
 #ifndef GRAPHVIEW_H
 #define GRAPHVIEW_H
 
+#include "global.h"
 #include <QChartView>
 
-typedef float T;
 
 class GraphView : public QChartView
 {
@@ -23,7 +23,7 @@ public:
 
 	void mousePressEvent( QMouseEvent *event );
 	void setGraph(
-    const std::vector<std::pair<T,T>>& values
+    const std::vector<std::pair<C,C>>& values
 	);
 
 	void reset();

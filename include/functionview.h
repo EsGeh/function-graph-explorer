@@ -27,7 +27,7 @@ public:
   void setFormula( const QString& str );
 
   void setGraph(
-      const std::vector<std::pair<T,T>>& values
+      const std::vector<std::pair<C,C>>& values
   );
   void setFormulaError( const QString& str );
 

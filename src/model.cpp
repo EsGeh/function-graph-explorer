@@ -1,18 +1,74 @@
 #include "model.h"
 #include <QDebug>
-#include <stdexcept>
 
 
 inline QString functionName( const size_t index ) {
 	return QString("f%1").arg( index );
 }
 
+
+#define DECL_FUNC_BEGIN(CLASS, ORD, ...) \
+struct CLASS: \
+	public exprtk::ifunction<C>  \
+{ \
+	CLASS() \
+	: exprtk::ifunction<C>(ORD) \
+	{} \
+\
+	C operator()( __VA_ARGS__ ) {
+
+#define DECL_FUNC_END(CLASS) \
+	} \
+};
+
+DECL_FUNC_BEGIN(RealFunction,1,const C& x)
+	return C(std::real( x.c_ ));
+DECL_FUNC_END(RealFunction)
+
+DECL_FUNC_BEGIN(ImagFunction,1,const C& x)
+	return C(std::imag( x.c_ ));
+DECL_FUNC_END(ImagFunction)
+
+DECL_FUNC_BEGIN(AbsFunction,1,const C& x)
+	return C(std::abs( x.c_ ));
+DECL_FUNC_END(AbsFunction)
+
+DECL_FUNC_BEGIN(ArgFunction,1,const C& x)
+	return C(std::arg( x.c_ ));
+DECL_FUNC_END(ArgFunction)
+
+DECL_FUNC_BEGIN(ConjFunction,1,const C& x)
+	return C(std::conj( x.c_ ));
+DECL_FUNC_END(ConjFunction)
+
+DECL_FUNC_BEGIN(PolarFunction,2,const C& x1, const C& x2)
+	return C(std::polar( std::abs(x1.c_), std::abs(x2.c_) ));
+DECL_FUNC_END(PolarFunction)
+
+static auto realFunc = RealFunction();
+static auto imagFunc = ImagFunction();
+
+static auto absFunc = AbsFunction();
+static auto argFunc = ArgFunction();
+static auto conjFunc = ConjFunction();
+static auto polarFunc = PolarFunction();
+
 Model::Model()
 	: constantSymbols(symbol_table_t::symtab_mutability_type::e_immutable)
 	, functionSymbols(symbol_table_t::symtab_mutability_type::e_immutable)
 	, functions()
 {
-	constantSymbols.add_constant( "pi", acos(-1) );
+	constantSymbols.add_constant( "pi", C(acos(-1),0) );
+	constantSymbols.add_constant( "e", cmplx::details::constant::e );
+	constantSymbols.add_constant( "i", C(0,1) );
+
+	// complex functions:
+	constantSymbols.add_function( "abs", absFunc );
+	constantSymbols.add_function( "real", realFunc );
+	constantSymbols.add_function( "imag", imagFunc );
+	constantSymbols.add_function( "arg", argFunc );
+	constantSymbols.add_function( "conj", conjFunc );
+	constantSymbols.add_function( "polar", polarFunc );
 }
 
 size_t Model::size() const {

@@ -17,25 +17,6 @@ struct FunctionEntry {
 	ErrorOrFunction errorOrFunction;
 };
 
-/*
-struct FunctionWrap: public exprtk::ifunction<T>
-{
-	FunctionWrap(
-			Function* function
-	)
-		: exprtk::ifunction<T>(1)
-		, function( function )
-	{}
-
-	T operator()(const T& x)
-	{
-		 return function->get( x );
-	}
-	private:
-		Function* function;
-};
-*/
-
 class Model
 {
 	public:
@@ -54,8 +35,10 @@ class Model
 
 	private:
 		symbol_table_t constantSymbols;
+		// exprtk::rtl::io::package<C> basicIOPackage;
 		symbol_table_t functionSymbols;;
 		std::vector<std::shared_ptr<FunctionEntry>> functions;
+
 };
 
 #endif // MODEL_H

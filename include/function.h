@@ -1,6 +1,7 @@
-#ifndef FUNCTION_H
-#define FUNCTION_H
+#ifndef FUNCCION_H
+#define FUNCCION_H
 
+#include "global.h"
 #include "exprtk.hpp"
 #include <QString>
 #include <memory>
@@ -9,37 +10,36 @@
 
 typedef QString Error;
 
-template <typename T>
-using ErrorOrValue = std::variant<Error, T>;
+template <typename C>
+using ErrorOrValue = std::variant<Error, C>;
 
 typedef std::optional<Error> MaybeError;
 
-typedef float T;
-
-typedef exprtk::symbol_table<T>
+typedef exprtk::symbol_table<C>
 	symbol_table_t;
-typedef exprtk::expression<T>
+typedef exprtk::expression<C>
 	expression_t;
-typedef exprtk::parser<T>
+typedef exprtk::parser<C>
 	parser_t;
-typedef exprtk::function_compositor<T> 
+typedef exprtk::function_compositor<C> 
 	compositor_t;
 typedef typename compositor_t::function
 	function_t;
 
+
 class Function:
-	public exprtk::ifunction<T>
+	public exprtk::ifunction<C>
 {
 
 	public:
 		Function();
-		virtual T get( T x ) = 0;
+		virtual C get( C x ) = 0;
 		virtual QString toString() const = 0;
 
-		std::vector<std::pair<T,T>> getPoints(
+		std::vector<std::pair<C,C>> getPoints(
 				const std::pair<T,T>& range
 		);
-		T operator()(const T& x);
+		C operator()(const C& x);
 };
 
 class FormulaFunction: public Function
@@ -47,7 +47,7 @@ class FormulaFunction: public Function
 
 	public:
 		// get:
-		virtual T get( T x );
+		virtual C get( C x );
 		virtual QString toString() const;
 
 	private:
@@ -65,7 +65,7 @@ class FormulaFunction: public Function
 		QString formulaStr;
 		// symbol_table_t sym_table;
 		expression_t formula;
-		T varX;
+		C varX;
 
 };
 

@@ -1,13 +1,13 @@
 #ifndef FUNCTIONDISPLAYOPTIONS_H
 #define FUNCTIONDISPLAYOPTIONS_H
 
+#include "global.h"
 #include <QDialog>
+
 
 namespace Ui {
 class FunctionDisplayOptions;
 }
-
-typedef float T;
 
 class FunctionDisplayOptions : public QDialog
 {

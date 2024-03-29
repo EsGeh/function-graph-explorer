@@ -78,10 +78,10 @@ void TestModel::testResizeDown() {
 
 void TestModel::testSetEntry() {
 	Model model;
-	std::vector<std::pair<QString, std::function<T(T)>>> testData = {
-		{ "x^1", [](auto x){ return x; } },
-		{ "x^2", [](auto x){ return x*x; } },
-		{ "x^3", [](auto x){ return x*x*x; } }
+	std::vector<std::pair<QString, std::function<C(T)>>> testData = {
+		{ "x^1", [](auto x){ return C(x,0); } },
+		{ "x^2", [](auto x){ return C(x*x,0); } },
+		{ "x^3", [](auto x){ return C(x*x*x,0); } }
 	};
 	model.resize(testData.size());
 	for( auto i=0; i<testData.size(); i++ ) {
@@ -115,10 +115,19 @@ void TestModel::testSetEntry() {
 			std::get<std::shared_ptr<Function>>(errOrFunc)
 		;
 		QCOMPARE( func->toString(), expectedString );
-		for( T x=-3; x<3; x++ ) {
-			QCOMPARE(
-					func->get( x ),
-					expectedFunc(x)
+		for( int x=-3; x<3; x++ ) {
+			C y = func->get( C(x,0) );
+			C yExpected = expectedFunc(x);
+			QVERIFY2(
+					cmplx::equal( y, yExpected ),
+					QString( "error in f%1(%2) == (%3,%4) != (%5,%6 (expected)" )
+						.arg( i )
+						.arg( T(x) )
+						.arg( y.c_.real() )
+						.arg( y.c_.imag() )
+						.arg( yExpected.c_.real() )
+						.arg( yExpected.c_.imag() )
+					.toStdString().c_str()
 			);
 		}
 	}
@@ -126,9 +135,9 @@ void TestModel::testSetEntry() {
 
 void TestModel::testFunctionReferences() {
 	Model model;
-	std::vector<std::pair<QString, std::function<T(T)>>> testData = {
-		{ "x-1", [](T x){ return (x-1); } },
-		{ "(x+1)*f0(x)", [](T x){ return (x+1)*(x-1); } }
+	std::vector<std::pair<QString, std::function<C(T)>>> testData = {
+		{ "x-1", [](T x){ return C(x-1, 0); } },
+		{ "(x+1)*f0(x)", [](T x){ return C((x+1)*(x-1), 0); } }
 	};
 	model.resize(testData.size());
 	for( auto i=0; i<testData.size(); i++ ) {
@@ -159,15 +168,17 @@ void TestModel::testFunctionReferences() {
 		;
 		QCOMPARE( func->toString(), expectedString );
 		for( int x=-3; x<3; x++ ) {
-			T y = func->get( T(x) );
-			T yExpected = expectedFunc(T(x));
+			C y = func->get( C(x,0) );
+			C yExpected = expectedFunc(T(x));
 			QVERIFY2(
-					y == yExpected,
-					QString( "error in f%1(%2) == %3 != %4 (expected)" )
+					cmplx::equal( y, yExpected ),
+					QString( "error in f%1(%2) == (%3,%4) != (%5,%6 (expected)" )
 						.arg( i )
 						.arg( T(x) )
-						.arg( y )
-						.arg( yExpected )
+						.arg( y.c_.real() )
+						.arg( y.c_.imag() )
+						.arg( yExpected.c_.real() )
+						.arg( yExpected.c_.imag() )
 					.toStdString().c_str()
 			);
 		}
@@ -178,9 +189,9 @@ void TestModel::testUpdatesReferences() {
 	Model model;
 	// initial state:
 	{
-		std::vector<std::pair<QString, std::function<T(T)>>> testData = {
-			{ "x-1", [](T x){ return (x-1); } },
-			{ "(x+1)*f0(x)", [](T x){ return (x+1)*(x-1); } }
+		std::vector<std::pair<QString, std::function<C(T)>>> testData = {
+			{ "x-1", [](T x){ return C(x-1, 0); } },
+			{ "(x+1)*f0(x)", [](T x){ return C((x+1)*(x-1), 0); } }
 		};
 		/* set F0, F1: 
 		 */
@@ -197,9 +208,9 @@ void TestModel::testUpdatesReferences() {
 	model.set( 0, "x+1" );
 	/* Check result:
 	 */
-	std::vector<std::pair<QString, std::function<T(T)>>> expectedResult = {
-		{ "x+1", [](T x){ return (x+1); } },
-		{ "(x+1)*f0(x)", [](T x){ return (x+1)*(x+1); } }
+	std::vector<std::pair<QString, std::function<C(T)>>> expectedResult = {
+		{ "x+1", [](T x){ return C(x+1, 0); } },
+		{ "(x+1)*f0(x)", [](T x){ return C((x+1)*(x+1), 0); } }
 	};
 	for( auto i=0; i<expectedResult.size(); i++ ) {
 		auto expectedString = expectedResult[i].first ;
@@ -223,15 +234,17 @@ void TestModel::testUpdatesReferences() {
 		;
 		QCOMPARE( func->toString(), expectedString );
 		for( int x=-3; x<3; x++ ) {
-			T y = func->get( T(x) );
-			T yExpected = expectedFunc(T(x));
+			C y = func->get( C(x,0) );
+			C yExpected = expectedFunc(T(x));
 			QVERIFY2(
-					y == yExpected,
-					QString( "error in f%1(%2) == %3 != %4 (expected)" )
+					cmplx::equal( y, yExpected ),
+					QString( "error in f%1(%2) == (%3,%4) != (%5,%6 (expected)" )
 						.arg( i )
 						.arg( T(x) )
-						.arg( y )
-						.arg( yExpected )
+						.arg( y.c_.real() )
+						.arg( y.c_.imag() )
+						.arg( yExpected.c_.real() )
+						.arg( yExpected.c_.imag() )
 					.toStdString().c_str()
 			);
 		}

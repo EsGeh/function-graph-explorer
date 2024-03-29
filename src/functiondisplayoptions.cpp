@@ -10,7 +10,7 @@ FunctionDisplayOptions::FunctionDisplayOptions(QWidget *parent)
 	ui->setupUi(this);
 	auto menuBar = new QMenuBar(this);
 	ui->verticalLayout->insertWidget( 0, menuBar );
-	QMenu* menu1 = menuBar->addMenu("Templates&1");
+	QMenu* menu1 = menuBar->addMenu("Templates");
 	{
 		auto action = menu1->addAction("Oscillation");
 		connect( action, &QAction::triggered,
@@ -28,11 +28,38 @@ FunctionDisplayOptions::FunctionDisplayOptions(QWidget *parent)
 					ui->largeFormulaEdit->setPlainText(
 							(QStringList {
 								"var acc := 0;",
-								"var max_freq := 8;",
-								"for( var i:=1; i<=max_freq; i+=1 ) {",
-								"	acc += (1/max_freq * f0(i*x) );",
+								"var max_freq := 4;",
+								"for( var k:=1; k<=max_freq; k+=1 ) {",
+								"  acc += (f0(k*x) );",
 								"};",
 								"acc;"
+							}).join("\n")
+					);
+				}
+		);
+	}
+	{
+		auto action = menu1->addAction("Complex Oscillation");
+		connect( action, &QAction::triggered,
+				[this]() {
+					ui->largeFormulaEdit->setPlainText(
+							"e^( i*2pi*x )"
+					);
+				}
+		);
+	}
+	{
+		auto action = menu1->addAction("Fourier Transform");
+		connect( action, &QAction::triggered,
+				[this]() {
+					ui->largeFormulaEdit->setPlainText(
+							(QStringList {
+								"var N := 16;",
+								"var acc := 0;",
+								"for( var k:=1; k<=N; k+=1 ) {",
+								"  acc += ( e^(-i*2pi*k*x/N)* f0(k/N) );",
+								"};",
+								"1/N*acc;"
 							}).join("\n")
 					);
 				}

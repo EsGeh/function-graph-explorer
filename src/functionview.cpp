@@ -94,7 +94,7 @@ void FunctionView::setFormula( const QString& str ) {
 }
 
 void FunctionView::setGraph(
-    const std::vector<std::pair<T,T>>& values
+    const std::vector<std::pair<C,C>>& values
 )
 {
 	statusBar->setVisible(false);
