@@ -5,7 +5,6 @@ set(INCLUDE_DIR include)
 set(SRC_DIR src)
 set(UI_DIR ui)
 set(TEST_DIR tests)
-set(LOCAL_DEPS_DIR dependencies)
 
 project(${TARGET_NAME}
     VERSION 0.1
@@ -55,7 +54,6 @@ add_executable(${TARGET_NAME} ${PROJECT_SOURCES})
 
 target_include_directories(${TARGET_NAME} PRIVATE
 	"${PROJECT_SOURCE_DIR}/${INCLUDE_DIR}"
-	"${PROJECT_SOURCE_DIR}/${LOCAL_DEPS_DIR}/exprtk_complex"
 )
 
 if(MSVC)
@@ -87,7 +85,6 @@ add_executable(testformulafunction
 )
 add_test(testformulafunction testformulafunction)
 target_include_directories(testformulafunction PRIVATE "${PROJECT_SOURCE_DIR}/${INCLUDE_DIR}")
-target_include_directories(testformulafunction PRIVATE "${PROJECT_SOURCE_DIR}/${LOCAL_DEPS_DIR}/exprtk_complex")
 target_include_directories(testformulafunction PRIVATE "${PROJECT_SOURCE_DIR}/${TEST_DIR}")
 target_link_libraries(testformulafunction PRIVATE Qt6::Test)
 target_link_libraries(testformulafunction PRIVATE exprtk::exprtk)
@@ -110,7 +107,6 @@ add_executable(testmodel
 
 add_test(testmodel testmodel)
 target_include_directories(testmodel PRIVATE "${PROJECT_SOURCE_DIR}/${INCLUDE_DIR}")
-target_include_directories(testmodel PRIVATE "${PROJECT_SOURCE_DIR}/${LOCAL_DEPS_DIR}/exprtk_complex")
 target_include_directories(testmodel PRIVATE "${PROJECT_SOURCE_DIR}/${TEST_DIR}")
 target_link_libraries(testmodel PRIVATE Qt6::Test)
 target_link_libraries(testmodel PRIVATE exprtk::exprtk)
