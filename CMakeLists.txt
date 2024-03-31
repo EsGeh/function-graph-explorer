@@ -20,6 +20,7 @@ set(PROJECT_SOURCES
 	${SRC_DIR}/controller.cpp
 	${SRC_DIR}/graphview.cpp
 	${SRC_DIR}/functiondisplayoptions.cpp
+	${SRC_DIR}/jack.cpp
 	${INCLUDE_DIR}/complex.h
 	${INCLUDE_DIR}/complex_adaptor.h
 	${INCLUDE_DIR}/global.h
@@ -30,6 +31,7 @@ set(PROJECT_SOURCES
 	${INCLUDE_DIR}/controller.h
 	${INCLUDE_DIR}/graphview.h
 	${INCLUDE_DIR}/functiondisplayoptions.h
+	${INCLUDE_DIR}/jack.h
 	${UI_DIR}/mainwindow.ui
 	${UI_DIR}/functionview.ui
 	${UI_DIR}/functiondisplayoptions.ui
@@ -41,6 +43,11 @@ set(CMAKE_AUTOMOC ON)
 
 set(CMAKE_AUTOUIC_SEARCH_PATHS ui/)
 
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
+
+# Find package modules
+include (FindPkgConfig)
+
 find_package(Qt6 REQUIRED COMPONENTS Core)
 qt_standard_project_setup()
 
@@ -49,6 +56,8 @@ find_package(Qt6 REQUIRED COMPONENTS Charts)
 find_package(Qt6 REQUIRED COMPONENTS Test)
 
 find_package(exprtk REQUIRED)
+
+find_package(Jack REQUIRED)
 
 add_executable(${TARGET_NAME} ${PROJECT_SOURCES})
 
@@ -65,6 +74,8 @@ endif()
 target_link_libraries(${TARGET_NAME} PRIVATE Qt6::Widgets)
 target_link_libraries(${TARGET_NAME} PRIVATE Qt6::Charts)
 target_link_libraries(${TARGET_NAME} PRIVATE exprtk::exprtk)
+target_link_libraries(${TARGET_NAME} PRIVATE Jack::Jack)
+
 set_target_properties(${TARGET_NAME} PROPERTIES
     ${BUNDLE_ID_OPTION}
     MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
