@@ -19,7 +19,7 @@ JackClient::JackClient()
 	, ports({ nullptr })
 	, samplerate(0)
 	, sampleTable()
-	, offset(0)
+	, playPos(0)
 	, worker()
 	, workerStop(false)
 {}
@@ -37,9 +37,12 @@ unsigned int JackClient::getSamplerate()
 	return samplerate;
 }
 
-unsigned int& JackClient::getOffset()
-{
-	return offset;
+bool JackClient::getIsPlaying() {
+	return playing;
+}
+
+unsigned int JackClient::getPlayPos() {
+	return playPos;
 }
 
 jack_client_t* JackClient::getClient() {
@@ -128,14 +131,17 @@ void JackClient::startWorkerThread() {
 	});
 }
 
-void oscExample(
-		SampleTable* table,
-		unsigned int samplerate
-)
-{
-	for( unsigned int i=0; i<table->size(); i++ ) {
-		table->at(i) = sin( freq/samplerate * 2*pi * i );
-	}
+void JackClient::play() {
+	playing = true;
+}
+
+void JackClient::stop() {
+	playing = false;
+	playPos = 0;
+}
+
+void JackClient::setPlayPos(const unsigned int value) {
+	playPos = value;
 }
 
 int processAudio(
@@ -145,28 +151,26 @@ int processAudio(
 	auto jackObj = (JackClient* )arg;
 	sample_t* table = jackObj->getSampleTable()->data();
 	auto tableSize = jackObj->getSampleTable()->size();
-	auto& offset = jackObj->getOffset();
 	sample_t* buffer = (sample_t* )jack_port_get_buffer(
 			jackObj->getPort(),
 			nframes
 	);
-	jack_nframes_t frames_left = nframes;
-	while (tableSize - offset < frames_left) {
-		memcpy(
-				buffer + (nframes - frames_left),
-				table + offset,
-				sizeof(sample_t) * (tableSize - offset)
-		);
-		frames_left -= tableSize - offset;
-		offset = 0;
+	if( !jackObj->getIsPlaying() ) {
+		memset(buffer, 0, sizeof(sample_t) * nframes);
+		return 0;
 	}
-	if (frames_left > 0) {
+	if( jackObj->getPlayPos() + nframes < tableSize ) {
 		memcpy(
-				buffer + (nframes - frames_left),
-				table + offset,
-				sizeof(sample_t) * frames_left
+				buffer,
+				table + jackObj->getPlayPos(),
+				sizeof(sample_t) * nframes
 		);
-		offset += frames_left;
+		jackObj->setPlayPos( jackObj->getPlayPos() + nframes );
 	}
+	else {
+		memset(buffer, 0, sizeof(sample_t) * nframes);
+		jackObj->stop();
+	}
+
 	return 0;
 }

@@ -16,7 +16,10 @@ FunctionDisplayOptions::FunctionDisplayOptions(QWidget *parent)
 		connect( action, &QAction::triggered,
 				[this]() {
 					ui->largeFormulaEdit->setPlainText(
-							"cos( 2pi*x )"
+							(QStringList {
+								"var freq := 440;",
+								"cos( freq * 2pi*x )"
+							}).join("\n")
 					);
 				}
 		);
@@ -32,7 +35,7 @@ FunctionDisplayOptions::FunctionDisplayOptions(QWidget *parent)
 								"for( var k:=1; k<=max_freq; k+=1 ) {",
 								"  acc += (f0(k*x) );",
 								"};",
-								"acc;"
+								"1/max_freq*acc;"
 							}).join("\n")
 					);
 				}
@@ -43,7 +46,10 @@ FunctionDisplayOptions::FunctionDisplayOptions(QWidget *parent)
 		connect( action, &QAction::triggered,
 				[this]() {
 					ui->largeFormulaEdit->setPlainText(
-							"e^( i*2pi*x )"
+							(QStringList {
+								"var freq := 440;",
+								"exp( req * i*2pi*x )"
+							}).join("\n")
 					);
 				}
 		);
@@ -82,11 +88,24 @@ std::pair<T,T> FunctionDisplayOptions::getOrigin() const {
 		ui->originY->value()
 	};
 }
+
 std::pair<T,T> FunctionDisplayOptions::getScale() const {
 	return {
 		ui->scaleX->value(),
 		ui->scaleY->value()
 	};
+}
+
+T FunctionDisplayOptions::getPlaybackDuration() const {
+	return ui->duration->value();
+}
+
+T FunctionDisplayOptions::getPlaybackSpeed() const {
+	return ui->speed->value();
+}
+
+T FunctionDisplayOptions::getPlaybackOffset() const {
+	return ui->offset->value();
 }
 
 void FunctionDisplayOptions::setFormula( const QString& value ) {
@@ -101,4 +120,16 @@ void FunctionDisplayOptions::setOrigin( const std::pair<T,T>& value ) {
 void FunctionDisplayOptions::setScale( const std::pair<T,T>& value ) {
 	ui->scaleX->setValue( value.first );
 	ui->scaleY->setValue( value.second );
+}
+
+void FunctionDisplayOptions::setPlaybackDuration( const T value ) {
+	ui->duration->setValue( value );
+}
+
+void FunctionDisplayOptions::setPlaybackSpeed( const T value ) {
+	ui->speed->setValue( value );
+}
+
+void FunctionDisplayOptions::setPlaybackOffset( const T value ) {
+	ui->offset->setValue( value );
 }

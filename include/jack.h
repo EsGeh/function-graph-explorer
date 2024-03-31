@@ -21,7 +21,8 @@ class JackClient {
 		// get:
 		SampleTable* getSampleTable();
 		unsigned int getSamplerate();
-		unsigned int& getOffset();
+		bool getIsPlaying();
+		unsigned int getPlayPos();
 		jack_client_t* getClient();
 		jack_port_t* getPort();
 		
@@ -29,22 +30,21 @@ class JackClient {
 		std::optional<Error> init();
 		void exit();
 		void startWorkerThread();
+		void play();
+		void stop();
+		void setPlayPos(const unsigned int value);
 	private:
 		// jack:
 		jack_client_t* client;
 		jack_port_t* ports[1];
 		unsigned int samplerate = 0;
 		// sampletable
+		bool playing;
 		SampleTable sampleTable;
-		unsigned int offset;
+		unsigned int playPos;
 		// worker thread:
 		std::thread worker;
 		bool workerStop;
 };
-
-void oscExample(
-		SampleTable* table,
-		unsigned int samplerate
-);
 
 #endif

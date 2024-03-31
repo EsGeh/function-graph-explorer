@@ -1,13 +1,15 @@
 #include "controller.h"
-#include <cstddef>
+#include <algorithm>
 
 
 Controller::Controller(
 	Model* model,
-	MainWindow* view
-):
-	model(model),
-	view(view)
+	MainWindow* view,
+	JackClient* jack
+)
+	: model(model)
+	, view(view)
+	, jack(jack)
 {
 	connect(
 		view,
@@ -46,6 +48,43 @@ void Controller::setFunctionCount(const size_t size) {
 			&FunctionView::viewParamsChanged,
 			[this,i]() {
 				updateGraph(i);
+			}
+		);
+		connect(
+			functionView,
+			&FunctionView::playButtonPressed,
+			[this,i](
+					const T duration,
+					const T speed,
+					const T offset
+			) {
+				auto errorOrFormula = model->get(i);
+				if( errorOrFormula.index() == 0 ) {
+					return;
+				}
+				auto function =
+					std::get<std::shared_ptr<Function>>(errorOrFormula);
+				jack->stop();
+				const unsigned int countSamples = duration*jack->getSamplerate(); 
+				const auto rampTime = T(20)/1000;
+				jack->getSampleTable()->resize( countSamples );
+				for( unsigned int i=0; i<countSamples; i++ ) {
+					T time = T(i)/jack->getSamplerate();
+					// call function:
+					T y = function->get( C(speed * time + offset, 0) );
+					// ramp in and out
+					// to prevent "clicking":
+					T vol = std::min(1.0,
+							time < rampTime ? time/rampTime : (
+								(duration-time) < rampTime ? (duration-time)/rampTime : 1
+							)
+						);
+					y = y * vol;
+ 					// clip audio level [-1,1]
+					y = std::clamp( y, -1.0, +1.0 );
+					jack->getSampleTable()->at(i) = y;
+				}
+				jack->play();
 			}
 		);
 	}

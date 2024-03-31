@@ -3,6 +3,7 @@
 
 #include "model.h"
 #include "mainwindow.h"
+#include "jack.h"
 
 #include <QObject>
 #include <cstddef>
@@ -14,7 +15,8 @@ class Controller : public QObject
 public:
 	Controller(
 		Model* model,
-		MainWindow* view
+		MainWindow* view,
+		JackClient* jack
 	);
 	void run();
 
@@ -30,6 +32,7 @@ private:
 private:
 	Model* model;
 	MainWindow* view;
+	JackClient* jack;
 
 };
 

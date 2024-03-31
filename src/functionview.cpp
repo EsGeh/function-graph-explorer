@@ -16,7 +16,6 @@ FunctionView::FunctionView(
 	ui->formulaLabel->setText( title );
 	statusBar = new QStatusBar();
 	statusBar->setVisible(false);
-	// statusBar->showMessage("ok");
 	ui->verticalLayout->addWidget( statusBar, 0 );
 	graphView = new GraphView();
 	ui->verticalLayout->addWidget( graphView, 1 );
@@ -39,6 +38,17 @@ FunctionView::FunctionView(
 		}
 	);
 	connect(
+		ui->playBtn,
+		&QAbstractButton::clicked,
+		[this]() {
+			emit playButtonPressed(
+					displayDialog->getPlaybackDuration(),
+					displayDialog->getPlaybackSpeed(),
+					displayDialog->getPlaybackOffset()
+			);
+		}
+	);
+	connect(
 		displayDialog,
 		&FunctionDisplayOptions::finished,
 		[this](int result) {
@@ -52,7 +62,6 @@ FunctionView::FunctionView(
 					displayDialog->getScale()
 			);
 			emit formulaChanged();
-			// emit viewParamsChanged();
 		}
 	);
 	connect(

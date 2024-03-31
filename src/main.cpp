@@ -19,18 +19,17 @@ int main(int argc, char *argv[])
 		qCritical() << maybeError.value() ;
 		return 1;
 	}
-	oscExample(
-			jack.getSampleTable(),
-			jack.getSamplerate()
-	);
 
 	jack.startWorkerThread();
-
 
   QApplication a(argc, argv);
   auto model = Model();
   auto view = MainWindow();
-	Controller controller( &model, &view );
+	Controller controller(
+			&model,
+			&view,
+			&jack
+	);
 	controller.run();
 
   auto ret = a.exec();
