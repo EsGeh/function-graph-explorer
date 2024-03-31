@@ -158,9 +158,7 @@ namespace exprtk
             template <typename T>
             inline T sgn_impl(const T v, complex_type_tag)
             {
-                    if (v > T(0)) return T(+1);
-               else if (v < T(0)) return T(-1);
-               else               return T( 0);
+							return cmplx::sgn( v );
             }
 
             template <typename T>

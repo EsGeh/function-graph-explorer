@@ -41,8 +41,12 @@ DECL_FUNC_BEGIN(ConjFunction,1,const C& x)
 	return C(std::conj( x.c_ ));
 DECL_FUNC_END(ConjFunction)
 
+DECL_FUNC_BEGIN(ComplexFunction,2,const C& x1, const C& x2)
+	return C(T(x1), T(x2));
+DECL_FUNC_END(ComplexFunction)
+
 DECL_FUNC_BEGIN(PolarFunction,2,const C& x1, const C& x2)
-	return C(std::polar( std::abs(x1.c_), std::abs(x2.c_) ));
+	return C(std::polar( T(x1), T(x2) ));
 DECL_FUNC_END(PolarFunction)
 
 static auto realFunc = RealFunction();
@@ -51,6 +55,7 @@ static auto imagFunc = ImagFunction();
 static auto absFunc = AbsFunction();
 static auto argFunc = ArgFunction();
 static auto conjFunc = ConjFunction();
+static auto complexFunc = ComplexFunction();
 static auto polarFunc = PolarFunction();
 
 Model::Model()
@@ -68,6 +73,7 @@ Model::Model()
 	constantSymbols.add_function( "imag", imagFunc );
 	constantSymbols.add_function( "arg", argFunc );
 	constantSymbols.add_function( "conj", conjFunc );
+	constantSymbols.add_function( "complex", complexFunc );
 	constantSymbols.add_function( "polar", polarFunc );
 }
 

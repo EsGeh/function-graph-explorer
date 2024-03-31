@@ -267,11 +267,12 @@ namespace cmplx
       return v0 * pow(complex_t(2),trunc(v1));
    }
 
-   inline complex_t sgn(const complex_t v)
+	 inline complex_t sgn(const complex_t v)
    {
-           if (v > complex_t(0)) return complex_t(+1);
-      else if (v < complex_t(0)) return complex_t(-1);
-      else               return complex_t( 0);
+	   if( v.c_.real() != 0 || v.c_.imag() != 0 ) {
+		 		return v.c_ / abs( v.c_ );
+		 }
+		 return complex_t(0,0);
    }
 
    inline complex_t nand(const complex_t v0, const complex_t& v1)

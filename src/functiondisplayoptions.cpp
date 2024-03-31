@@ -25,6 +25,19 @@ FunctionDisplayOptions::FunctionDisplayOptions(QWidget *parent)
 		);
 	}
 	{
+		auto action = menu1->addAction("Square Wave");
+		connect( action, &QAction::triggered,
+				[this]() {
+					ui->largeFormulaEdit->setPlainText(
+							(QStringList {
+								"var freq := 440;",
+								"sgn(cos( freq * 2pi*x ))"
+							}).join("\n")
+					);
+				}
+		);
+	}
+	{
 		auto action = menu1->addAction("Series");
 		connect( action, &QAction::triggered,
 				[this]() {
