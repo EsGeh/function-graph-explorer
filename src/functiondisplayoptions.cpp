@@ -44,7 +44,7 @@ FunctionDisplayOptions::FunctionDisplayOptions(QWidget *parent)
 					ui->largeFormulaEdit->setPlainText(
 							(QStringList {
 								"var freq := 440;",
-								"2*frac(x)-1"
+								"2*frac(freq * x)-1"
 							}).join("\n")
 					);
 				}
@@ -56,12 +56,13 @@ FunctionDisplayOptions::FunctionDisplayOptions(QWidget *parent)
 				[this]() {
 					ui->largeFormulaEdit->setPlainText(
 							(QStringList {
+								"var freq := 440;",
+								"var N := 4;",
 								"var acc := 0;",
-								"var max_freq := 4;",
-								"for( var k:=1; k<=max_freq; k+=1 ) {",
-								"  acc += (f0(k*x) );",
+								"for( var k:=1; k<=N; k+=1 ) {",
+								"  acc += cos(k*freq*2pi*x);",
 								"};",
-								"1/max_freq*acc;"
+								"1/N*acc;"
 							}).join("\n")
 					);
 				}
@@ -74,14 +75,14 @@ FunctionDisplayOptions::FunctionDisplayOptions(QWidget *parent)
 					ui->largeFormulaEdit->setPlainText(
 							(QStringList {
 								"var freq := 440;",
-								"exp( freq * i*2pi*x )"
+								"exp( freq*i*2pi*x )"
 							}).join("\n")
 					);
 				}
 		);
 	}
 	{
-		auto action = menu1->addAction("Fourier Transform");
+		auto action = menu1->addAction("Discrete Fourier Transform");
 		connect( action, &QAction::triggered,
 				[this]() {
 					ui->largeFormulaEdit->setPlainText(
@@ -89,7 +90,7 @@ FunctionDisplayOptions::FunctionDisplayOptions(QWidget *parent)
 								"var N := 16;",
 								"var acc := 0;",
 								"for( var k:=1; k<=N; k+=1 ) {",
-								"  acc += ( e^(-i*2pi*k*x/N)* f0(k/N) );",
+								"  acc += exp(-i*2pi*k*x/N) * f0(k/N);",
 								"};",
 								"1/N*acc;"
 							}).join("\n")

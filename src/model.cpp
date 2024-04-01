@@ -95,7 +95,7 @@ void Model::resize( const size_t size ) {
 			auto entry = std::shared_ptr<FunctionEntry>(new FunctionEntry {
 				(i>0)
 					? QString("%1(x)").arg( functionName(i-1) )
-					: "x",
+					: "cos( 2pi * x )",
 				{}
 			});
 			functions.push_back( entry );
