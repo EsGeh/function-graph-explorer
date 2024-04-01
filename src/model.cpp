@@ -1,5 +1,6 @@
 #include "model.h"
 #include <QDebug>
+#include <cstdlib>
 
 
 inline QString functionName( const size_t index ) {
@@ -49,6 +50,10 @@ DECL_FUNC_BEGIN(PolarFunction,2,const C& x1, const C& x2)
 	return C(std::polar( T(x1), T(x2) ));
 DECL_FUNC_END(PolarFunction)
 
+DECL_FUNC_BEGIN(RandomFunction,0,)
+	return C(T(std::rand())/T(RAND_MAX), T(std::rand())/T(RAND_MAX));
+DECL_FUNC_END(RandomFunction)
+
 static auto realFunc = RealFunction();
 static auto imagFunc = ImagFunction();
 
@@ -57,6 +62,7 @@ static auto argFunc = ArgFunction();
 static auto conjFunc = ConjFunction();
 static auto complexFunc = ComplexFunction();
 static auto polarFunc = PolarFunction();
+static auto randomFunc = RandomFunction();
 
 Model::Model()
 	: constantSymbols(symbol_table_t::symtab_mutability_type::e_immutable)
@@ -75,6 +81,7 @@ Model::Model()
 	constantSymbols.add_function( "conj", conjFunc );
 	constantSymbols.add_function( "complex", complexFunc );
 	constantSymbols.add_function( "polar", polarFunc );
+	constantSymbols.add_function( "rnd", randomFunc );
 }
 
 size_t Model::size() const {
