@@ -159,7 +159,11 @@ int processAudio(
 		memset(buffer, 0, sizeof(sample_t) * nframes);
 		return 0;
 	}
-	if( jackObj->getPlayPos() + nframes < tableSize ) {
+	const unsigned int samplesLeft =
+		tableSize - jackObj->getPlayPos();
+	// if we still have enough samples
+	// to fill the buffer completely:
+	if( nframes <= samplesLeft ) {
 		memcpy(
 				buffer,
 				table + jackObj->getPlayPos(),
@@ -167,8 +171,23 @@ int processAudio(
 		);
 		jackObj->setPlayPos( jackObj->getPlayPos() + nframes );
 	}
+	// if we don't have enough
+	// samples left to fill the
+	// buffer:
 	else {
-		memset(buffer, 0, sizeof(sample_t) * nframes);
+		// copy the rest of the table
+		memcpy(
+				buffer,
+				table + jackObj->getPlayPos(),
+				sizeof(sample_t) * samplesLeft
+		);
+		// ...and fill the rest of the
+		// buffer with zeros:
+		memset(
+				buffer+samplesLeft,
+				0,
+				sizeof(sample_t) * (nframes-samplesLeft)
+		);
 		jackObj->stop();
 	}
 
