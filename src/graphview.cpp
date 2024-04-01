@@ -126,18 +126,17 @@ void GraphView::setGraph(
 			*series0 << QPointF( value.first.c_.real(), value.second.c_.real() );
 			*series1 << QPointF( value.first.c_.real(), value.second.c_.imag() );
 		}
-		// series0->setName("f(x)");
 	}
 
 	{
-		QPen pen(Qt::green);
-		// pen.setWidth(2);
+		QPen pen("#33cc33");
+		pen.setWidth(2);
 		series1->setPen(pen);
 		chart->addSeries(series1);
 	}
 	{
-		QPen pen(Qt::blue);
-		// pen.setWidth(2);
+		QPen pen("#3399ff");
+		pen.setWidth(2);
 		series0->setPen(pen);
 		chart->addSeries(series0);
 	}

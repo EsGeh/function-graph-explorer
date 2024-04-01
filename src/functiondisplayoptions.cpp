@@ -38,6 +38,19 @@ FunctionDisplayOptions::FunctionDisplayOptions(QWidget *parent)
 		);
 	}
 	{
+		auto action = menu1->addAction("Sawtooth Wave");
+		connect( action, &QAction::triggered,
+				[this]() {
+					ui->largeFormulaEdit->setPlainText(
+							(QStringList {
+								"var freq := 440;",
+								"2*frac(x)-1"
+							}).join("\n")
+					);
+				}
+		);
+	}
+	{
 		auto action = menu1->addAction("Series");
 		connect( action, &QAction::triggered,
 				[this]() {
@@ -61,7 +74,7 @@ FunctionDisplayOptions::FunctionDisplayOptions(QWidget *parent)
 					ui->largeFormulaEdit->setPlainText(
 							(QStringList {
 								"var freq := 440;",
-								"exp( req * i*2pi*x )"
+								"exp( freq * i*2pi*x )"
 							}).join("\n")
 					);
 				}
