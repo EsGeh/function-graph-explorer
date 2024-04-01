@@ -6,7 +6,7 @@ This is an educational tool for the exploration of function graphs, the Fourier 
 
 This project is in an early stage. Functionality is still incomplete and might change rapidly.
 
-![screenshot3](doc/screenshot3.png)
+![screenshot3](doc/screenshot3.jpg)
 
 # Concept
 
