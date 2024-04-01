@@ -122,6 +122,17 @@ std::pair<T,T> FunctionDisplayOptions::getScale() const {
 	};
 }
 
+std::pair<bool,bool> FunctionDisplayOptions::getOriginCentered() const {
+	return {
+		ui->centeredX->isChecked(),
+		ui->centeredY->isChecked()
+	};
+}
+
+bool FunctionDisplayOptions::getDisplayImaginary() const {
+	return ui->displayImaginary->isChecked();
+}
+
 T FunctionDisplayOptions::getPlaybackDuration() const {
 	return ui->duration->value();
 }
@@ -146,6 +157,15 @@ void FunctionDisplayOptions::setOrigin( const std::pair<T,T>& value ) {
 void FunctionDisplayOptions::setScale( const std::pair<T,T>& value ) {
 	ui->scaleX->setValue( value.first );
 	ui->scaleY->setValue( value.second );
+}
+
+void FunctionDisplayOptions::setOriginCentered( const std::pair<bool,bool>& value ) {
+	ui->centeredX->setChecked( value.first );
+	ui->centeredY->setChecked( value.second );
+}
+
+void FunctionDisplayOptions::setDisplayImaginary( const bool value ) {
+	ui->displayImaginary->setChecked( value );
 }
 
 void FunctionDisplayOptions::setPlaybackDuration( const T value ) {

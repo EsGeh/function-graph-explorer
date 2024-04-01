@@ -22,7 +22,7 @@
      <property name="title">
       <string>display</string>
      </property>
-     <layout class="QVBoxLayout" name="verticalLayout_">
+     <layout class="QVBoxLayout" name="verticalLayout_3">
       <item>
        <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="0,1,1">
         <item>
@@ -34,8 +34,11 @@
         </item>
         <item>
          <widget class="QDoubleSpinBox" name="scaleX">
+          <property name="toolTip">
+           <string>Scaling of X-Axis as a power of 2</string>
+          </property>
           <property name="minimum">
-           <double>0.500000000000000</double>
+           <double>-100.000000000000000</double>
           </property>
           <property name="maximum">
            <double>100.000000000000000</double>
@@ -44,14 +47,17 @@
            <double>0.500000000000000</double>
           </property>
           <property name="value">
-           <double>1.000000000000000</double>
+           <double>0.000000000000000</double>
           </property>
          </widget>
         </item>
         <item>
          <widget class="QDoubleSpinBox" name="scaleY">
+          <property name="toolTip">
+           <string>Scaling of Y-Axis as a power of 2</string>
+          </property>
           <property name="minimum">
-           <double>0.500000000000000</double>
+           <double>-100.000000000000000</double>
           </property>
           <property name="maximum">
            <double>100.000000000000000</double>
@@ -60,7 +66,7 @@
            <double>0.500000000000000</double>
           </property>
           <property name="value">
-           <double>1.000000000000000</double>
+           <double>0.000000000000000</double>
           </property>
          </widget>
         </item>
@@ -117,6 +123,34 @@
          </widget>
         </item>
        </layout>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_6" stretch="0,0">
+        <item>
+         <widget class="QCheckBox" name="centeredX">
+          <property name="text">
+           <string>x-axis centered</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="centeredY">
+          <property name="text">
+           <string>y-axis centered</string>
+          </property>
+          <property name="checked">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="displayImaginary">
+        <property name="text">
+         <string>display imaginary part</string>
+        </property>
+       </widget>
       </item>
      </layout>
     </widget>

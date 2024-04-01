@@ -58,8 +58,14 @@ FunctionView::FunctionView(
 			graphView->setOrigin(
 					displayDialog->getOrigin()
 			);
-			graphView->setScale(
+			graphView->setScaleExp(
 					displayDialog->getScale()
+			);
+			graphView->setOriginCentered(
+					displayDialog->getOriginCentered()
+			);
+			graphView->setDisplayImaginary(
+					displayDialog->getDisplayImaginary()
 			);
 			emit formulaChanged();
 		}
@@ -72,7 +78,7 @@ FunctionView::FunctionView(
 					graphView->getOrigin()
 			);
 			displayDialog->setScale(
-					graphView->getScale()
+					graphView->getScaleExp()
 			);
 			emit viewParamsChanged();
 		}
