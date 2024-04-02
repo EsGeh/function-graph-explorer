@@ -1,7 +1,7 @@
 #ifndef FUNCTIONDISPLAYOPTIONS_H
 #define FUNCTIONDISPLAYOPTIONS_H
 
-#include "viewdata.h"
+#include "view/viewdata.h"
 #include <QDialog>
 
 

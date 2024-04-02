@@ -1,8 +1,8 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include "model.h"
-#include "functionview.h"
+#include "model/model.h"
+#include "view/functionview.h"
 
 #include <QMainWindow>
 

@@ -1,5 +1,5 @@
 #include "testmodel.h"
-#include "model.h"
+#include "model/model.h"
 #include <exception>
 #include <memory>
 #include <shared_mutex>

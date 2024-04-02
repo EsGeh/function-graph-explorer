@@ -1,4 +1,4 @@
-#include "model.h"
+#include "model/model.h"
 #include <QDebug>
 #include <cstdlib>
 

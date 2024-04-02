@@ -1,7 +1,7 @@
-#include "mainwindow.h"
-#include "model.h"
+#include "model/model.h"
+#include "view/mainwindow.h"
+#include "view/jack.h"
 #include "controller.h"
-#include "jack.h"
 
 #include <QApplication>
 #include <QDebug>

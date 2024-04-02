@@ -1,9 +1,9 @@
 #ifndef FUNCTIONVIEW_H
 #define FUNCTIONVIEW_H
 
-#include "viewdata.h"
-#include "graphview.h"
-#include "functiondisplayoptions.h"
+#include "view/viewdata.h"
+#include "view/graphview.h"
+#include "view/functiondisplayoptions.h"
 
 #include <QWidget>
 #include <QStatusBar>

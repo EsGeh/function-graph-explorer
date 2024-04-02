@@ -1,5 +1,5 @@
 #include <testfunction.h>
-#include "function.h"
+#include "model/function.h"
 
 QTEST_MAIN(TestFormulaFunction)
 #include "testfunction.moc"

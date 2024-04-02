@@ -1,7 +1,7 @@
 #ifndef MODEL_H
 #define MODEL_H
 
-#include "function.h"
+#include "model/function.h"
 #include <QString>
 #include <memory>
 #include <optional>
@@ -35,7 +35,6 @@ class Model
 
 	private:
 		symbol_table_t constantSymbols;
-		// exprtk::rtl::io::package<C> basicIOPackage;
 		symbol_table_t functionSymbols;;
 		std::vector<std::shared_ptr<FunctionEntry>> functions;
 

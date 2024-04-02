@@ -1,4 +1,4 @@
-#include "jack.h"
+#include "view/jack.h"
 #include <jack/types.h>
 #include <QDebug>
 

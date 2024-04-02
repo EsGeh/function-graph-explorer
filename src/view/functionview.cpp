@@ -1,4 +1,4 @@
-#include "functionview.h"
+#include "view/functionview.h"
 #include "ui_functionview.h"
 
 FunctionView::FunctionView(

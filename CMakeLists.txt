@@ -13,26 +13,26 @@ project(${TARGET_NAME}
 
 set(PROJECT_SOURCES
 	${SRC_DIR}/main.cpp
-	${SRC_DIR}/mainwindow.cpp
-	${SRC_DIR}/functionview.cpp
-	${SRC_DIR}/model.cpp
-	${SRC_DIR}/function.cpp
+	${SRC_DIR}/model/model.cpp
+	${SRC_DIR}/model/function.cpp
+	${SRC_DIR}/view/mainwindow.cpp
+	${SRC_DIR}/view/functionview.cpp
+	${SRC_DIR}/view/graphview.cpp
+	${SRC_DIR}/view/functiondisplayoptions.cpp
+	${SRC_DIR}/view/jack.cpp
 	${SRC_DIR}/controller.cpp
-	${SRC_DIR}/graphview.cpp
-	${SRC_DIR}/functiondisplayoptions.cpp
-	${SRC_DIR}/jack.cpp
-	${INCLUDE_DIR}/viewdata.h
+	${INCLUDE_DIR}/model/model.h
+	${INCLUDE_DIR}/model/function.h
+	${INCLUDE_DIR}/view/mainwindow.h
+	${INCLUDE_DIR}/view/functionview.h
+	${INCLUDE_DIR}/view/graphview.h
+	${INCLUDE_DIR}/view/functiondisplayoptions.h
+	${INCLUDE_DIR}/view/jack.h
+	${INCLUDE_DIR}/view/viewdata.h
 	${INCLUDE_DIR}/complex.h
 	${INCLUDE_DIR}/complex_adaptor.h
 	${INCLUDE_DIR}/global.h
-	${INCLUDE_DIR}/mainwindow.h
-	${INCLUDE_DIR}/functionview.h
-	${INCLUDE_DIR}/model.h
-	${INCLUDE_DIR}/function.h
 	${INCLUDE_DIR}/controller.h
-	${INCLUDE_DIR}/graphview.h
-	${INCLUDE_DIR}/functiondisplayoptions.h
-	${INCLUDE_DIR}/jack.h
 	${UI_DIR}/mainwindow.ui
 	${UI_DIR}/functionview.ui
 	${UI_DIR}/functiondisplayoptions.ui
@@ -93,7 +93,7 @@ include(CTest)
 # testformulafunction:
 add_executable(testformulafunction
 	${TEST_DIR}/testfunction.cpp
-	${SRC_DIR}/function.cpp
+	${SRC_DIR}/model/function.cpp
 )
 add_test(testformulafunction testformulafunction)
 target_include_directories(testformulafunction PRIVATE "${PROJECT_SOURCE_DIR}/${INCLUDE_DIR}")
@@ -113,8 +113,8 @@ set_target_properties(testformulafunction PROPERTIES
 add_executable(testmodel
 	${TEST_DIR}/testmodel.h
 	${TEST_DIR}/testmodel.cpp
-	${SRC_DIR}/model.cpp
-	${SRC_DIR}/function.cpp
+	${SRC_DIR}/model/model.cpp
+	${SRC_DIR}/model/function.cpp
 )
 
 add_test(testmodel testmodel)

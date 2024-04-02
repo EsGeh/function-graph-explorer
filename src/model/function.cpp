@@ -1,4 +1,4 @@
-#include "function.h"
+#include "model/function.h"
 #include <QDebug>
 
 
