@@ -3,58 +3,30 @@
 #include <QMenuBar>
 #include <QAction>
 
-FunctionDisplayOptions::FunctionDisplayOptions(QWidget *parent)
-	: QDialog(parent)
-  , ui(new Ui::FunctionDisplayOptions)
-{
-	ui->setupUi(this);
-	auto menuBar = new QMenuBar(this);
-	ui->verticalLayout->insertWidget( 0, menuBar );
-	QMenu* menu1 = menuBar->addMenu("Templates");
+
+const std::vector<std::pair<QString,QString>> templates = {
+	{ "Oscillation",
+		(QStringList {
+			"var freq := 440;",
+			"cos( freq * 2pi*x )"
+		}).join("\n")
+	},
 	{
-		auto action = menu1->addAction("Oscillation");
-		connect( action, &QAction::triggered,
-				[this]() {
-					ui->largeFormulaEdit->setPlainText(
-							(QStringList {
-								"var freq := 440;",
-								"cos( freq * 2pi*x )"
-							}).join("\n")
-					);
-				}
-		);
-	}
-	{
-		auto action = menu1->addAction("Square Wave");
-		connect( action, &QAction::triggered,
-				[this]() {
-					ui->largeFormulaEdit->setPlainText(
+		"Square Wave",
 							(QStringList {
 								"var freq := 440;",
 								"sgn(cos( freq * 2pi*x ))"
 							}).join("\n")
-					);
-				}
-		);
-	}
+	},
 	{
-		auto action = menu1->addAction("Sawtooth Wave");
-		connect( action, &QAction::triggered,
-				[this]() {
-					ui->largeFormulaEdit->setPlainText(
+		"Sawtooth Wave",
 							(QStringList {
 								"var freq := 440;",
 								"2*frac(freq * x)-1"
 							}).join("\n")
-					);
-				}
-		);
-	}
+	},
 	{
-		auto action = menu1->addAction("Series");
-		connect( action, &QAction::triggered,
-				[this]() {
-					ui->largeFormulaEdit->setPlainText(
+		"Series",
 							(QStringList {
 								"var freq := 440;",
 								"var N := 4;",
@@ -64,28 +36,16 @@ FunctionDisplayOptions::FunctionDisplayOptions(QWidget *parent)
 								"};",
 								"1/N*acc;"
 							}).join("\n")
-					);
-				}
-		);
-	}
+	},
 	{
-		auto action = menu1->addAction("Complex Oscillation");
-		connect( action, &QAction::triggered,
-				[this]() {
-					ui->largeFormulaEdit->setPlainText(
+		"Complex Oscillation",
 							(QStringList {
 								"var freq := 440;",
 								"exp( freq*i*2pi*x )"
 							}).join("\n")
-					);
-				}
-		);
-	}
+	},
 	{
-		auto action = menu1->addAction("Discrete Fourier Transform");
-		connect( action, &QAction::triggered,
-				[this]() {
-					ui->largeFormulaEdit->setPlainText(
+		"Discrete Fourier Transform",
 							(QStringList {
 								"var N := 16;",
 								"var acc := 0;",
@@ -94,10 +54,77 @@ FunctionDisplayOptions::FunctionDisplayOptions(QWidget *parent)
 								"};",
 								"1/N*acc;"
 							}).join("\n")
+	}
+};
+
+FunctionDisplayOptions::FunctionDisplayOptions(
+		const FunctionViewData& viewData,
+		QWidget *parent
+)
+	: QDialog(parent)
+  , ui(new Ui::FunctionDisplayOptions)
+	, viewData(viewData)
+{
+	ui->setupUi(this);
+	updateView();
+	auto menuBar = new QMenuBar(this);
+	ui->verticalLayout->insertWidget( 0, menuBar );
+	QMenu* menu1 = menuBar->addMenu("Templates");
+	for( auto templateData : templates ) {
+		auto action = menu1->addAction( templateData.first );
+		connect( action, &QAction::triggered,
+				[this,templateData]() {
+					ui->largeFormulaEdit->setPlainText(
+							templateData.second
 					);
 				}
 		);
 	}
+	// origin:
+	connect(
+			ui->originX, &QDoubleSpinBox::valueChanged,
+			[this](double value){ this->viewData.origin.first = value; }
+	);
+	connect(
+			ui->originY, &QDoubleSpinBox::valueChanged,
+			[this](double value){ this->viewData.origin.second = value; }
+	);
+	// scale:
+	connect(
+			ui->scaleX, &QDoubleSpinBox::valueChanged,
+			[this](double value){ this->viewData.scaleExp.first = value; }
+	);
+	connect(
+			ui->scaleY, &QDoubleSpinBox::valueChanged,
+			[this](double value){ this->viewData.scaleExp.second = value; }
+	);
+	// originCentered:
+	connect(
+			ui->centeredX, &QCheckBox::stateChanged,
+			[this](bool value){ this->viewData.originCentered.first = value; }
+	);
+	connect(
+			ui->centeredY, &QCheckBox::stateChanged,
+			[this](bool value){ this->viewData.originCentered.second = value; }
+	);
+	// displayImaginary:
+	connect(
+			ui->displayImaginary, &QCheckBox::stateChanged,
+			[this](bool value){ this->viewData.displayImaginary = value; }
+	);
+	// playback:
+	connect(
+			ui->duration, &QDoubleSpinBox::valueChanged,
+			[this](double value){ this->viewData.playbackDuration = value; }
+	);
+	connect(
+			ui->speed, &QDoubleSpinBox::valueChanged,
+			[this](double value){ this->viewData.playbackSpeed = value; }
+	);
+	connect(
+			ui->offset, &QDoubleSpinBox::valueChanged,
+			[this](double value){ this->viewData.playbackOffset = value; }
+	);
 }
 
 FunctionDisplayOptions::~FunctionDisplayOptions()
@@ -105,78 +132,39 @@ FunctionDisplayOptions::~FunctionDisplayOptions()
 	delete ui;
 }
 
-QString FunctionDisplayOptions::getFormula() const {
+QString FunctionDisplayOptions::getFormula() {
 	return ui->largeFormulaEdit->toPlainText();
 }
 
-std::pair<T,T> FunctionDisplayOptions::getOrigin() const {
-	return {
-		ui->originX->value(),
-		ui->originY->value()
-	};
+const FunctionViewData& FunctionDisplayOptions::getViewData() {
+	return viewData;
 }
 
-std::pair<T,T> FunctionDisplayOptions::getScale() const {
-	return {
-		ui->scaleX->value(),
-		ui->scaleY->value()
-	};
+void FunctionDisplayOptions::setViewData(const FunctionViewData& value) {
+	this->viewData = value;
+	updateView();
 }
 
-std::pair<bool,bool> FunctionDisplayOptions::getOriginCentered() const {
-	return {
-		ui->centeredX->isChecked(),
-		ui->centeredY->isChecked()
-	};
-}
-
-bool FunctionDisplayOptions::getDisplayImaginary() const {
-	return ui->displayImaginary->isChecked();
-}
-
-T FunctionDisplayOptions::getPlaybackDuration() const {
-	return ui->duration->value();
-}
-
-T FunctionDisplayOptions::getPlaybackSpeed() const {
-	return ui->speed->value();
-}
-
-T FunctionDisplayOptions::getPlaybackOffset() const {
-	return ui->offset->value();
-}
-
-void FunctionDisplayOptions::setFormula( const QString& value ) {
+void FunctionDisplayOptions::setFormula(const QString& value) {
 	ui->largeFormulaEdit->setPlainText( value );
 }
 
-void FunctionDisplayOptions::setOrigin( const std::pair<T,T>& value ) {
-	ui->originX->setValue( value.first );
-	ui->originY->setValue( value.second );
-}
+void FunctionDisplayOptions::updateView() {
+	// formula:
+	// ui->largeFormulaEdit->setPlainText( viewData.formula );
+	// origin:
+	ui->originX->setValue( viewData.origin.first );
+	ui->originY->setValue( viewData.origin.second );
+	// scale:
+	ui->scaleX->setValue( viewData.scaleExp.first );
+	ui->scaleY->setValue( viewData.scaleExp.second );
+	// originCentered:
+	ui->centeredX->setChecked( viewData.originCentered.first );
+	ui->centeredY->setChecked( viewData.originCentered.second );
+	// displayImaginary:
+	ui->displayImaginary->setChecked( viewData.displayImaginary );
 
-void FunctionDisplayOptions::setScale( const std::pair<T,T>& value ) {
-	ui->scaleX->setValue( value.first );
-	ui->scaleY->setValue( value.second );
-}
-
-void FunctionDisplayOptions::setOriginCentered( const std::pair<bool,bool>& value ) {
-	ui->centeredX->setChecked( value.first );
-	ui->centeredY->setChecked( value.second );
-}
-
-void FunctionDisplayOptions::setDisplayImaginary( const bool value ) {
-	ui->displayImaginary->setChecked( value );
-}
-
-void FunctionDisplayOptions::setPlaybackDuration( const T value ) {
-	ui->duration->setValue( value );
-}
-
-void FunctionDisplayOptions::setPlaybackSpeed( const T value ) {
-	ui->speed->setValue( value );
-}
-
-void FunctionDisplayOptions::setPlaybackOffset( const T value ) {
-	ui->offset->setValue( value );
+	ui->duration->setValue( viewData.playbackDuration );
+	ui->speed->setValue( viewData.playbackSpeed );
+	ui->offset->setValue( viewData.playbackOffset );
 }

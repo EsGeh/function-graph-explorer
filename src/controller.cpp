@@ -115,7 +115,7 @@ void Controller::updateGraph(const size_t iFunction) {
 	}
 	functionView->setGraph(
 			std::get<std::shared_ptr<Function>>(errorOrFormula)->getPoints(
-				functionView->getGraphView()->getXRange()
+				functionView->getViewData().getXRange()
 			)
 	);
 }

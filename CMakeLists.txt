@@ -21,6 +21,7 @@ set(PROJECT_SOURCES
 	${SRC_DIR}/graphview.cpp
 	${SRC_DIR}/functiondisplayoptions.cpp
 	${SRC_DIR}/jack.cpp
+	${INCLUDE_DIR}/viewdata.h
 	${INCLUDE_DIR}/complex.h
 	${INCLUDE_DIR}/complex_adaptor.h
 	${INCLUDE_DIR}/global.h

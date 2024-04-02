@@ -1,10 +1,13 @@
 #ifndef FUNCTIONVIEW_H
 #define FUNCTIONVIEW_H
 
-#include <QWidget>
-#include <QStatusBar>
+#include "viewdata.h"
 #include "graphview.h"
 #include "functiondisplayoptions.h"
+
+#include <QWidget>
+#include <QStatusBar>
+
 
 namespace Ui {
 class FunctionView;
@@ -22,7 +25,7 @@ public:
 	~FunctionView();
 
 	QString getFormula();
-	GraphView* getGraphView();
+	const FunctionViewData& getViewData() const;
 
   void setFormula( const QString& str );
 
@@ -45,6 +48,7 @@ private:
   GraphView* graphView;
 	FunctionDisplayOptions* displayDialog;
 	QStatusBar* statusBar;
+	FunctionViewData viewData;
 };
 
 #endif // FUNCTIONVIEW_H

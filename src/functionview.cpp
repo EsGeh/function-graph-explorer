@@ -10,6 +10,7 @@ FunctionView::FunctionView(
 		, graphView(nullptr)
 		, displayDialog(nullptr)
 		, statusBar(nullptr)
+		, viewData()
 {
 	ui->setupUi(this);
 
@@ -17,10 +18,15 @@ FunctionView::FunctionView(
 	statusBar = new QStatusBar();
 	statusBar->setVisible(false);
 	ui->verticalLayout->addWidget( statusBar, 0 );
-	graphView = new GraphView();
+	graphView = new GraphView(
+			&viewData
+	);
 	ui->verticalLayout->addWidget( graphView, 1 );
 
-	displayDialog = new FunctionDisplayOptions(this);
+	displayDialog = new FunctionDisplayOptions(
+			viewData,
+			this
+	);
 
 	connect(
 		ui->formulaEdit,
@@ -34,6 +40,7 @@ FunctionView::FunctionView(
 		ui->optionsBtn,
 		&QAbstractButton::clicked,
 		[this]() {
+			displayDialog->setViewData( viewData );
 			displayDialog->show();
 		}
 	);
@@ -42,9 +49,9 @@ FunctionView::FunctionView(
 		&QAbstractButton::clicked,
 		[this]() {
 			emit playButtonPressed(
-					displayDialog->getPlaybackDuration(),
-					displayDialog->getPlaybackSpeed(),
-					displayDialog->getPlaybackOffset()
+					viewData.playbackDuration,
+					viewData.playbackSpeed,
+					viewData.playbackOffset
 			);
 		}
 	);
@@ -52,21 +59,9 @@ FunctionView::FunctionView(
 		displayDialog,
 		&FunctionDisplayOptions::finished,
 		[this](int result) {
-			// qDebug() << "dialog closed with " << result;
 			if( !result ) return;
+			viewData = displayDialog->getViewData();
 			ui->formulaEdit->setText( displayDialog->getFormula() );
-			graphView->setOrigin(
-					displayDialog->getOrigin()
-			);
-			graphView->setScaleExp(
-					displayDialog->getScale()
-			);
-			graphView->setOriginCentered(
-					displayDialog->getOriginCentered()
-			);
-			graphView->setDisplayImaginary(
-					displayDialog->getDisplayImaginary()
-			);
 			emit formulaChanged();
 		}
 	);
@@ -74,12 +69,6 @@ FunctionView::FunctionView(
 		this->graphView,
 		&GraphView::viewChanged,
 		[this]() {
-			displayDialog->setOrigin(
-					graphView->getOrigin()
-			);
-			displayDialog->setScale(
-					graphView->getScaleExp()
-			);
 			emit viewParamsChanged();
 		}
 	);
@@ -93,8 +82,9 @@ FunctionView::~FunctionView()
 QString FunctionView::getFormula() {
 	return ui->formulaEdit->text();
 }
-GraphView* FunctionView::getGraphView() {
-	return graphView;
+
+const FunctionViewData& FunctionView::getViewData() const {
+	return viewData;
 }
 
 void FunctionView::setFormulaError( const QString& str )

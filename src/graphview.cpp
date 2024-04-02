@@ -4,12 +4,12 @@
 #include <QtCharts/QLineSeries>
 
 
-GraphView::GraphView(QWidget *parent)
+GraphView::GraphView(
+		FunctionViewData* viewData,
+		QWidget *parent
+)
   : QChartView{parent}
-	, origin({0,0})
-	, scaleExp({0,0})
-	, originCentered({false,true})
-	, displayImaginary( false )
+	, viewData( viewData )
 {
 	setAlignment(Qt::AlignRight);
 	setBackgroundBrush(QBrush(Qt::white));
@@ -32,63 +32,6 @@ GraphView::GraphView(QWidget *parent)
 	updateAxes();
 }
 
-std::pair<T,T> GraphView::getOrigin() const {
-	return origin;
-}
-
-std::pair<T,T> GraphView::getScaleExp() const {
-	return scaleExp;
-}
-
-std::pair<T,T> GraphView::getScale() const {
-	return {
-		pow( 2, scaleExp.first ),
-		pow( 2, scaleExp.second )
-	};
-}
-
-std::pair<T,T> GraphView::getXRange() const {
-	return {
-		originCentered.first
-			? origin.first - getScale().first
-			: origin.first,
-		origin.first + getScale().first
-	};
-}
-
-std::pair<T,T> GraphView::getYRange() const {
-	return {
-		originCentered.second
-			? origin.second - getScale().second
-			: origin.second,
-		origin.second + getScale().second
-	};
-}
-
-std::pair<bool,bool> GraphView::getOriginCentered() const {
-	return originCentered;
-}
-
-bool GraphView::getDisplayImaginary() const {
-	return displayImaginary;
-}
-
-void GraphView::setOrigin( const std::pair<T,T>& value ) {
-	origin = value;
-}
-
-void GraphView::setScaleExp( const std::pair<T,T>& value ) {
-	scaleExp = value;
-}
-
-void GraphView::setOriginCentered( const std::pair<bool,bool>& value ) {
-	originCentered = value;
-}
-
-void GraphView::setDisplayImaginary( const bool value ) {
-	displayImaginary = value;
-}
-
 void GraphView::setGraph(
 	const std::vector<std::pair<C,C>>& values
 )
@@ -96,7 +39,7 @@ void GraphView::setGraph(
 	reset();
 	QChart *chart = this->chart();
 
-	if(displayImaginary) {
+	if(viewData->displayImaginary) {
 
 		auto series = new QLineSeries();
 		for( auto value: values ) {
@@ -136,12 +79,12 @@ QSize GraphView::sizeHint() const {
 void GraphView::updateAxes() {
 	QChart *chart = this->chart();
 	chart->axes(Qt::Horizontal).first()->setRange(
-			getXRange().first,
-			getXRange().second
+			viewData->getXRange().first,
+			viewData->getXRange().second
 	);
 	chart->axes(Qt::Vertical).first()->setRange(
-			getYRange().first,
-			getYRange().second
+			viewData->getYRange().first,
+			viewData->getYRange().second
 	);
 }
 
@@ -174,14 +117,14 @@ void GraphView::wheelEvent(QWheelEvent *event) {
 	step *= stepMultiplier;
 	switch ( event->modifiers() ) {
 		case Qt::NoModifier:
-			scaleExp.first += step;
-			scaleExp.second += step;
+			viewData->scaleExp.first += step;
+			viewData->scaleExp.second += step;
 		break;
 		case Qt::ShiftModifier:
-			scaleExp.first += step;
+			viewData->scaleExp.first += step;
 		break;
 		case Qt::ControlModifier:
-			scaleExp.second += step;
+			viewData->scaleExp.second += step;
 		break;
 	}
 	emit viewChanged();
