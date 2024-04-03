@@ -13,7 +13,7 @@ void TestModel::testInit() {
 	QCOMPARE( model.size(), 0 );
 	QVERIFY_THROWS_EXCEPTION(
 			std::out_of_range,
-			model.get( model.size() )
+			model.getFunction( model.size() )
 	);
 }
 
@@ -23,13 +23,13 @@ void TestModel::testResizeUp() {
 	QCOMPARE( model.size(), 3 );
 	for( auto i=0; i<model.size(); i++ ) {
 		QVERIFY_THROWS_NO_EXCEPTION(
-			model.get( i );
+			model.getFunction( i );
 		);
 		/* elements are initialized
 		 * with a valid default
 		 * function
 		 */
-		auto errOrFunc = model.get( i );
+		auto errOrFunc = model.getFunction( i );
 		{
 			const auto error = 
 					!errOrFunc.index()
@@ -46,14 +46,14 @@ void TestModel::testResizeUp() {
 	}
 	QVERIFY_THROWS_EXCEPTION(
 			std::out_of_range,
-			model.get( model.size() )
+			model.getFunction( model.size() )
 	);
 }
 
 void TestModel::testResizeDown() {
 	Model model;
 	model.resize(3);
-	auto entryOld = model.get(0);
+	auto entryOld = model.getFunction(0);
 	model.resize(1);
 	QCOMPARE( model.size(), 1 );
 	/* downsizing invalidates
@@ -62,12 +62,12 @@ void TestModel::testResizeDown() {
 	 * untouched
 	 */
 	{
-		auto entryNew = model.get(0);
+		auto entryNew = model.getFunction(0);
 		QCOMPARE( entryNew, entryOld );
 	}
 	QVERIFY_THROWS_EXCEPTION(
 			std::out_of_range,
-			model.get( model.size() )
+			model.getFunction( model.size() )
 	);
 }
 
@@ -86,7 +86,7 @@ void TestModel::testSetEntry() {
 	for( auto i=0; i<testData.size(); i++ ) {
 		auto expectedString = testData[i].first ;
 		auto expectedFunc = testData[i].second ;
-		auto errOrFunc = model.get( i ); /* all functions are valid
+		auto errOrFunc = model.getFunction( i ); /* all functions are valid
 		 */
 		{
 			const auto error = 
@@ -144,7 +144,7 @@ void TestModel::testFunctionReferences() {
 	for( auto i=0; i<testData.size(); i++ ) {
 		auto expectedString = testData[i].first ;
 		auto expectedFunc = testData[i].second ;
-		auto errOrFunc = model.get( i );
+		auto errOrFunc = model.getFunction( i );
 		{
 			const auto error = 
 					!errOrFunc.index()
@@ -210,7 +210,7 @@ void TestModel::testUpdatesReferences() {
 	for( auto i=0; i<expectedResult.size(); i++ ) {
 		auto expectedString = expectedResult[i].first ;
 		auto expectedFunc = expectedResult[i].second ;
-		auto errOrFunc = model.get( i );
+		auto errOrFunc = model.getFunction( i );
 		{
 			const auto error = 
 					!errOrFunc.index()

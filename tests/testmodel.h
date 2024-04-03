@@ -10,4 +10,6 @@ private slots:
 	void testSetEntry();
 	void testFunctionReferences();
 	void testUpdatesReferences();
+	// TODO: test Model::getGraph
+	// TODO: test Model::valuesToAudioBuffer
 };

@@ -2,7 +2,6 @@
 #define MODEL_H
 
 #include "model/function.h"
-#include <QString>
 #include <memory>
 #include <optional>
 
@@ -24,11 +23,31 @@ class Model
 
 		// get:
 		size_t size() const;
-		ErrorOrFunction get(const size_t index);
+
+		QString getFormula(
+				const size_t index
+		) const;
+		MaybeError getError(
+				const size_t index
+		) const;
+		ErrorOrValue<std::vector<std::pair<C,C>>> getGraph(
+				const size_t index,
+				const std::pair<T,T>& range
+		) const;
+		MaybeError valuesToAudioBuffer(
+				const size_t index,
+				std::vector<float>* buffer,
+				const T duration,
+				const T speed,
+				const T offset,
+				const unsigned int samplerate,
+				std::function<float(const double)> volumeFunction
+		) const;
+		ErrorOrFunction getFunction(const size_t index) const;
 
 		// set:
 		void resize( const size_t size );
-		ErrorOrFunction set( const size_t index, const QString& functionStr );
+		MaybeError set( const size_t index, const QString& functionStr );
 	
 	private:
 		void updateFormulas( const size_t startIndex );

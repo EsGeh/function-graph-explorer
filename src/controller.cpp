@@ -1,5 +1,6 @@
 #include "controller.h"
 #include <algorithm>
+#include <variant>
 
 
 Controller::Controller(
@@ -58,32 +59,23 @@ void Controller::setFunctionCount(const size_t size) {
 					const T speed,
 					const T offset
 			) {
-				auto errorOrFormula = model->get(i);
-				if( errorOrFormula.index() == 0 ) {
-					return;
-				}
-				auto function =
-					std::get<std::shared_ptr<Function>>(errorOrFormula);
 				jack->stop();
-				const unsigned int countSamples = duration*jack->getSamplerate(); 
 				const auto rampTime = T(20)/1000;
-				jack->getSampleTable()->resize( countSamples );
-				for( unsigned int i=0; i<countSamples; i++ ) {
-					T time = T(i)/jack->getSamplerate();
-					// call function:
-					T y = function->get( C(speed * time + offset, 0) );
-					// ramp in and out
-					// to prevent "clicking":
-					T vol = std::min(1.0,
-							time < rampTime ? time/rampTime : (
-								(duration-time) < rampTime ? (duration-time)/rampTime : 1
-							)
-						);
-					y = y * vol;
- 					// clip audio level [-1,1]
-					y = std::clamp( y, -1.0, +1.0 );
-					jack->getSampleTable()->at(i) = y;
-				}
+				model->valuesToAudioBuffer(
+						i,
+						jack->getSampleTable(),
+						duration,
+						speed,
+						offset,
+						jack->getSamplerate(),
+						[duration,rampTime](const double time) {
+							return std::min(1.0,
+								time < rampTime ? time/rampTime : (
+									(duration-time) < rampTime ? (duration-time)/rampTime : 1
+								)
+							);
+						}
+				);
 				jack->play();
 			}
 		);
@@ -91,33 +83,42 @@ void Controller::setFunctionCount(const size_t size) {
 }
 
 void Controller::updateFormula(const size_t iFunction) {
-	const auto errorOrFormula = model->get(iFunction);
 	const auto functionView = view->getFunctionView(iFunction);
-	if( errorOrFormula.index() == 0 ) {
-		functionView->setFormulaError(
-				std::get<QString>( errorOrFormula )
-		);
-	}
-	else {
-		functionView->setFormula( std::get<std::shared_ptr<Function>>(errorOrFormula)->toString() );
-	}
+	functionView->setFormula(
+		model->getFormula(iFunction)
+	);
+
+	MaybeError maybeError = model->getError( iFunction );
+	maybeError.and_then([functionView](auto error) {
+		functionView->setFormulaError( error );
+		return MaybeError{};
+	} );
 }
 
 void Controller::updateGraph(const size_t iFunction) {
 	const auto functionView = view->getFunctionView(iFunction);
-	auto errorOrFormula = model->set( 
-			iFunction,
-			functionView->getFormula()
-	);
-	if( errorOrFormula.index() == 0 ) {
-		functionView->setFormulaError( std::get<QString>(errorOrFormula) );
-		return;
+	// update formula:
+	{
+		auto maybeError = model->set( 
+				iFunction,
+				functionView->getFormula()
+		);
+		maybeError.and_then([functionView](auto error) {
+			functionView->setFormulaError( error );
+			return MaybeError{};
+		} );
 	}
-	functionView->setGraph(
-			std::get<std::shared_ptr<Function>>(errorOrFormula)->getPoints(
+	// update graph:
+	{
+		auto errorOrPoints = model->getGraph(
+				iFunction,
 				functionView->getViewData().getXRange()
-			)
-	);
+		);
+		if( std::holds_alternative<std::vector<std::pair<C,C>>>( errorOrPoints ) ) {
+			auto points = std::get<std::vector<std::pair<C,C>>>( errorOrPoints );
+			functionView->setGraph( points );
+		}
+	}
 }
 
 void Controller::run() {

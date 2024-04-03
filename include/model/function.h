@@ -8,13 +8,6 @@
 #include <optional>
 
 
-typedef QString Error;
-
-template <typename C>
-using ErrorOrValue = std::variant<Error, C>;
-
-typedef std::optional<Error> MaybeError;
-
 typedef exprtk::symbol_table<C>
 	symbol_table_t;
 typedef exprtk::expression<C>
@@ -36,9 +29,6 @@ class Function:
 		virtual C get( C x ) = 0;
 		virtual QString toString() const = 0;
 
-		std::vector<std::pair<C,C>> getPoints(
-				const std::pair<T,T>& range
-		);
 		C operator()(const C& x);
 };
 

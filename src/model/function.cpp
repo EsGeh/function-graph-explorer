@@ -2,32 +2,10 @@
 #include <QDebug>
 
 
-const unsigned int RES = 1024;
-
 
 Function::Function()
 	: exprtk::ifunction<C>(1)
 {
-}
-
-std::vector<std::pair<C,C>> Function::getPoints(
-		const std::pair<T,T>& range
-) {
-	auto
-		xMin = range.first,
-		xMax = range.second
-	;
-	std::vector<std::pair<C,C>> graph;
-	for( unsigned int i=0; i<RES+1; i++ ) {
-		auto x = C( xMin + (T(i) / RES)*(xMax - xMin), 0);
-		graph.push_back(
-				{
-					x,
-					get( x ),
-				}
-		);
-	}
-	return graph;
 }
 
 C Function::operator()(const C& x)

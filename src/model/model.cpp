@@ -1,7 +1,10 @@
 #include "model/model.h"
 #include <QDebug>
 #include <cstdlib>
+#include <variant>
 
+
+const unsigned int X_RESOLUTION = 1024;
 
 inline QString functionName( const size_t index ) {
 	return QString("f%1").arg( index );
@@ -84,12 +87,86 @@ Model::Model()
 	constantSymbols.add_function( "rnd", randomFunc );
 }
 
-size_t Model::size() const {
+size_t Model::size() const
+{
 	return functions.size();
 }
 
-ErrorOrFunction Model::get(const size_t index) {
-	return functions.at( index )->errorOrFunction;
+QString Model::getFormula(
+		const size_t index
+) const 
+{
+	return functions.at( index )->string;
+}
+
+MaybeError Model::getError(
+		const size_t index
+) const
+{
+	auto errorOrFunction = getFunction(index);
+	if( std::holds_alternative<Error>( errorOrFunction ) ) {
+		return std::get<Error>( errorOrFunction );
+	}
+	return {};
+}
+
+ErrorOrValue<std::vector<std::pair<C,C>>> Model::getGraph(
+		const size_t index,
+		const std::pair<T,T>& range
+) const
+{
+	auto errorOrFunction = getFunction(index);
+	if( std::holds_alternative<Error>( errorOrFunction ) ) {
+		return std::get<Error>( errorOrFunction );
+	}
+	{
+		auto function = std::get<std::shared_ptr<Function>>( errorOrFunction );
+		auto
+			xMin = range.first,
+			xMax = range.second
+		;
+		std::vector<std::pair<C,C>> graph;
+		for( unsigned int i=0; i<X_RESOLUTION+1; i++ ) {
+			auto x = C( xMin + (T(i) / X_RESOLUTION)*(xMax - xMin), 0);
+			graph.push_back(
+					{
+						x,
+						function->get( x ),
+					}
+			);
+		}
+		return { graph };
+	}
+}
+
+MaybeError Model::valuesToAudioBuffer(
+		const size_t index,
+		std::vector<float>* buffer,
+		const T duration,
+		const T speed,
+		const T offset,
+		const unsigned int samplerate,
+		std::function<float(const double)> volumeFunction
+) const
+{
+	auto errorOrFunction = getFunction(index);
+	if( std::holds_alternative<Error>( errorOrFunction ) ) {
+		return std::get<Error>( errorOrFunction );
+	}
+	{
+		auto function = std::get<std::shared_ptr<Function>>( errorOrFunction );
+		const unsigned int countSamples = duration*samplerate; 
+		buffer->resize( countSamples );
+		for( unsigned int i=0; i<countSamples; i++ ) {
+			T time = T(i)/samplerate;
+			T y = function->get( C(speed * time + offset, 0) );
+			T vol = volumeFunction( time );
+			y = y * vol;
+			y = std::clamp( y, -1.0, +1.0 );
+			buffer->at(i) = y;
+		}
+	}
+	return {};
 }
 
 void Model::resize( const size_t size ) {
@@ -112,12 +189,17 @@ void Model::resize( const size_t size ) {
 	assert( this->size() == size );
 }
 
-ErrorOrFunction Model::set( const size_t index, const QString& functionStr ) {
+MaybeError Model::set( const size_t index, const QString& functionStr ) {
 	// assert( index < size() );
 	auto entry = functions[index];
 	entry->string = functionStr;
 	updateFormulas( index );
-	return entry->errorOrFunction;
+	return getError( index );
+}
+
+ErrorOrFunction Model::getFunction(const size_t index) const
+{
+	return functions.at( index )->errorOrFunction;
 }
 
 void Model::updateFormulas(const size_t startIndex) {
@@ -158,3 +240,4 @@ void Model::updateFormulas(const size_t startIndex) {
 		}
 	}
 }
+
