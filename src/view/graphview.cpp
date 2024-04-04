@@ -93,39 +93,44 @@ void GraphView::reset() {
 	chart->removeAllSeries();
 }
 
+template <typename T> int sgn(T val) {
+    return (T(0) < val) - (val < T(0));
+}
+
 void GraphView::wheelEvent(QWheelEvent *event) {
 
+	QPoint step = {0,0};
+	{
+		QPoint numPixels = event->pixelDelta();
+		QPoint numDegrees = event->angleDelta() / 8;
 
-	QPoint numPixels = event->pixelDelta();
-	QPoint numDegrees = event->angleDelta() / 8;
-
-	auto val = 0;
-	if (!numPixels.isNull()) {
-		val = numPixels.y();
-	} else if (!numDegrees.isNull()) {
-		QPoint numSteps = numDegrees / 15;
-		val = numSteps.y();
+		QPoint val = {0,0};
+		if( !numPixels.isNull() ) {
+			val = numPixels;
+		}
+		else if( !numDegrees.isNull() ) {
+			QPoint numSteps = numDegrees / 15;
+			val = numSteps;
+		}
+		step.setX( sgn( val.x() ) );
+		step.setY( sgn( val.y() ) );
 	}
-	const double stepMultiplier = 0.5;
-	double step = 0;
-	if( val > 0 ) {
-		step = -1;
+	// Zoom
+	if( event->modifiers() & Qt::ControlModifier ) {
+		if(
+				(event->modifiers() & Qt::ShiftModifier) == 0
+				&& (event->modifiers() & Qt::AltModifier) == 0
+		) {
+			if( step.x() == 0 ) step.setX( step.y() );
+			else if( step.y() == 0 ) step.setY( step.x() );
+		}
+		viewData->scaleExp.first += step.x();
+		viewData->scaleExp.second += step.y();
+		emit viewChanged();
 	}
-	else if( val < 0 ) {
-		step = +1;
+	else {
+		viewData->origin.first += step.x() * (viewData->getXRange().second - viewData->getXRange().first)/4;
+		viewData->origin.second += step.y() * (viewData->getYRange().second - viewData->getYRange().first)/4;
+		emit viewChanged();
 	}
-	step *= stepMultiplier;
-	switch ( event->modifiers() ) {
-		case Qt::NoModifier:
-			viewData->scaleExp.first += step;
-			viewData->scaleExp.second += step;
-		break;
-		case Qt::ShiftModifier:
-			viewData->scaleExp.first += step;
-		break;
-		case Qt::ControlModifier:
-			viewData->scaleExp.second += step;
-		break;
-	}
-	emit viewChanged();
 }

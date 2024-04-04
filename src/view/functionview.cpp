@@ -69,6 +69,7 @@ FunctionView::FunctionView(
 		this->graphView,
 		&GraphView::viewChanged,
 		[this]() {
+			// qDebug() << "zoom: " << viewData.scaleExp;
 			emit viewParamsChanged();
 		}
 	);
