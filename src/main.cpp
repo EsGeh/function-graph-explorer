@@ -2,6 +2,7 @@
 #include "view/mainwindow.h"
 #include "view/jack.h"
 #include "controller.h"
+#include "config.h"
 
 #include <QApplication>
 #include <QDebug>
@@ -11,6 +12,9 @@ int main(int argc, char *argv[])
 {
 	#ifndef NDEBUG
 	qInfo() << "DEBUG configuration!\n";
+	qInfo().nospace() << "-----------------------------";
+	qInfo().nospace() << PROJECT_NAME << " " << PROJECT_VERSION;
+	qInfo().nospace() << "-----------------------------";
 	#endif
 
 	JackClient jack;

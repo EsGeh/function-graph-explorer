@@ -11,7 +11,7 @@ conan install $BASE_DIR --output-folder "$BUILD_DIR" --build missing --settings 
 cmake -B $BUILD_DIR -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE
 
 # build
-cmake --build $BUILD_DIR
+cmake --build $BUILD_DIR $argv
 
 # create './compile_commands.json'
 # which helps editors and IDEs

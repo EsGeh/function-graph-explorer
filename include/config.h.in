@@ -1,0 +1,4 @@
+
+
+#cmakedefine PROJECT_NAME "@PROJECT_NAME@"
+#cmakedefine PROJECT_VERSION "@fge_VERSION_MAJOR@.@fge_VERSION_MINOR@"
