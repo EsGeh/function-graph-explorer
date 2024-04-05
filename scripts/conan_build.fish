@@ -12,3 +12,8 @@ cmake -B $BUILD_DIR -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake -DCMAKE_BUILD_T
 
 # build
 cmake --build $BUILD_DIR
+
+# create './compile_commands.json'
+# which helps editors and IDEs
+# finding source files:
+cmake --build $BUILD_DIR --target CopyCompileCommands

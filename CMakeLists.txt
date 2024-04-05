@@ -5,6 +5,7 @@ set(INCLUDE_DIR include)
 set(SRC_DIR src)
 set(UI_DIR ui)
 set(TEST_DIR tests)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 project(${TARGET_NAME}
     VERSION 0.1
@@ -83,6 +84,10 @@ set_target_properties(${TARGET_NAME} PROPERTIES
     MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
     MACOSX_BUNDLE TRUE
     WIN32_EXECUTABLE TRUE
+)
+
+add_custom_target(CopyCompileCommands
+	COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/compile_commands.json ${PROJECT_SOURCE_DIR}/compile_commands.json
 )
 
 # TESTS:

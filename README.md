@@ -58,3 +58,10 @@ You need [conan](https://conan.io/) installed. Issuing the following command wil
 # Build and Run Tests
 
     $ ./scripts/conan_test.fish
+
+# Suggested Editor Config
+
+When coding vim / nvim, you might want to use a "language client"/linter to add just-in-time compilation, inline hints, etc.
+[ALE](https://github.com/dense-analysis/ale) delivers this.
+When coding with vim / nvim & [ALE](https://github.com/dense-analysis/ale) in a complex setup (cmake, Qt), the plugin might fail to locate source/include files.
+Building the projects creates `./compile_commands.json`, which is supposed to solve this problem by guiding IDEs and plugins where to look for sources.
