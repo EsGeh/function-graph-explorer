@@ -1,8 +1,6 @@
 #include "testmodel.h"
 #include "model/model.h"
-#include <exception>
 #include <memory>
-#include <shared_mutex>
 #include <stdexcept>
 
 QTEST_MAIN(TestModel)
@@ -83,49 +81,7 @@ void TestModel::testSetEntry() {
 		auto funcString = testData[i].first ;
 		model.set(i, funcString );
 	}
-	for( auto i=0; i<testData.size(); i++ ) {
-		auto expectedString = testData[i].first ;
-		auto expectedFunc = testData[i].second ;
-		auto errOrFunc = model.getFunction( i ); /* all functions are valid
-		 */
-		{
-			const auto error = 
-					!errOrFunc.index()
-					? std::get<QString>(errOrFunc)
-					: ""
-			;
-			QVERIFY2(
-					errOrFunc.index() == 1,
-					QString("error in expression: %1")
-						.arg( error )
-					.toStdString().c_str()
-			);
-		}
-		/* all functions describe
-		 * a calculation equal to
-		 * the string from which
-		 * it has been created:
-		 */
-		auto func =
-			std::get<std::shared_ptr<Function>>(errOrFunc)
-		;
-		QCOMPARE( func->toString(), expectedString );
-		for( int x=-3; x<3; x++ ) {
-			C y = func->get( C(x,0) );
-			C yExpected = expectedFunc(x);
-			QVERIFY2(
-					cmplx::equal( y, yExpected ),
-					QString( "error in f%1(%2) == (%3,%4) != (%5,%6 (expected)" )
-						.arg( i )
-						.arg( T(x) )
-						.arg( y.c_.real() )
-						.arg( y.c_.imag() )
-						.arg( yExpected.c_.real() )
-						.arg( yExpected.c_.imag() )
-					.toStdString().c_str()
-			);
-		}
-	}
+	assertExpected( model, testData );
 }
 
 void TestModel::testFunctionReferences() {
@@ -141,43 +97,7 @@ void TestModel::testFunctionReferences() {
 			model.set(i, funcString );
 		);
 	}
-	for( auto i=0; i<testData.size(); i++ ) {
-		auto expectedString = testData[i].first ;
-		auto expectedFunc = testData[i].second ;
-		auto errOrFunc = model.getFunction( i );
-		{
-			const auto error = 
-					!errOrFunc.index()
-					? std::get<QString>(errOrFunc)
-					: ""
-			;
-			QVERIFY2(
-					errOrFunc.index() == 1,
-					QString("error in expression: %1")
-						.arg( error )
-					.toStdString().c_str()
-			);
-		}
-		auto func =
-			std::get<std::shared_ptr<Function>>(errOrFunc)
-		;
-		QCOMPARE( func->toString(), expectedString );
-		for( int x=-3; x<3; x++ ) {
-			C y = func->get( C(x,0) );
-			C yExpected = expectedFunc(T(x));
-			QVERIFY2(
-					cmplx::equal( y, yExpected ),
-					QString( "error in f%1(%2) == (%3,%4) != (%5,%6 (expected)" )
-						.arg( i )
-						.arg( T(x) )
-						.arg( y.c_.real() )
-						.arg( y.c_.imag() )
-						.arg( yExpected.c_.real() )
-						.arg( yExpected.c_.imag() )
-					.toStdString().c_str()
-			);
-		}
-	}
+	assertExpected( model, testData );
 }
 
 void TestModel::testUpdatesReferences() {
@@ -207,6 +127,14 @@ void TestModel::testUpdatesReferences() {
 		{ "x+1", [](T x){ return C(x+1, 0); } },
 		{ "(x+1)*f0(x)", [](T x){ return C((x+1)*(x+1), 0); } }
 	};
+	assertExpected( model, expectedResult );
+}
+
+void assertExpected(
+		const Model& model,
+		const std::vector<std::pair<QString, std::function<C(T)>>>& expectedResult
+)
+{
 	for( auto i=0; i<expectedResult.size(); i++ ) {
 		auto expectedString = expectedResult[i].first ;
 		auto expectedFunc = expectedResult[i].second ;

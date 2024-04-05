@@ -1,3 +1,5 @@
+#include "model/model.h"
+
 #include <QTest>
 
 class TestModel: public QObject
@@ -13,3 +15,8 @@ private slots:
 	// TODO: test Model::getGraph
 	// TODO: test Model::valuesToAudioBuffer
 };
+
+void assertExpected(
+		const Model& model,
+		const std::vector<std::pair<QString, std::function<C(T)>>>& expectedResult
+);
