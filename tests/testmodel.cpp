@@ -1,6 +1,6 @@
 #include "testmodel.h"
 #include "model/model.h"
-#include <memory>
+#include <qcoreapplication.h>
 #include <qfloat16.h>
 #include <qtestcase.h>
 #include <stdexcept>
@@ -249,12 +249,13 @@ void assertCorrectGraph(
 {
 	const unsigned int resolution = 1024;
 	const std::pair<T,T> range = {-3, 3};
-	for( auto i=0; i<expectedResult.size(); i++ ) {
-		auto expectedString = expectedResult[i].first ;
-		auto expectedFunc = expectedResult[i].second ;
+	for( auto iFunction=0; iFunction<expectedResult.size(); iFunction++ ) {
+		auto expectedString = expectedResult[iFunction].first ;
+		auto expectedFunc = expectedResult[iFunction].second ;
 		auto errOrGraph = model.getGraph(
-				i,
-				range
+				iFunction,
+				range,
+				resolution
 		);
 		{
 			const auto error = 
@@ -270,28 +271,45 @@ void assertCorrectGraph(
 			);
 		}
 		auto graph = errOrGraph.value();
-		QCOMPARE( graph.size(), resolution );
-		QCOMPARE( graph[0].first, range.first );
-		QCOMPARE( graph[resolution-1].first, range.second );
+
+		QCOMPARE_GE( graph.size(), resolution );
+
+		// x[0], x[max]
+		{
+			QCOMPARE( graph[0].first, range.first );
+			QCOMPARE( graph[graph.size()-1].first, range.second );
+		}
+		// y[0], y[max]
+		{
+			const C y0 = expectedFunc( range.first );
+			const C yMax = expectedFunc( range.second );
+			QCOMPARE( graph[0].second, y0 );
+			QCOMPARE( graph[graph.size()-1].second, yMax );
+		}
+
+		// constraints on x-subdivision:
+		for( unsigned int i=0; i<graph.size()-1; i++ ) {
+			QCOMPARE_LT( graph[i].first.c_.real(), graph[i+1].first.c_.real() );
+			QCOMPARE_LT(
+					graph[i+1].first.c_.real() - graph[i].first.c_.real(),
+					(range.second-range.first) / graph.size() * 2
+			);
+			QCOMPARE_EQ( graph[i].first.c_.imag(), 0 );
+		}
+
+		// y values:
 		std::vector<std::pair<C,C>> expectedGraph;
-		for( int j=0; j<resolution; j++ ) {
-			T xVal =
-				range.first
-				+ T(j)/(resolution-1) * (range.second - range.first);
-			std::pair<C,C> expectedPoint = {
-				C(xVal,0),
-				C(expectedFunc(xVal),0)
-			};
-			auto point = graph[j];
+		for( auto point : graph ) {
+			auto expectedY = expectedFunc( point.first );
 			QVERIFY2(
-					cmplx::equal( point.first, expectedPoint.first )
-					&& cmplx::equal( point.second, expectedPoint.second )
+					qFuzzyCompare( point.second.c_.real(), expectedY.c_.real() )
+						&& qFuzzyCompare( point.second.c_.imag(), expectedY.c_.imag() )
 					,
-					QString( "error in graph(f%1)[%2] == %3 != %4 (expected)" )
-						.arg( i )
-						.arg( j )
-						.arg( to_qstring( point ) )
-						.arg( to_qstring( expectedPoint ) )
+					QString( "error in graph(f%1): %2 -> %3 != %4 (expected)" )
+						.arg( iFunction )
+						.arg( to_qstring( point.first ) )
+						.arg( to_qstring( point.second ) )
+						.arg( to_qstring( expectedY ) )
 					.toStdString().c_str()
 			);
 		}

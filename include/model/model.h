@@ -32,7 +32,8 @@ class Model
 		) const;
 		ErrorOrValue<std::vector<std::pair<C,C>>> getGraph(
 				const size_t index,
-				const std::pair<T,T>& range
+				const std::pair<T,T>& range,
+				const unsigned int resolution
 		) const;
 		MaybeError valuesToAudioBuffer(
 				const size_t index,

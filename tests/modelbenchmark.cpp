@@ -25,6 +25,7 @@ void ModelBenchmark::harmonicSeriesChain_data()
 
 void ModelBenchmark::harmonicSeries()
 {
+	const unsigned int resolution = 1024;
 	QFETCH( unsigned int, NumHarmonics );
 	Model model;
 	std::vector<QString> testData = {
@@ -41,12 +42,17 @@ void ModelBenchmark::harmonicSeries()
 	};
 	initTestModel( &model, testData );
 	QBENCHMARK(
-			model.getGraph(0, {0,1})
+			model.getGraph(
+				0,
+				{0,1},
+				resolution
+			)
 	);
 }
 
 void ModelBenchmark::harmonicSeriesChain()
 {
+	const unsigned int resolution = 1024;
 	QFETCH( unsigned int, NumHarmonics );
 	Model model;
 	std::vector<QString> testData = {
@@ -72,6 +78,10 @@ void ModelBenchmark::harmonicSeriesChain()
 	};
 	initTestModel( &model, testData );
 	QBENCHMARK(
-			model.getGraph(1, {0,1})
+			model.getGraph(
+				1,
+				{0,1},
+				resolution
+			)
 	);
 }

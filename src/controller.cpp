@@ -1,7 +1,8 @@
 #include "controller.h"
 #include <algorithm>
-#include <variant>
 
+
+const unsigned int resolution = 1024;
 
 Controller::Controller(
 	Model* model,
@@ -112,7 +113,8 @@ void Controller::updateGraph(const size_t iFunction) {
 	{
 		auto errorOrPoints = model->getGraph(
 				iFunction,
-				functionView->getViewData().getXRange()
+				functionView->getViewData().getXRange(),
+				resolution
 		);
 		if( errorOrPoints ) {
 			auto points = errorOrPoints.value();

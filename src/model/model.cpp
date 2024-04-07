@@ -4,7 +4,7 @@
 #include <variant>
 
 
-const unsigned int X_RESOLUTION = 1024;
+// const unsigned int X_RESOLUTION_DISPLAY = 1024;
 
 inline QString functionName( const size_t index ) {
 	return QString("f%1").arg( index );
@@ -112,7 +112,8 @@ MaybeError Model::getError(
 
 ErrorOrValue<std::vector<std::pair<C,C>>> Model::getGraph(
 		const size_t index,
-		const std::pair<T,T>& range
+		const std::pair<T,T>& range,
+		const unsigned int resolution
 ) const
 {
 	auto errorOrFunction = getFunction(index);
@@ -126,8 +127,8 @@ ErrorOrValue<std::vector<std::pair<C,C>>> Model::getGraph(
 			xMax = range.second
 		;
 		std::vector<std::pair<C,C>> graph;
-		for( unsigned int i=0; i<X_RESOLUTION; i++ ) {
-			auto x = C( xMin + (T(i) / (X_RESOLUTION-1))*(xMax - xMin), 0);
+		for( unsigned int i=0; i<resolution; i++ ) {
+			auto x = C( xMin + (T(i) / (resolution-1))*(xMax - xMin), 0);
 			graph.push_back(
 					{
 						x,
