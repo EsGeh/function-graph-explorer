@@ -104,8 +104,8 @@ MaybeError Model::getError(
 ) const
 {
 	auto errorOrFunction = getFunction(index);
-	if( std::holds_alternative<Error>( errorOrFunction ) ) {
-		return std::get<Error>( errorOrFunction );
+	if( !errorOrFunction ) {
+		return errorOrFunction.error();
 	}
 	return {};
 }
@@ -116,11 +116,11 @@ ErrorOrValue<std::vector<std::pair<C,C>>> Model::getGraph(
 ) const
 {
 	auto errorOrFunction = getFunction(index);
-	if( std::holds_alternative<Error>( errorOrFunction ) ) {
-		return std::get<Error>( errorOrFunction );
+	if( !errorOrFunction ) {
+		return std::unexpected( errorOrFunction.error() );
 	}
 	{
-		auto function = std::get<std::shared_ptr<Function>>( errorOrFunction );
+		auto function = errorOrFunction.value();
 		auto
 			xMin = range.first,
 			xMax = range.second
@@ -150,11 +150,11 @@ MaybeError Model::valuesToAudioBuffer(
 ) const
 {
 	auto errorOrFunction = getFunction(index);
-	if( std::holds_alternative<Error>( errorOrFunction ) ) {
-		return std::get<Error>( errorOrFunction );
+	if( !errorOrFunction ) {
+		return errorOrFunction.error();
 	}
 	{
-		auto function = std::get<std::shared_ptr<Function>>( errorOrFunction );
+		auto function = errorOrFunction.value();
 		const unsigned int countSamples = duration*samplerate; 
 		buffer->resize( countSamples );
 		for( unsigned int i=0; i<countSamples; i++ ) {
@@ -211,12 +211,10 @@ void Model::updateFormulas(const size_t startIndex) {
 	 */
 	for( size_t i=0; i<startIndex; i++ ) {
 		auto entry = functions.at(i);
-		if( entry->errorOrFunction.index() == 1 ) {
+		if( entry->errorOrFunction ) {
 			functionSymbols.add_function(
 					functionName( i ).toStdString().c_str(),
-					*(std::get<std::shared_ptr<Function>>(
-							entry->errorOrFunction
-					).get())
+					*(entry->errorOrFunction.value())
 			);
 		}
 	}
@@ -232,10 +230,10 @@ void Model::updateFormulas(const size_t startIndex) {
 					&functionSymbols
 				}
 		);
-		if( entry->errorOrFunction.index() == 1 ) {
+		if( entry->errorOrFunction ) {
 			functionSymbols.add_function(
 					functionName( i ).toStdString().c_str(),
-					*(std::get<std::shared_ptr<Function>>( entry->errorOrFunction ).get())
+					*(entry->errorOrFunction.value())
 			);
 		}
 	}

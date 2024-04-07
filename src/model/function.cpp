@@ -58,7 +58,7 @@ ErrorOrValue<std::shared_ptr<Function>> formulaFunctionFactory(
 	auto function = std::shared_ptr<FormulaFunction>(new FormulaFunction());
 	auto maybeError = function->init( formulaStr, additionalSymbols);
 	if( maybeError ) {
-		return maybeError.value();
+		return std::unexpected(maybeError.value() );
 	}
 	return function;
 }

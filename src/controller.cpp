@@ -114,8 +114,8 @@ void Controller::updateGraph(const size_t iFunction) {
 				iFunction,
 				functionView->getViewData().getXRange()
 		);
-		if( std::holds_alternative<std::vector<std::pair<C,C>>>( errorOrPoints ) ) {
-			auto points = std::get<std::vector<std::pair<C,C>>>( errorOrPoints );
+		if( errorOrPoints ) {
+			auto points = errorOrPoints.value();
 			functionView->setGraph( points );
 		}
 	}

@@ -3,6 +3,7 @@
 
 #include "complex_adaptor.h"
 #include <QString>
+#include <expected>
 
 typedef cmplx::complex_t C;
 typedef double T;
@@ -10,8 +11,8 @@ typedef double T;
 
 typedef QString Error;
 
-template <typename C>
-using ErrorOrValue = std::variant<Error, C>;
+template <typename T>
+using ErrorOrValue = std::expected<T, Error>;
 
 typedef std::optional<Error> MaybeError;
 

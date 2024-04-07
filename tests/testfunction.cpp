@@ -1,3 +1,4 @@
+#include <qtestcase.h>
 #include <testfunction.h>
 #include "model/function.h"
 
@@ -13,19 +14,19 @@ void TestFormulaFunction::testInit_data() {
 	QTest::addColumn<QString>("formulaString");
 	QTest::addColumn<ConstDescrs>("constants");
 	QTest::addColumn<FuncDescrs>("functions");
-	QTest::addColumn<int>("result");
+	QTest::addColumn<bool>("result");
 
 	QTest::newRow("simple")
 		<< "x"
 		<< ConstDescrs {}
 		<< FuncDescrs {}
-		<< 1
+		<< true
 	;
 	QTest::newRow("x^2")
 		<< "x^2"
 		<< ConstDescrs {}
 		<< FuncDescrs {}
- 		<< 1
+ 		<< true
 	;
 	// const from symbol table:
 	{
@@ -33,14 +34,14 @@ void TestFormulaFunction::testInit_data() {
 			<< "2pi*x"
 			<< ConstDescrs { {"pi", C(3.141, 0)} }
 			<< FuncDescrs {}
-			<< 1
+			<< true
 		;
 	}
 	QTest::newRow("unknown var")
 		<< "2pi*x"
 		<< ConstDescrs {}
 		<< FuncDescrs {}
-		<< 0
+		<< false
 	;
 	// function from symbol table:
 	{
@@ -48,7 +49,7 @@ void TestFormulaFunction::testInit_data() {
 			<< "f1(2*x)"
 			<< ConstDescrs {}
 			<< FuncDescrs { { "f1", "cos(x)" } }
-			<< 1
+			<< true
 		;
 	}
 }
@@ -58,7 +59,7 @@ void TestFormulaFunction::testInit() {
 	QFETCH(QString, formulaString);
 	QFETCH(ConstDescrs, constants);
 	QFETCH(FuncDescrs, functions);
-	QFETCH(int, result);
+	QFETCH(bool, result);
 	// run test:
 	symbol_table_t symbols;
 	std::vector<std::shared_ptr<compositor_t>> compositors;
@@ -85,18 +86,15 @@ void TestFormulaFunction::testInit() {
 			symbolTables
 	);
 	if( result == 0 ) {
-		QCOMPARE( errOrValue.index(), result);
+		QVERIFY( !errOrValue );
 	}
 	else {
-		if( errOrValue.index() == result )
-			QCOMPARE( errOrValue.index(), result);
-		else {
-			QVERIFY2(
-				errOrValue.index() == result,
-				(QString("failed with '") + std::get<QString>( errOrValue ) + "'"
-				).toStdString().c_str()
-			);
-		}
+		QVERIFY2(
+			errOrValue,
+			QString("failed with '%1'")
+				.arg( !errOrValue ? errOrValue.error() : "" )
+			.toStdString().c_str()
+		);
 	}
 }
 
@@ -105,8 +103,8 @@ void TestFormulaFunction::testEval() {
 			"x^2",
 			{}
 	);
-	assert( errOrValue.index() == 1 );
-	auto function = std::get<std::shared_ptr<Function>>( errOrValue );
+	assert( errOrValue );
+	auto function = errOrValue.value();
 	{
 		auto ret = function->get( C(0,0) );
 		QCOMPARE( ret, C(0,0) );
