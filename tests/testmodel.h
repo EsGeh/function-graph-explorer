@@ -1,6 +1,10 @@
-#include "model/model.h"
+#ifndef TESTMODEL_H
+#define TESTMODEL_H
 
+#include "model/model.h"
+#include "testutils.h"
 #include <QTest>
+
 
 class TestModel: public QObject
 {
@@ -15,3 +19,22 @@ private slots:
 	void testGetGraph();
 	void testValuesToAudioBuffer();
 };
+
+/* utilities */
+
+void assertAllFunctionsValid(
+		const Model& model,
+		const std::vector<std::pair<QString, std::function<C(T)>>>& expectedResult
+);
+
+void assertExpected(
+		const Model& model,
+		const std::vector<std::pair<QString, std::function<C(T)>>>& expectedResult
+);
+
+void assertCorrectGraph(
+		const Model& model,
+		const std::vector<std::pair<QString, std::function<C(T)>>>& expectedResult
+);
+
+#endif

@@ -8,23 +8,6 @@
 QTEST_MAIN(TestModel)
 #include "testmodel.moc"
 
-/* utilities */
-
-void assertAllFunctionsValid(
-		const Model& model,
-		const std::vector<std::pair<QString, std::function<C(T)>>>& expectedResult
-);
-
-void assertExpected(
-		const Model& model,
-		const std::vector<std::pair<QString, std::function<C(T)>>>& expectedResult
-);
-
-void assertCorrectGraph(
-		const Model& model,
-		const std::vector<std::pair<QString, std::function<C(T)>>>& expectedResult
-);
-
 /* TEST */
 
 void TestModel::testInit() {
@@ -97,11 +80,7 @@ void TestModel::testSetEntry() {
 		{ "x^2", [](auto x){ return C(x*x,0); } },
 		{ "x^3", [](auto x){ return C(x*x*x,0); } }
 	};
-	model.resize(testData.size());
-	for( auto i=0; i<testData.size(); i++ ) {
-		auto funcString = testData[i].first ;
-		model.set(i, funcString );
-	}
+	initTestModel( &model, testData );
 	assertAllFunctionsValid( model, testData );
 	assertExpected( model, testData );
 }
@@ -112,13 +91,7 @@ void TestModel::testFunctionReferences() {
 		{ "x-1", [](T x){ return C(x-1, 0); } },
 		{ "(x+1)*f0(x)", [](T x){ return C((x+1)*(x-1), 0); } }
 	};
-	model.resize(testData.size());
-	for( auto i=0; i<testData.size(); i++ ) {
-		auto funcString = testData[i].first ;
-		QVERIFY_THROWS_NO_EXCEPTION(
-			model.set(i, funcString );
-		);
-	}
+	initTestModel( &model, testData );
 	assertAllFunctionsValid( model, testData );
 	assertExpected( model, testData );
 }
@@ -131,15 +104,7 @@ void TestModel::testUpdatesReferences() {
 			{ "x-1", [](T x){ return C(x-1, 0); } },
 			{ "(x+1)*f0(x)", [](T x){ return C((x+1)*(x-1), 0); } }
 		};
-		/* set F0, F1: 
-		 */
-		model.resize(testData.size());
-		for( auto i=0; i<testData.size(); i++ ) {
-			auto funcString = testData[i].first ;
-			QVERIFY_THROWS_NO_EXCEPTION(
-				model.set(i, funcString );
-			);
-		}
+		initTestModel( &model, testData );
 	}
 	/* update F0:
 	 */
@@ -161,13 +126,7 @@ void TestModel::testGetGraph()
 		{ "x-1", [](T x){ return C(x-1, 0); } },
 		{ "(x+1)*f0(x)", [](T x){ return C((x+1)*(x-1), 0); } }
 	};
-	model.resize(testData.size());
-	for( auto i=0; i<testData.size(); i++ ) {
-		auto funcString = testData[i].first ;
-		QVERIFY_THROWS_NO_EXCEPTION(
-			model.set(i, funcString );
-		);
-	}
+	initTestModel( &model, testData );
 	assertCorrectGraph( model, testData );
 }
 
@@ -178,13 +137,7 @@ void TestModel::testValuesToAudioBuffer()
 		{ "x-1", [](T x){ return C(x-1, 0); } },
 		{ "(x+1)*f0(x)", [](T x){ return C((x+1)*(x-1), 0); } }
 	};
-	model.resize(testData.size());
-	for( auto i=0; i<testData.size(); i++ ) {
-		auto funcString = testData[i].first ;
-		QVERIFY_THROWS_NO_EXCEPTION(
-			model.set(i, funcString );
-		);
-	}
+	initTestModel( &model, testData );
 
 	const T duration = 1;
 	const T speed = 1;
