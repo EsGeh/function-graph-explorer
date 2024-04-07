@@ -59,6 +59,10 @@ You need [conan](https://conan.io/) installed. Issuing the following command wil
 
     $ ./scripts/conan_test.fish
 
+# Build and Run Benchmarks
+
+    $ ./scripts/conan_benchmark.fish
+
 # Suggested Editor Config
 
 When coding vim / nvim, you might want to use a "language client"/linter to add just-in-time compilation, inline hints, etc.
