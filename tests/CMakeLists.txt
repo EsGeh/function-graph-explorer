@@ -14,6 +14,7 @@ add_executable(testformulafunction
 	EXCLUDE_FROM_ALL
 	testfunction.cpp
 	../${SRC_DIR}/model/function.cpp
+	../${SRC_DIR}/global.cpp
 )
 add_test(testformulafunction testformulafunction)
 target_include_directories(testformulafunction PRIVATE "${PROJECT_SOURCE_DIR}/${INCLUDE_DIR}")
@@ -36,6 +37,7 @@ add_executable(testmodel
 	testmodel.cpp
 	../${SRC_DIR}/model/model.cpp
 	../${SRC_DIR}/model/function.cpp
+	../${SRC_DIR}/global.cpp
 )
 
 add_test(testmodel testmodel)

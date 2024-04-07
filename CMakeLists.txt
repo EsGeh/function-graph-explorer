@@ -21,6 +21,7 @@ set(PROJECT_SOURCES
 	${SRC_DIR}/view/functiondisplayoptions.cpp
 	${SRC_DIR}/view/jack.cpp
 	${SRC_DIR}/controller.cpp
+	${SRC_DIR}/global.cpp
 	${INCLUDE_DIR}/model/model.h
 	${INCLUDE_DIR}/model/function.h
 	${INCLUDE_DIR}/view/mainwindow.h

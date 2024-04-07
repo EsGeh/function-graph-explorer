@@ -12,11 +12,6 @@ private slots:
 	void testSetEntry();
 	void testFunctionReferences();
 	void testUpdatesReferences();
-	// TODO: test Model::getGraph
-	// TODO: test Model::valuesToAudioBuffer
+	void testGetGraph();
+	void testValuesToAudioBuffer();
 };
-
-void assertExpected(
-		const Model& model,
-		const std::vector<std::pair<QString, std::function<C(T)>>>& expectedResult
-);

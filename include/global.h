@@ -15,4 +15,7 @@ using ErrorOrValue = std::variant<Error, C>;
 
 typedef std::optional<Error> MaybeError;
 
+QString to_qstring(const C& value);
+QString to_qstring(const std::pair<C,C>& value);
+
 #endif

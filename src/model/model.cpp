@@ -126,8 +126,8 @@ ErrorOrValue<std::vector<std::pair<C,C>>> Model::getGraph(
 			xMax = range.second
 		;
 		std::vector<std::pair<C,C>> graph;
-		for( unsigned int i=0; i<X_RESOLUTION+1; i++ ) {
-			auto x = C( xMin + (T(i) / X_RESOLUTION)*(xMax - xMin), 0);
+		for( unsigned int i=0; i<X_RESOLUTION; i++ ) {
+			auto x = C( xMin + (T(i) / (X_RESOLUTION-1))*(xMax - xMin), 0);
 			graph.push_back(
 					{
 						x,
