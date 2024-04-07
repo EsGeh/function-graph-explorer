@@ -9,24 +9,34 @@ QTEST_MAIN(ModelBenchmark)
 
 void ModelBenchmark::harmonicSeries_data()
 {
-	QTest::addColumn<unsigned int>("NumHarmonics");
-	for( unsigned int N=0; N<=10; N+= 5 ) {
-		QTest::newRow( QString::number(N).toStdString().c_str() ) << N;
+	QTest::addColumn<unsigned int>("resolution");
+	QTest::addColumn<unsigned int>("numHarmonics");
+	for( unsigned int resolution : {1024, 44100} ) {
+		for( unsigned int N=0; N<=10; N+= 5 ) {
+			QTest::addRow( "res=%d, N=%d", resolution, N )
+				<< resolution
+				<< N;
+		}
 	}
 }
 
 void ModelBenchmark::harmonicSeriesChain_data()
 {
-	QTest::addColumn<unsigned int>("NumHarmonics");
-	for( unsigned int N=0; N<=10; N+= 5 ) {
-		QTest::newRow( QString::number(N).toStdString().c_str() ) << N;
+	QTest::addColumn<unsigned int>("resolution");
+	QTest::addColumn<unsigned int>("numHarmonics");
+	for( unsigned int resolution : {1024, 44100} ) {
+		for( unsigned int N=0; N<=10; N+= 5 ) {
+			QTest::addRow( "res=%d, N=%d", resolution, N )
+				<< resolution
+				<< N;
+		}
 	}
 }
 
 void ModelBenchmark::harmonicSeries()
 {
-	const unsigned int resolution = 1024;
-	QFETCH( unsigned int, NumHarmonics );
+	QFETCH( unsigned int, resolution );
+	QFETCH( unsigned int, numHarmonics );
 	Model model;
 	std::vector<QString> testData = {
 		(QStringList {
@@ -38,7 +48,7 @@ void ModelBenchmark::harmonicSeries()
 			"};",
 			"1/N*acc;"
 		}).join("\n")
-			.arg( NumHarmonics )
+			.arg( numHarmonics )
 	};
 	initTestModel( &model, testData );
 	QBENCHMARK(
@@ -52,8 +62,8 @@ void ModelBenchmark::harmonicSeries()
 
 void ModelBenchmark::harmonicSeriesChain()
 {
-	const unsigned int resolution = 1024;
-	QFETCH( unsigned int, NumHarmonics );
+	QFETCH( unsigned int, resolution );
+	QFETCH( unsigned int, numHarmonics );
 	Model model;
 	std::vector<QString> testData = {
 		(QStringList {
@@ -74,7 +84,7 @@ void ModelBenchmark::harmonicSeriesChain()
 			"};",
 			"1/N*acc;"
 		}).join("\n")
-			.arg( NumHarmonics )
+			.arg( numHarmonics )
 	};
 	initTestModel( &model, testData );
 	QBENCHMARK(
