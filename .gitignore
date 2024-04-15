@@ -4,6 +4,7 @@
 /build/
 /compile_commands.json
 /.cache/
+.vimspector.json
 
 # conan:
 CMakeUserPresets.json

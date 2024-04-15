@@ -124,6 +124,7 @@ void GraphView::wheelEvent(QWheelEvent *event) {
 			if( step.x() == 0 ) step.setX( step.y() );
 			else if( step.y() == 0 ) step.setY( step.x() );
 		}
+		step *= -1;
 		viewData->scaleExp.first += step.x();
 		viewData->scaleExp.second += step.y();
 		emit viewChanged();

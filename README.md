@@ -69,3 +69,12 @@ When coding vim / nvim, you might want to use a "language client"/linter to add 
 [ALE](https://github.com/dense-analysis/ale) delivers this.
 When coding with vim / nvim & [ALE](https://github.com/dense-analysis/ale) in a complex setup (cmake, Qt), the plugin might fail to locate source/include files.
 Building the projects creates `./compile_commands.json`, which is supposed to solve this problem by guiding IDEs and plugins where to look for sources.
+
+## Debugging with VIM
+
+Try the [vimspector](https://github.com/puremourning/vimspector) plugin. The plugin needs a .vimspector.json.
+The repository contains an example.
+
+    $ .vimspector.json.example ./.vimspector.json
+
+Adjust manually...
