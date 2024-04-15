@@ -1,7 +1,4 @@
 #include "model/model.h"
-#include <QDebug>
-#include <cstdlib>
-#include <variant>
 
 
 // const unsigned int X_RESOLUTION_DISPLAY = 1024;
@@ -67,10 +64,15 @@ static auto complexFunc = ComplexFunction();
 static auto polarFunc = PolarFunction();
 static auto randomFunc = RandomFunction();
 
-Model::Model()
-	: constantSymbols(symbol_table_t::symtab_mutability_type::e_immutable)
+Model::Model(
+		const uint cacheResolution,
+		const bool enableInterpolate
+)
+	: cacheResolution( cacheResolution )
+	, constantSymbols(symbol_table_t::symtab_mutability_type::e_immutable)
 	, functionSymbols(symbol_table_t::symtab_mutability_type::e_immutable)
 	, functions()
+	, enableInterpolate( enableInterpolate )
 {
 	constantSymbols.add_constant( "pi", C(acos(-1),0) );
 	constantSymbols.add_constant( "e", cmplx::details::constant::e );
@@ -136,7 +138,7 @@ ErrorOrValue<std::vector<std::pair<C,C>>> Model::getGraph(
 					}
 			);
 		}
-		return { graph };
+		return graph;
 	}
 }
 
@@ -229,7 +231,9 @@ void Model::updateFormulas(const size_t startIndex) {
 				{
 					&constantSymbols,
 					&functionSymbols
-				}
+				},
+				cacheResolution,
+				enableInterpolate // enable interpolation
 		);
 		if( entry->errorOrFunction ) {
 			functionSymbols.add_function(

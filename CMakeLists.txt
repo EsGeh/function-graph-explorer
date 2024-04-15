@@ -15,6 +15,7 @@ set(PROJECT_SOURCES
 	${SRC_DIR}/main.cpp
 	${SRC_DIR}/model/model.cpp
 	${SRC_DIR}/model/function.cpp
+	${SRC_DIR}/model/cache.cpp
 	${SRC_DIR}/view/mainwindow.cpp
 	${SRC_DIR}/view/functionview.cpp
 	${SRC_DIR}/view/graphview.cpp
@@ -23,6 +24,7 @@ set(PROJECT_SOURCES
 	${SRC_DIR}/controller.cpp
 	${SRC_DIR}/global.cpp
 	${INCLUDE_DIR}/model/model.h
+	${INCLUDE_DIR}/model/cache.h
 	${INCLUDE_DIR}/model/function.h
 	${INCLUDE_DIR}/view/mainwindow.h
 	${INCLUDE_DIR}/view/functionview.h

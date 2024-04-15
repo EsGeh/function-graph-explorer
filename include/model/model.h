@@ -19,7 +19,10 @@ struct FunctionEntry {
 class Model
 {
 	public:
-		Model();
+		Model(
+				const uint cacheResolution,
+				const bool enableInterpolate = true
+		);
 
 		// get:
 		size_t size() const;
@@ -51,12 +54,14 @@ class Model
 		MaybeError set( const size_t index, const QString& functionStr );
 	
 	private:
+		const unsigned int cacheResolution;
 		void updateFormulas( const size_t startIndex );
 
 	private:
 		symbol_table_t constantSymbols;
 		symbol_table_t functionSymbols;;
 		std::vector<std::shared_ptr<FunctionEntry>> functions;
+		const bool enableInterpolate;
 
 };
 

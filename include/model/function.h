@@ -1,11 +1,8 @@
-#ifndef FUNCCION_H
-#define FUNCCION_H
+#ifndef FUNCTION_H
+#define FUNCTION_H
 
-#include "global.h"
+#include "cache.h"
 #include "exprtk.hpp"
-#include <QString>
-#include <memory>
-#include <optional>
 
 
 typedef exprtk::symbol_table<C>
@@ -26,29 +23,35 @@ class Function:
 
 	public:
 		Function();
+		virtual ~Function();
 		virtual C get( C x ) = 0;
 		virtual QString toString() const = 0;
 
 		C operator()(const C& x);
 };
 
-class FormulaFunction: public Function
+class FormulaFunction:
+	virtual public Function
 {
 
 	public:
+		virtual ~FormulaFunction();
 		// get:
 		virtual C get( C x );
 		virtual QString toString() const;
 
-	private:
+
+	protected:
 		FormulaFunction();
 		MaybeError init(
 				const QString& formula_str,
 				std::vector<symbol_table_t*> additionalSymbols
 		);
-		friend ErrorOrValue<std::shared_ptr<Function>> formulaFunctionFactory(
+		friend ErrorOrValue<std::shared_ptr<Function>> formulaFunctionFactory_internal(
 				const QString& formulaStr,
-				std::vector<symbol_table_t*> additionalSymbols
+				std::vector<symbol_table_t*> additionalSymbols,
+				const uint resolution,
+				const bool enableInterpolate
 		);
 
 	private:
@@ -59,9 +62,49 @@ class FormulaFunction: public Function
 
 };
 
+class CachedFunction:
+	virtual public Function,
+	protected FormulaFunction
+{
+	public:
+		virtual ~CachedFunction();
+		virtual C get( C x );
+	protected:
+		CachedFunction(
+				const uint resolution, // 0 means: no caching
+				const bool enableInterpolate
+		);
+		friend ErrorOrValue<std::shared_ptr<Function>> formulaFunctionFactory_internal(
+				const QString& formulaStr,
+				std::vector<symbol_table_t*> additionalSymbols,
+				const uint resolution,
+				const bool enableInterpolate
+		);
+		// simple linear interpolation
+		C interpolate(
+				const C& x,
+				const C ys[2]
+		);
+	private:
+		const uint resolution;
+		bool enableInterpolate;
+		typedef int CacheIndex;
+		std::function<C(CacheIndex)> function;
+		Cache cache;
+};
+
+ErrorOrValue<std::shared_ptr<Function>> formulaFunctionFactory_internal(
+		const QString& formulaStr,
+		std::vector<symbol_table_t*> additionalSymbols,
+		const uint resolution,
+		const bool enableInterpolate
+);
+
 ErrorOrValue<std::shared_ptr<Function>> formulaFunctionFactory(
 		const QString& formulaStr,
-		std::vector<symbol_table_t*> additionalSymbols
+		std::vector<symbol_table_t*> additionalSymbols,
+		const uint resolution = 0,
+		const bool enableInterpolate = false
 );
 
 #endif

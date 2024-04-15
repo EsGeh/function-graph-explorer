@@ -8,6 +8,10 @@
 #include <QDebug>
 
 
+const unsigned int cacheResolution = 44100;
+const unsigned int enableInterpolate = true;
+const unsigned int viewResolution = 441;
+
 int main(int argc, char *argv[])
 {
 	#ifndef NDEBUG
@@ -27,12 +31,16 @@ int main(int argc, char *argv[])
 	jack.startWorkerThread();
 
   QApplication a(argc, argv);
-  auto model = Model();
+  auto model = Model(
+			cacheResolution,
+			enableInterpolate
+	);
   auto view = MainWindow();
 	Controller controller(
 			&model,
 			&view,
-			&jack
+			&jack,
+			viewResolution
 	);
 	controller.run();
 

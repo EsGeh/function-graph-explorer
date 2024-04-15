@@ -2,16 +2,16 @@
 #include <algorithm>
 
 
-const unsigned int resolution = 1024;
-
 Controller::Controller(
 	Model* model,
 	MainWindow* view,
-	JackClient* jack
+	JackClient* jack,
+	const uint viewResolution
 )
 	: model(model)
 	, view(view)
 	, jack(jack)
+	, viewResolution(viewResolution)
 {
 	connect(
 		view,
@@ -114,7 +114,7 @@ void Controller::updateGraph(const size_t iFunction) {
 		auto errorOrPoints = model->getGraph(
 				iFunction,
 				functionView->getViewData().getXRange(),
-				resolution
+				viewResolution
 		);
 		if( errorOrPoints ) {
 			auto points = errorOrPoints.value();

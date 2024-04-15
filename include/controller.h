@@ -16,7 +16,8 @@ public:
 	Controller(
 		Model* model,
 		MainWindow* view,
-		JackClient* jack
+		JackClient* jack,
+		const uint viewResolution
 	);
 	void run();
 
@@ -33,6 +34,7 @@ private:
 	Model* model;
 	MainWindow* view;
 	JackClient* jack;
+	const uint viewResolution;
 
 };
 

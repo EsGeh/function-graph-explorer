@@ -83,7 +83,8 @@ void TestFormulaFunction::testInit() {
 	}
 	auto errOrValue = formulaFunctionFactory(
 			formulaString,
-			symbolTables
+			symbolTables,
+			0 // no caching
 	);
 	if( result == 0 ) {
 		QVERIFY( !errOrValue );
@@ -101,7 +102,8 @@ void TestFormulaFunction::testInit() {
 void TestFormulaFunction::testEval() {
 	auto errOrValue = formulaFunctionFactory(
 			"x^2",
-			{}
+			{},
+			0 // no caching
 	);
 	assert( errOrValue );
 	auto function = errOrValue.value();

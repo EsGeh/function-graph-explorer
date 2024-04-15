@@ -64,7 +64,10 @@ add_executable(modelbenchmark
 	../${SRC_DIR}/model/function.cpp
 	../${SRC_DIR}/global.cpp
 )
-add_test(modelbenchmark modelbenchmark)
+add_test(modelbenchmark
+	modelbenchmark
+	-iterations 8
+)
 target_include_directories(modelbenchmark PRIVATE "${PROJECT_SOURCE_DIR}/${INCLUDE_DIR}")
 target_include_directories(modelbenchmark PRIVATE "${PROJECT_SOURCE_DIR}/${TEST_DIR}")
 target_link_libraries(modelbenchmark PRIVATE Qt6::Test)
