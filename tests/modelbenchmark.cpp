@@ -9,20 +9,20 @@ QTEST_MAIN(ModelBenchmark)
 const uint sampleResolution = 44100;
 
 void ModelBenchmark::testData() {
-	QTest::addColumn<unsigned int>("cacheResolution");
-	QTest::addColumn<bool>("interpolation");
-	QTest::addColumn<unsigned int>("numHarmonics");
+	QTest::addColumn<uint>("resolution");
+	QTest::addColumn<uint>("interpolation");
+	QTest::addColumn<uint>("numHarmonics");
 	for( uint N=0; N<=10; N+= 10 ) {
-		for( uint cacheResolution : {uint(0), sampleResolution} ) {
-			auto interpol_values = (cacheResolution!=0) ? std::vector({false, true}) : std::vector({false});
-			for( bool interpolation : interpol_values ) {
+		for( uint resolution : {uint(0), sampleResolution} ) {
+			auto interpol_values = (resolution!=0) ? std::vector({0, 1}) : std::vector({0});
+			for( uint interpolation : interpol_values ) {
 				QTest::addRow(
-						"cacheResolution=%d, interpolation=%d, N=%d",
-						cacheResolution,
+						"resolution=%d, interpolation=%d, N=%d",
+						resolution,
 						interpolation,
 						N
 				)
-					<< cacheResolution
+					<< resolution
 					<< interpolation
 					<< N;
 			}
@@ -42,10 +42,15 @@ void ModelBenchmark::harmonicSeriesChain_data()
 
 void ModelBenchmark::harmonicSeries()
 {
-	QFETCH( unsigned int, cacheResolution );
-	QFETCH( bool, interpolation );
-	QFETCH( unsigned int, numHarmonics );
-	Model model(cacheResolution, interpolation);
+	QFETCH( uint, resolution );
+	QFETCH( uint, interpolation );
+	QFETCH( uint, numHarmonics );
+	SamplingSettings settings{
+		.resolution = resolution,
+		.interpolation = interpolation,
+		.caching = true
+	};
+	Model model(settings);
 	std::vector<QString> testData = {
 		(QStringList {
 			"var freq := 440;",
@@ -70,10 +75,15 @@ void ModelBenchmark::harmonicSeries()
 
 void ModelBenchmark::harmonicSeriesChain()
 {
-	QFETCH( unsigned int, cacheResolution );
-	QFETCH( bool, interpolation );
-	QFETCH( unsigned int, numHarmonics );
-	Model model(cacheResolution, interpolation);
+	QFETCH( uint, resolution );
+	QFETCH( uint, interpolation );
+	QFETCH( uint, numHarmonics );
+	SamplingSettings settings{
+		.resolution = resolution,
+		.interpolation = interpolation,
+		.caching = true
+	};
+	Model model(settings);
 	std::vector<QString> testData = {
 		(QStringList {
 			"var freq := 440;",

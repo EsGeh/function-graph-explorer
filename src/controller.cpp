@@ -31,6 +31,9 @@ void Controller::setFunctionCount(const size_t size) {
 		updateFormula(i);
 		updateGraph(i);
 		auto functionView = view->getFunctionView(i);
+		functionView->setSamplingSettings(
+				model->getSamplingSettings(i)
+		);
 		// Model -> View:
 		connect(
 			functionView,
@@ -40,6 +43,10 @@ void Controller::setFunctionCount(const size_t size) {
 				 * starting from current index
 				 * need to be repainted:
 				 */
+				model->setSamplingSettings(
+						i,
+						view->getFunctionView(i)->getSamplingSettings()
+				);
 				for( auto j=i; j<model->size(); j++ ) {
 					updateGraph(j);
 				}

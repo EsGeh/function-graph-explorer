@@ -3,7 +3,6 @@
 
 #include "model/function.h"
 #include <memory>
-#include <optional>
 
 
 typedef
@@ -11,17 +10,29 @@ typedef
 	ErrorOrFunction
 ;
 
+struct SamplingSettings {
+	uint resolution = 0;
+	uint interpolation = 1;
+	bool caching = false;
+};
+
 struct FunctionEntry {
 	QString string;
+	SamplingSettings samplingSettings;
 	ErrorOrFunction errorOrFunction;
+};
+
+const SamplingSettings no_optimization_settings{
+	.resolution = 0,
+	.interpolation = 0,
+	.caching = false
 };
 
 class Model
 {
 	public:
 		Model(
-				const uint cacheResolution,
-				const bool enableInterpolate = true
+				const SamplingSettings& defSamplingSettings = no_optimization_settings
 		);
 
 		// get:
@@ -33,6 +44,13 @@ class Model
 		MaybeError getError(
 				const size_t index
 		) const;
+		SamplingSettings getSamplingSettings(
+				const size_t index
+		) const;
+		void setSamplingSettings(
+				const size_t index,
+				const SamplingSettings& value
+		);
 		ErrorOrValue<std::vector<std::pair<C,C>>> getGraph(
 				const size_t index,
 				const std::pair<T,T>& range,
@@ -54,14 +72,13 @@ class Model
 		MaybeError set( const size_t index, const QString& functionStr );
 	
 	private:
-		const unsigned int cacheResolution;
 		void updateFormulas( const size_t startIndex );
 
 	private:
 		symbol_table_t constantSymbols;
 		symbol_table_t functionSymbols;;
 		std::vector<std::shared_ptr<FunctionEntry>> functions;
-		const bool enableInterpolate;
+		SamplingSettings defSamplingSettings;
 
 };
 

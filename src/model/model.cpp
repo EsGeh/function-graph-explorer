@@ -1,8 +1,6 @@
 #include "model/model.h"
 
 
-// const unsigned int X_RESOLUTION_DISPLAY = 1024;
-
 inline QString functionName( const size_t index ) {
 	return QString("f%1").arg( index );
 }
@@ -65,14 +63,12 @@ static auto polarFunc = PolarFunction();
 static auto randomFunc = RandomFunction();
 
 Model::Model(
-		const uint cacheResolution,
-		const bool enableInterpolate
+		const SamplingSettings& defSamplingSettings
 )
-	: cacheResolution( cacheResolution )
-	, constantSymbols(symbol_table_t::symtab_mutability_type::e_immutable)
+	: constantSymbols(symbol_table_t::symtab_mutability_type::e_immutable)
 	, functionSymbols(symbol_table_t::symtab_mutability_type::e_immutable)
 	, functions()
-	, enableInterpolate( enableInterpolate )
+	, defSamplingSettings( defSamplingSettings )
 {
 	constantSymbols.add_constant( "pi", C(acos(-1),0) );
 	constantSymbols.add_constant( "e", cmplx::details::constant::e );
@@ -110,6 +106,27 @@ MaybeError Model::getError(
 		return errorOrFunction.error();
 	}
 	return {};
+}
+SamplingSettings Model::getSamplingSettings(
+		const size_t index
+) const
+{
+	return functions.at( index )->samplingSettings;
+}
+
+void Model::setSamplingSettings(
+		const size_t index,
+		const SamplingSettings& value
+)
+{
+	functions.at( index )->samplingSettings = value;
+	auto errorOrFunction = getFunction( index );
+	if( errorOrFunction ) {
+		auto function = errorOrFunction.value();
+		function->setResolution( value.resolution );
+		function->setInterpolation( value.interpolation );
+		function->setCaching( value.caching );
+	}
 }
 
 ErrorOrValue<std::vector<std::pair<C,C>>> Model::getGraph(
@@ -185,6 +202,7 @@ void Model::resize( const size_t size ) {
 					: "cos( 2pi * x )",
 				{}
 			});
+			entry->samplingSettings = defSamplingSettings;
 			functions.push_back( entry );
 		}
 		updateFormulas(oldSize);
@@ -232,8 +250,9 @@ void Model::updateFormulas(const size_t startIndex) {
 					&constantSymbols,
 					&functionSymbols
 				},
-				cacheResolution,
-				enableInterpolate // enable interpolation
+				entry->samplingSettings.resolution,
+				entry->samplingSettings.interpolation,
+				entry->samplingSettings.caching
 		);
 		if( entry->errorOrFunction ) {
 			functionSymbols.add_function(

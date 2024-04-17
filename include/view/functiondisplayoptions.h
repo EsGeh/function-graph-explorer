@@ -2,6 +2,7 @@
 #define FUNCTIONDISPLAYOPTIONS_H
 
 #include "view/viewdata.h"
+#include "model/model.h"
 #include <QDialog>
 
 
@@ -16,15 +17,18 @@ class FunctionDisplayOptions : public QDialog
 public:
 	explicit FunctionDisplayOptions(
 			const FunctionViewData& viewData,
+			const SamplingSettings& samplingSettings,
 			QWidget *parent = nullptr
 	);
 	~FunctionDisplayOptions();
 
-	QString getFormula();
-	const FunctionViewData& getViewData();
+	QString getFormula() const;
+	const FunctionViewData& getViewData() const;
+	const SamplingSettings& getSamplingSettings() const;
 
 	void setFormula(const QString& value);
 	void setViewData(const FunctionViewData& value);
+	void setSamplingSettings(const SamplingSettings& value);
 
 private:
 	void updateView();
@@ -32,6 +36,7 @@ private:
 private:
     Ui::FunctionDisplayOptions *ui;
 		FunctionViewData viewData;
+		SamplingSettings samplingSettings;
 };
 
 #endif // FUNCTIONDISPLAYOPTIONS_H

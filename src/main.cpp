@@ -8,9 +8,12 @@
 #include <QDebug>
 
 
-const unsigned int cacheResolution = 44100;
-const unsigned int enableInterpolate = true;
-const unsigned int viewResolution = 441;
+const auto defSamplingSettings = SamplingSettings{
+	.resolution = 44100,
+	.interpolation = 1,
+	.caching = true
+};
+const unsigned int viewResolution = 4410;
 
 int main(int argc, char *argv[])
 {
@@ -32,8 +35,7 @@ int main(int argc, char *argv[])
 
   QApplication a(argc, argv);
   auto model = Model(
-			cacheResolution,
-			enableInterpolate
+			defSamplingSettings
 	);
   auto view = MainWindow();
 	Controller controller(

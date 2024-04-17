@@ -11,7 +11,7 @@ QTEST_MAIN(TestModel)
 /* TEST */
 
 void TestModel::testInit() {
-	Model model(0);
+	Model model;
 	QCOMPARE( model.size(), 0 );
 	QVERIFY_THROWS_EXCEPTION(
 			std::out_of_range,
@@ -20,7 +20,7 @@ void TestModel::testInit() {
 }
 
 void TestModel::testResizeUp() {
-	Model model(0);
+	Model model;
 	model.resize(3);
 	QCOMPARE( model.size(), 3 );
 	for( auto i=0; i<model.size(); i++ ) {
@@ -53,7 +53,7 @@ void TestModel::testResizeUp() {
 }
 
 void TestModel::testResizeDown() {
-	Model model(0);
+	Model model;
 	model.resize(3);
 	auto entryOld = model.getFunction(0);
 	model.resize(1);
@@ -74,7 +74,7 @@ void TestModel::testResizeDown() {
 }
 
 void TestModel::testSetEntry() {
-	Model model(0);
+	Model model;
 	std::vector<std::pair<QString, std::function<C(T)>>> testData = {
 		{ "x^1", [](auto x){ return C(x,0); } },
 		{ "x^2", [](auto x){ return C(x*x,0); } },
@@ -86,7 +86,7 @@ void TestModel::testSetEntry() {
 }
 
 void TestModel::testFunctionReferences() {
-	Model model(0);
+	Model model;
 	std::vector<std::pair<QString, std::function<C(T)>>> testData = {
 		{ "x-1", [](T x){ return C(x-1, 0); } },
 		{ "(x+1)*f0(x)", [](T x){ return C((x+1)*(x-1), 0); } }
@@ -97,7 +97,7 @@ void TestModel::testFunctionReferences() {
 }
 
 void TestModel::testUpdatesReferences() {
-	Model model(0);
+	Model model;
 	// initial state:
 	{
 		std::vector<std::pair<QString, std::function<C(T)>>> testData = {
@@ -121,7 +121,7 @@ void TestModel::testUpdatesReferences() {
 
 void TestModel::testGetGraph()
 {
-	Model model(0);
+	Model model;
 	std::vector<std::pair<QString, std::function<C(T)>>> testData = {
 		{ "x-1", [](T x){ return C(x-1, 0); } },
 		{ "(x+1)*f0(x)", [](T x){ return C((x+1)*(x-1), 0); } }
@@ -132,7 +132,7 @@ void TestModel::testGetGraph()
 
 void TestModel::testValuesToAudioBuffer()
 {
-	Model model(0);
+	Model model;
 	std::vector<std::pair<QString, std::function<C(T)>>> testData = {
 		{ "x-1", [](T x){ return C(x-1, 0); } },
 		{ "(x+1)*f0(x)", [](T x){ return C((x+1)*(x-1), 0); } }

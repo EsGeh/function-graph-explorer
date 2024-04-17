@@ -11,6 +11,7 @@ FunctionView::FunctionView(
 		, displayDialog(nullptr)
 		, statusBar(nullptr)
 		, viewData()
+		, samplingSettings()
 {
 	ui->setupUi(this);
 
@@ -25,6 +26,7 @@ FunctionView::FunctionView(
 
 	displayDialog = new FunctionDisplayOptions(
 			viewData,
+			samplingSettings,
 			this
 	);
 
@@ -41,6 +43,7 @@ FunctionView::FunctionView(
 		&QAbstractButton::clicked,
 		[this]() {
 			displayDialog->setViewData( viewData );
+			displayDialog->setSamplingSettings( samplingSettings ),
 			displayDialog->show();
 		}
 	);
@@ -61,6 +64,7 @@ FunctionView::FunctionView(
 		[this](int result) {
 			if( !result ) return;
 			viewData = displayDialog->getViewData();
+			samplingSettings = displayDialog->getSamplingSettings();
 			ui->formulaEdit->setText( displayDialog->getFormula() );
 			emit formulaChanged();
 		}
@@ -88,11 +92,20 @@ const FunctionViewData& FunctionView::getViewData() const {
 	return viewData;
 }
 
+const SamplingSettings& FunctionView::getSamplingSettings() const {
+	return samplingSettings;
+}
+
 void FunctionView::setFormulaError( const QString& str )
 {
 	statusBar->setVisible(true);
 	statusBar->showMessage(str);
 	graphView->reset();
+}
+
+void FunctionView::setSamplingSettings(const SamplingSettings& value)
+{
+	samplingSettings = value;
 }
 
 void FunctionView::setFormula( const QString& str ) {

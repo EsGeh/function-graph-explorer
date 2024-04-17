@@ -15,6 +15,7 @@ class Cache
 			std::function<Value(Index)> function
 		);
 		inline std::pair<Cache::Value,bool> lookup( const Index index );
+		inline void clear();
 	private:
 		std::function<Value(Index)> function;
 		Index indexMin;
@@ -60,4 +61,9 @@ inline std::pair<Cache::Value,bool> Cache::lookup( const Index index ) {
 	lookupRes = function( index );
 	assert( buffer[lookupPosition].has_value() );
 	return { lookupRes.value(), false };
+}
+
+inline void Cache::clear()
+{
+	buffer.clear();
 }
