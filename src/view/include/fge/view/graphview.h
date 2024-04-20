@@ -1,7 +1,7 @@
 #ifndef GRAPHVIEW_H
 #define GRAPHVIEW_H
 
-#include "view/viewdata.h"
+#include "fge/view/viewdata.h"
 #include <QChartView>
 
 

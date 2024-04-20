@@ -1,5 +1,5 @@
 #include "testmodel.h"
-#include "model/model.h"
+#include "testutils.h"
 #include <qcoreapplication.h>
 #include <qfloat16.h>
 #include <qtestcase.h>
@@ -23,7 +23,7 @@ void TestModel::testResizeUp() {
 	Model model;
 	model.resize(3);
 	QCOMPARE( model.size(), 3 );
-	for( auto i=0; i<model.size(); i++ ) {
+	for( uint i=0; i<model.size(); i++ ) {
 		QVERIFY_THROWS_NO_EXCEPTION(
 			model.getFunction( i );
 		);
@@ -143,7 +143,7 @@ void TestModel::testValuesToAudioBuffer()
 	const T speed = 1;
 	const T offset = 0;
 	const unsigned int samplerate = 44100;
-	for( auto iFunction=0; iFunction<testData.size(); iFunction++ ) {
+	for( uint iFunction=0; iFunction<testData.size(); iFunction++ ) {
 		std::vector<float> buffer;
 		model.valuesToAudioBuffer(
 				iFunction,
@@ -192,7 +192,7 @@ void assertAllFunctionsValid(
 		const std::vector<std::pair<QString, std::function<C(T)>>>& expectedResult
 )
 {
-	for( auto i=0; i<expectedResult.size(); i++ ) {
+	for( uint i=0; i<expectedResult.size(); i++ ) {
 		auto expectedString = expectedResult[i].first ;
 		auto expectedFunc = expectedResult[i].second ;
 		auto errOrFunc = model.getFunction( i );
@@ -218,7 +218,7 @@ void assertExpected(
 )
 {
 	const std::pair<T,T> range = {-3, 3};
-	for( auto i=0; i<expectedResult.size(); i++ ) {
+	for( uint i=0; i<expectedResult.size(); i++ ) {
 		auto expectedString = expectedResult[i].first ;
 		auto expectedFunc = expectedResult[i].second ;
 		auto errOrFunc = model.getFunction( i );
@@ -249,7 +249,7 @@ void assertCorrectGraph(
 {
 	const unsigned int resolution = 1024;
 	const std::pair<T,T> range = {-3, 3};
-	for( auto iFunction=0; iFunction<expectedResult.size(); iFunction++ ) {
+	for( uint iFunction=0; iFunction<expectedResult.size(); iFunction++ ) {
 		auto expectedString = expectedResult[iFunction].first ;
 		auto expectedFunc = expectedResult[iFunction].second ;
 		auto errOrGraph = model.getGraph(

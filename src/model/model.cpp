@@ -1,4 +1,4 @@
-#include "model/model.h"
+#include "fge/model/model.h"
 #include <QDebug>
 #include <cstdlib>
 #include <variant>

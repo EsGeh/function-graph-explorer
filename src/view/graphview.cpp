@@ -1,4 +1,4 @@
-#include "view/graphview.h"
+#include "fge/view/graphview.h"
 #include <math.h>
 #include <QValueAxis>
 #include <QtCharts/QLineSeries>

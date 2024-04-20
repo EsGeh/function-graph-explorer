@@ -1,11 +1,8 @@
-#ifndef FUNCCION_H
-#define FUNCCION_H
+#pragma once
 
-#include "global.h"
+#include "fge/shared/global.h"
 #include "exprtk.hpp"
 #include <QString>
-#include <memory>
-#include <optional>
 
 
 typedef exprtk::symbol_table<C>
@@ -63,5 +60,3 @@ ErrorOrValue<std::shared_ptr<Function>> formulaFunctionFactory(
 		const QString& formulaStr,
 		std::vector<symbol_table_t*> additionalSymbols
 );
-
-#endif

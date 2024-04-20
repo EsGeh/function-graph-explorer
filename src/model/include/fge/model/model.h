@@ -1,7 +1,6 @@
-#ifndef MODEL_H
-#define MODEL_H
+#pragma once
 
-#include "model/function.h"
+#include "fge/model/function.h"
 #include <memory>
 #include <optional>
 
@@ -59,5 +58,3 @@ class Model
 		std::vector<std::shared_ptr<FunctionEntry>> functions;
 
 };
-
-#endif // MODEL_H

@@ -1,4 +1,4 @@
-#include "view/functionview.h"
+#include "fge/view/functionview.h"
 #include "ui_functionview.h"
 
 FunctionView::FunctionView(

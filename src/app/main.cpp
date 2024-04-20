@@ -1,8 +1,8 @@
-#include "model/model.h"
-#include "view/mainwindow.h"
-#include "view/jack.h"
+#include "fge/model/model.h"
+#include "fge/view/mainwindow.h"
+#include "fge/view/jack.h"
 #include "controller.h"
-#include "config.h"
+#include "fge/shared/config.h"
 
 #include <QApplication>
 #include <QDebug>

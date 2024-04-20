@@ -1,5 +1,6 @@
 #include <QTest>
 
+
 class ModelBenchmark: public QObject
 {
 	Q_OBJECT

@@ -1,4 +1,4 @@
-#include "model/function.h"
+#include "fge/model/function.h"
 #include <QDebug>
 
 
