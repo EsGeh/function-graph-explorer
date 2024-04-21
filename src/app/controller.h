@@ -3,7 +3,7 @@
 
 #include "fge/model/model.h"
 #include "fge/view/mainwindow.h"
-#include "fge/view/jack.h"
+#include "fge/audio/jack.h"
 
 #include <QObject>
 #include <cstddef>

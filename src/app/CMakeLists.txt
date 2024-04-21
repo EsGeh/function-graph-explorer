@@ -10,6 +10,7 @@ set_target_properties(${TARGET_NAME} PROPERTIES
 
 target_link_libraries(${TARGET_NAME} PUBLIC cpp_flags)
 target_link_libraries(${TARGET_NAME} PUBLIC
+	audio
 	view
 	model
 	shared

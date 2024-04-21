@@ -22,6 +22,7 @@ add_subdirectory(${SRC_DIR}/app)
 add_subdirectory(${SRC_DIR}/shared)
 add_subdirectory(${SRC_DIR}/model)
 add_subdirectory(${SRC_DIR}/view)
+add_subdirectory(${SRC_DIR}/audio)
 add_subdirectory(tests)
 
 add_custom_target(CopyCompileCommands
