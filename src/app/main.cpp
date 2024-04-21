@@ -17,15 +17,16 @@ const unsigned int viewResolution = 4410;
 
 int main(int argc, char *argv[])
 {
-	#ifndef NDEBUG
-	qInfo() << "DEBUG configuration!\n";
 	qInfo().nospace() << "-----------------------------";
 	qInfo().nospace() << PROJECT_NAME << " " << PROJECT_VERSION;
 	qInfo().nospace() << "-----------------------------";
+	#ifndef NDEBUG
+	qDebug().nospace() << "DEBUG configuration!";
 	#endif
 
-	JackClient jack;
+	JackClient jack("fge");
 	{
+		qInfo().nospace() << "start jack client '" << jack.getClientName() << "'...";
 		auto maybeError =
 			jack.init()
 			.or_else([&jack](){
@@ -35,6 +36,7 @@ int main(int argc, char *argv[])
 			qCritical() << maybeError.value() ;
 			return 1;
 		}
+		qInfo().nospace() << "done";
 	}
 
   QApplication a(argc, argv);
@@ -52,11 +54,9 @@ int main(int argc, char *argv[])
 
   auto ret = a.exec();
 
-	#ifndef NDEBUG
-	qInfo() << "Exiting!\n";
-	#endif
-
+	qInfo().nospace() << "stop audio...";
 	jack.exit();
 
+	qInfo().nospace() << "exit.";
 	return ret;
 }

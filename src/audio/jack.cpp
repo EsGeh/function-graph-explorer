@@ -1,6 +1,5 @@
 #include "fge/audio/jack.h"
 #include <jack/types.h>
-#include <QDebug>
 
 
 int processAudio(
@@ -25,6 +24,11 @@ SampleTable* JackClient::getSampleTable()
 uint JackClient::getSamplerate()
 {
 	return samplerate;
+}
+
+QString JackClient::getClientName() const
+{
+	return clientName;
 }
 
 bool JackClient::getIsPlaying() {
@@ -81,12 +85,10 @@ MaybeError JackClient::init() {
 		}
 
 		samplerate = jack_get_sample_rate(client);
-		// qInfo() << "samplerate: " << samplerate;
 		sampleTable.resize( samplerate * 1, 0 );
 	}
 	catch( const QString& error ) {
 		client = nullptr;
-		// table = nullptr;
 		return { error };
 	}
 
@@ -100,11 +102,9 @@ MaybeError JackClient::run() {
 	if( jack_activate(client) ) {
 		return "cannot activate client";
 	}
-	qInfo() << "Starting jack client" << clientName << "...";
 	workerStop = false;
 	worker = std::thread([this]{
 			while(!workerStop) {
-				// qDebug() << "tick";
 				sleep(1);
 			};
 	});
@@ -115,7 +115,6 @@ void JackClient::exit() {
 	if(!client) {
 		return;
 	}
-	qInfo() << "Stopping jack client" << clientName << "...";
 	workerStop = true;
 	worker.join();
 	jack_client_close(

@@ -49,6 +49,7 @@ class JackClient {
 		uint getPlayPos();
 
 		// get:
+		QString getClientName() const;
 		uint getSamplerate();
 
 		// set:
