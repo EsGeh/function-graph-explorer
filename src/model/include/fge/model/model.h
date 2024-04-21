@@ -1,7 +1,6 @@
-#ifndef MODEL_H
-#define MODEL_H
+#pragma once
 
-#include "model/function.h"
+#include "fge/model/function.h"
 #include <memory>
 
 
@@ -81,5 +80,3 @@ class Model
 		SamplingSettings defSamplingSettings;
 
 };
-
-#endif // MODEL_H

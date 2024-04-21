@@ -8,5 +8,5 @@ set BUILD_DIR $BASE_DIR/build/conan/$BUILD_TYPE
 # build
 $BASE_DIR/scripts/conan_build.fish --target build_tests
 and begin
-	ctest --test-dir $BUILD_DIR --tests-regex 'benchmark' --extra-verbose
+	ctest --test-dir $BUILD_DIR/tests --tests-regex 'benchmark' --extra-verbose
 end

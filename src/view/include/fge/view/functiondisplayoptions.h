@@ -1,8 +1,8 @@
 #ifndef FUNCTIONDISPLAYOPTIONS_H
 #define FUNCTIONDISPLAYOPTIONS_H
 
-#include "view/viewdata.h"
-#include "model/model.h"
+#include "fge/view/viewdata.h"
+#include "fge/model/model.h"
 #include <QDialog>
 
 

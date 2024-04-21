@@ -1,4 +1,4 @@
-#include "view/functiondisplayoptions.h"
+#include "fge/view/functiondisplayoptions.h"
 #include "ui_functiondisplayoptions.h"
 #include <QMenuBar>
 #include <QAction>

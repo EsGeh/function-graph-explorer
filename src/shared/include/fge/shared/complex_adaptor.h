@@ -11,7 +11,7 @@
 
 
 #include <string>
-#include "complex.h"
+#include "fge/shared/complex.h"
 
 
 namespace exprtk

@@ -1,4 +1,4 @@
-#include "view/jack.h"
+#include "fge/view/jack.h"
 #include <jack/types.h>
 #include <QDebug>
 

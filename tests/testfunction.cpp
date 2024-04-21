@@ -1,6 +1,6 @@
 #include <qtestcase.h>
-#include <testfunction.h>
-#include "model/function.h"
+#include "testfunction.h"
+#include "fge/model/function.h"
 
 QTEST_MAIN(TestFormulaFunction)
 #include "testfunction.moc"

@@ -1,8 +1,8 @@
 #ifndef TESTMODEL_H
 #define TESTMODEL_H
 
-#include "model/model.h"
-#include "testutils.h"
+#include "fge/model/model.h"
+
 #include <QTest>
 
 

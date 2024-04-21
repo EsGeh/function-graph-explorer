@@ -1,9 +1,8 @@
-#ifndef FUNCTION_H
-#define FUNCTION_H
+#pragma once
 
-#include "cache.h"
+#include "fge/model/cache.h"
+#include "fge/shared/global.h"
 #include "exprtk.hpp"
-
 
 typedef exprtk::symbol_table<C>
 	symbol_table_t;
@@ -167,5 +166,3 @@ ErrorOrValue<std::shared_ptr<Function>> formulaFunctionFactory(
 		const uint interpolation = 0,
 		const bool enableCaching = true 
 );
-
-#endif

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "global.h"
+#include "fge/shared/global.h"
 #include <deque>
 #include <optional>
 

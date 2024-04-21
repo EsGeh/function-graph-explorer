@@ -1,3 +1,5 @@
+enable_testing(true)
+include(CTest)
 
 set(TESTS
 	testformulafunction
@@ -5,78 +7,63 @@ set(TESTS
 	modelbenchmark
 )
 
+add_custom_target(build_tests)
 add_dependencies(
 	build_tests
 	${TESTS}
 )
 
-# testformulafunction:
+find_package(Qt6 REQUIRED COMPONENTS Test)
+
+######################
+# test function:
+######################
+
 add_executable(testformulafunction
 	EXCLUDE_FROM_ALL
 	testfunction.cpp
-	../${SRC_DIR}/model/function.cpp
-	../${SRC_DIR}/global.cpp
+	testfunction.h
 )
-add_test(testformulafunction testformulafunction)
-target_include_directories(testformulafunction PRIVATE "${PROJECT_SOURCE_DIR}/${INCLUDE_DIR}")
-target_include_directories(testformulafunction PRIVATE "${PROJECT_SOURCE_DIR}/${TEST_DIR}")
-target_link_libraries(testformulafunction PRIVATE Qt6::Test)
-target_link_libraries(testformulafunction PRIVATE exprtk::exprtk)
-
 set_target_properties(testformulafunction PROPERTIES
-    ${BUNDLE_ID_OPTION}
-    MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
-    MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
-    MACOSX_BUNDLE TRUE
-    WIN32_EXECUTABLE TRUE
+	AUTOMOC ON
 )
+target_link_libraries(testformulafunction PRIVATE Qt6::Test)
+target_link_libraries(testformulafunction PRIVATE model)
+add_test(testformulafunction testformulafunction)
 
-# testmodel:
+######################
+# test model:
+######################
+
 add_executable(testmodel
 	EXCLUDE_FROM_ALL
-	testmodel.h
 	testmodel.cpp
-	../${SRC_DIR}/model/model.cpp
-	../${SRC_DIR}/model/function.cpp
-	../${SRC_DIR}/global.cpp
+	testmodel.h
+	testutils.h
 )
-
-add_test(testmodel testmodel)
-target_include_directories(testmodel PRIVATE "${PROJECT_SOURCE_DIR}/${INCLUDE_DIR}")
-target_include_directories(testmodel PRIVATE "${PROJECT_SOURCE_DIR}/${TEST_DIR}")
-target_link_libraries(testmodel PRIVATE Qt6::Test)
-target_link_libraries(testmodel PRIVATE exprtk::exprtk)
-
 set_target_properties(testmodel PROPERTIES
-    ${BUNDLE_ID_OPTION}
-    MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
-    MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
-    MACOSX_BUNDLE TRUE
-    WIN32_EXECUTABLE TRUE
+	AUTOMOC ON
 )
+target_link_libraries(testmodel PRIVATE Qt6::Test)
+target_link_libraries(testmodel PRIVATE model)
+add_test(testmodel testmodel)
 
+######################
 # Model Benchmark:
+######################
+
 add_executable(modelbenchmark
 	EXCLUDE_FROM_ALL
-	modelbenchmark.h
 	modelbenchmark.cpp
-	../${SRC_DIR}/model/model.cpp
-	../${SRC_DIR}/model/function.cpp
-	../${SRC_DIR}/global.cpp
+	modelbenchmark.h
+	testutils.h
 )
+set_target_properties(modelbenchmark PROPERTIES
+	AUTOMOC ON
+)
+target_link_libraries(modelbenchmark PRIVATE Qt6::Test)
+target_link_libraries(modelbenchmark PRIVATE model)
 add_test(modelbenchmark
 	modelbenchmark
 	-iterations 8
-)
-target_include_directories(modelbenchmark PRIVATE "${PROJECT_SOURCE_DIR}/${INCLUDE_DIR}")
-target_include_directories(modelbenchmark PRIVATE "${PROJECT_SOURCE_DIR}/${TEST_DIR}")
-target_link_libraries(modelbenchmark PRIVATE Qt6::Test)
-target_link_libraries(modelbenchmark PRIVATE exprtk::exprtk)
-
-set_target_properties(modelbenchmark PROPERTIES
-    ${BUNDLE_ID_OPTION}
-    MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
-    MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
-    MACOSX_BUNDLE TRUE
-    WIN32_EXECUTABLE TRUE
 )

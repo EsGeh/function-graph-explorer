@@ -1,7 +1,6 @@
-#ifndef GLOBAL_H
-#define GLOBAL_H
+#pragma once
 
-#include "complex_adaptor.h"
+#include "fge/shared/complex_adaptor.h"
 #include <QString>
 #include <expected>
 
@@ -18,5 +17,3 @@ typedef std::optional<Error> MaybeError;
 
 QString to_qstring(const C& value);
 QString to_qstring(const std::pair<C,C>& value);
-
-#endif

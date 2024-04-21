@@ -1,5 +1,5 @@
-#include "view/mainwindow.h"
-#include "./ui_mainwindow.h"
+#include "fge/view/mainwindow.h"
+#include "ui_mainwindow.h"
 #include <QChart>
 #include <QDoubleSpinBox>
 

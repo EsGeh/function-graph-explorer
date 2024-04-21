@@ -1,9 +1,9 @@
 #ifndef CONTROLLER_H
 #define CONTROLLER_H
 
-#include "model/model.h"
-#include "view/mainwindow.h"
-#include "view/jack.h"
+#include "fge/model/model.h"
+#include "fge/view/mainwindow.h"
+#include "fge/view/jack.h"
 
 #include <QObject>
 #include <cstddef>

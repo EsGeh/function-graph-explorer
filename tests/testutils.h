@@ -1,7 +1,6 @@
-#ifndef TESTUTILS_H
-#define TESTUTILS_H
+#pragma once
 
-#include "model/model.h"
+#include "fge/model/model.h"
 #include <QTest>
 #include <ranges>
 
@@ -12,7 +11,7 @@ inline void initTestModel(
 		const std::vector<QString>& testData
 ) {
 	model->resize(testData.size());
-	for( auto i=0; i<testData.size(); i++ ) {
+	for( uint i=0; i<testData.size(); i++ ) {
 		auto funcString = testData[i] ;
 		model->set(i, funcString );
 	}
@@ -26,5 +25,3 @@ inline void initTestModel(
 	std::vector vec( view.begin(), view.end() );
 	initTestModel( model, vec );
 }
-
-#endif

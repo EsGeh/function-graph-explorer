@@ -1,7 +1,7 @@
 #ifndef VIEWDATA_H
 #define VIEWDATA_H
 
-#include "global.h"
+#include "fge/shared/global.h"
 #include <QString>
 
 
