@@ -41,7 +41,7 @@ class Function:
 		 * 	 2: quadratic interpolation (3 points)
 		 * 	 ...
 		 */
-		// remember: degree needs k+1 points
+		// remember: degree k needs k+1 points
 		virtual uint getInterpolation() const = 0;
 		virtual void setInterpolation(const uint value) = 0;
 		// caching:
@@ -110,12 +110,8 @@ class FunctionWithResolution:
 				const std::vector<C> ys,
 				const int shift
 		) const;
-		inline CacheIndex xToCacheIndex(const C& x) {
-				return std::floor(x.c_.real() * getResolution());
-		};
-		inline C cacheIndexToY(int x) {
-			return FormulaFunction::get( C(T(x) / getResolution(),0) );
-		};
+		CacheIndex xToCacheIndex(const C& x);
+		C cacheIndexToY(int x);
 	private:
 		uint resolution;
 		uint interpolation;

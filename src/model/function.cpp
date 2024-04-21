@@ -117,6 +117,8 @@ C FunctionWithResolution::get( C x )
 	return interpolate( x, ys, shift );
 }
 
+const T epsilon = 1.0/(1<<20);
+
 C FunctionWithResolution::interpolate(
 		const C& x,
 		const std::vector<C> ys,
@@ -125,7 +127,7 @@ C FunctionWithResolution::interpolate(
 ) const
 {
 	T i_temp;
-	T xfrac = std::modf( x.c_.real() * getResolution(), &i_temp);
+	T xfrac = std::modf( x.c_.real() * getResolution() + epsilon, &i_temp);
 	if( x.c_.real() < 0 ) {
 		xfrac *= -1;
 		xfrac = 1-xfrac;
@@ -142,6 +144,16 @@ C FunctionWithResolution::interpolate(
 		sum += ys[i] * C(factor, 0);
 	}
 	return sum;
+}
+
+FunctionWithResolution::CacheIndex FunctionWithResolution::xToCacheIndex(const C& x)
+{
+		return std::floor(x.c_.real() * getResolution() + epsilon);
+}
+
+C FunctionWithResolution::cacheIndexToY(int x)
+{
+	return FormulaFunction::get( C(T(x) / getResolution(),0) );
 }
 
 uint FunctionWithResolution::getResolution() const
