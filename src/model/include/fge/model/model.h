@@ -1,6 +1,7 @@
 #pragma once
 
 #include "fge/model/function.h"
+#include "fge/shared/data.h"
 #include <memory>
 
 
@@ -8,12 +9,6 @@ typedef
 	ErrorOrValue<std::shared_ptr<Function>>
 	ErrorOrFunction
 ;
-
-struct SamplingSettings {
-	uint resolution = 0;
-	uint interpolation = 1;
-	bool caching = false;
-};
 
 struct FunctionEntry {
 	QString string;

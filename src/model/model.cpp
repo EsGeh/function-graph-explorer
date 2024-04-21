@@ -1,5 +1,5 @@
 #include "fge/model/model.h"
-#include "fge/shared/global.h"
+#include "fge/shared/utils.h"
 
 
 inline QString functionName( const size_t index ) {

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "fge/model/cache.h"
-#include "fge/shared/global.h"
+#include "fge/shared/utils.h"
 #include "exprtk.hpp"
 
 typedef exprtk::symbol_table<C>

@@ -1,4 +1,4 @@
-#include "fge/shared/global.h"
+#include "fge/shared/utils.h"
 
 QString to_qstring(const C& value) 
 {

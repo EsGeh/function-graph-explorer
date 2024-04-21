@@ -2,7 +2,7 @@
 #define FUNCTIONDISPLAYOPTIONS_H
 
 #include "fge/view/viewdata.h"
-#include "fge/model/model.h"
+#include "fge/shared/data.h"
 #include <QDialog>
 
 
