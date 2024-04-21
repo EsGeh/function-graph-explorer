@@ -2,16 +2,16 @@
 #include <algorithm>
 
 
-const unsigned int resolution = 1024;
-
 Controller::Controller(
 	Model* model,
 	MainWindow* view,
-	JackClient* jack
+	JackClient* jack,
+	const uint viewResolution
 )
 	: model(model)
 	, view(view)
 	, jack(jack)
+	, viewResolution(viewResolution)
 {
 	connect(
 		view,
@@ -31,6 +31,9 @@ void Controller::setFunctionCount(const size_t size) {
 		updateFormula(i);
 		updateGraph(i);
 		auto functionView = view->getFunctionView(i);
+		functionView->setSamplingSettings(
+				model->getSamplingSettings(i)
+		);
 		// Model -> View:
 		connect(
 			functionView,
@@ -40,6 +43,10 @@ void Controller::setFunctionCount(const size_t size) {
 				 * starting from current index
 				 * need to be repainted:
 				 */
+				model->setSamplingSettings(
+						i,
+						view->getFunctionView(i)->getSamplingSettings()
+				);
 				for( auto j=i; j<model->size(); j++ ) {
 					updateGraph(j);
 				}
@@ -114,7 +121,7 @@ void Controller::updateGraph(const size_t iFunction) {
 		auto errorOrPoints = model->getGraph(
 				iFunction,
 				functionView->getViewData().getXRange(),
-				resolution
+				viewResolution
 		);
 		if( errorOrPoints ) {
 			auto points = errorOrPoints.value();

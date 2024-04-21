@@ -8,6 +8,13 @@
 #include <QDebug>
 
 
+const auto defSamplingSettings = SamplingSettings{
+	.resolution = 44100,
+	.interpolation = 1,
+	.caching = true
+};
+const unsigned int viewResolution = 4410;
+
 int main(int argc, char *argv[])
 {
 	#ifndef NDEBUG
@@ -27,12 +34,15 @@ int main(int argc, char *argv[])
 	jack.startWorkerThread();
 
   QApplication a(argc, argv);
-  auto model = Model();
+  auto model = Model(
+			defSamplingSettings
+	);
   auto view = MainWindow();
 	Controller controller(
 			&model,
 			&view,
-			&jack
+			&jack,
+			viewResolution
 	);
 	controller.run();
 

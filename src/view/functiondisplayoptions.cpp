@@ -2,6 +2,7 @@
 #include "ui_functiondisplayoptions.h"
 #include <QMenuBar>
 #include <QAction>
+#include <qcheckbox.h>
 
 
 const std::vector<std::pair<QString,QString>> templates = {
@@ -49,21 +50,34 @@ const std::vector<std::pair<QString,QString>> templates = {
 							(QStringList {
 								"var N := 16;",
 								"var acc := 0;",
-								"for( var k:=1; k<=N; k+=1 ) {",
+								"for( var k:=0; k<N; k+=1 ) {",
 								"  acc += exp(-i*2pi*k*x/N) * f0(k/N);",
 								"};",
 								"1/N*acc;"
 							}).join("\n")
+	},
+	{
+		"Fourier Series",
+		(QStringList {
+			"var N := 16;",
+			"var acc := 0;",
+			"for( var k:=0; k<N; k+=1 ) {",
+			"  acc += exp(i*2pi*k*x/N) * f1(k);",
+			"};",
+			"acc;"
+		}).join("\n")
 	}
 };
 
 FunctionDisplayOptions::FunctionDisplayOptions(
 		const FunctionViewData& viewData,
+		const SamplingSettings& samplingSettings,
 		QWidget *parent
 )
 	: QDialog(parent)
   , ui(new Ui::FunctionDisplayOptions)
 	, viewData(viewData)
+	, samplingSettings(samplingSettings)
 {
 	ui->setupUi(this);
 	updateView();
@@ -125,6 +139,19 @@ FunctionDisplayOptions::FunctionDisplayOptions(
 			ui->offset, &QDoubleSpinBox::valueChanged,
 			[this](double value){ this->viewData.playbackOffset = value; }
 	);
+	// samplingSettings:
+	connect(
+			ui->resolution, &QSpinBox::valueChanged,
+			[this](int value){ this->samplingSettings.resolution = value; }
+	);
+	connect(
+			ui->interpolation, &QSpinBox::valueChanged,
+			[this](int value){ this->samplingSettings.interpolation = value; }
+	);
+	connect(
+			ui->caching, &QCheckBox::stateChanged,
+			[this](int value){ this->samplingSettings.caching = value; }
+	);
 }
 
 FunctionDisplayOptions::~FunctionDisplayOptions()
@@ -132,12 +159,23 @@ FunctionDisplayOptions::~FunctionDisplayOptions()
 	delete ui;
 }
 
-QString FunctionDisplayOptions::getFormula() {
+QString FunctionDisplayOptions::getFormula() const
+{
 	return ui->largeFormulaEdit->toPlainText();
 }
 
-const FunctionViewData& FunctionDisplayOptions::getViewData() {
+const FunctionViewData& FunctionDisplayOptions::getViewData() const
+{
 	return viewData;
+}
+
+const SamplingSettings& FunctionDisplayOptions::getSamplingSettings() const
+{
+	return samplingSettings;
+}
+
+void FunctionDisplayOptions::setFormula(const QString& value) {
+	ui->largeFormulaEdit->setPlainText( value );
 }
 
 void FunctionDisplayOptions::setViewData(const FunctionViewData& value) {
@@ -145,8 +183,10 @@ void FunctionDisplayOptions::setViewData(const FunctionViewData& value) {
 	updateView();
 }
 
-void FunctionDisplayOptions::setFormula(const QString& value) {
-	ui->largeFormulaEdit->setPlainText( value );
+void FunctionDisplayOptions::setSamplingSettings(const SamplingSettings& value)
+{
+	samplingSettings = value;
+	updateView();
 }
 
 void FunctionDisplayOptions::updateView() {
@@ -167,4 +207,9 @@ void FunctionDisplayOptions::updateView() {
 	ui->duration->setValue( viewData.playbackDuration );
 	ui->speed->setValue( viewData.playbackSpeed );
 	ui->offset->setValue( viewData.playbackOffset );
+
+	// samplingSettings:
+	ui->resolution->setValue( samplingSettings.resolution );
+	ui->interpolation->setValue( samplingSettings.interpolation );
+	ui->caching->setChecked( samplingSettings.caching );
 }

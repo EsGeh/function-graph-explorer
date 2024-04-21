@@ -33,6 +33,7 @@ find_package(Jack REQUIRED)
 target_include_directories(view PUBLIC include)
 
 target_link_libraries(view PUBLIC shared)
+target_link_libraries(view PUBLIC model)
 target_link_libraries(view PUBLIC Jack::Jack)
 target_link_libraries(view PUBLIC Qt6::Charts)
 target_link_libraries(view PUBLIC Qt6::Widgets)

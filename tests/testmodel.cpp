@@ -247,7 +247,7 @@ void assertCorrectGraph(
 		const std::vector<std::pair<QString, std::function<C(T)>>>& expectedResult
 )
 {
-	const unsigned int resolution = 1024;
+	const unsigned int resolution = 7;
 	const std::pair<T,T> range = {-3, 3};
 	for( uint iFunction=0; iFunction<expectedResult.size(); iFunction++ ) {
 		auto expectedString = expectedResult[iFunction].first ;

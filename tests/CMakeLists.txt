@@ -63,4 +63,7 @@ set_target_properties(modelbenchmark PROPERTIES
 )
 target_link_libraries(modelbenchmark PRIVATE Qt6::Test)
 target_link_libraries(modelbenchmark PRIVATE model)
-add_test(modelbenchmark modelbenchmark)
+add_test(modelbenchmark
+	modelbenchmark
+	-iterations 8
+)

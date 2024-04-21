@@ -5,39 +5,52 @@
 
 QTEST_MAIN(ModelBenchmark)
 #include "modelbenchmark.moc"
-	
+
+const uint sampleResolution = 44100;
+
+void ModelBenchmark::testData() {
+	QTest::addColumn<uint>("resolution");
+	QTest::addColumn<uint>("interpolation");
+	QTest::addColumn<uint>("numHarmonics");
+	for( uint N=0; N<=10; N+= 10 ) {
+		for( uint resolution : {uint(0), sampleResolution} ) {
+			auto interpol_values = (resolution!=0) ? std::vector({0, 1}) : std::vector({0});
+			for( uint interpolation : interpol_values ) {
+				QTest::addRow(
+						"resolution=%d, interpolation=%d, N=%d",
+						resolution,
+						interpolation,
+						N
+				)
+					<< resolution
+					<< interpolation
+					<< N;
+			}
+		}
+	}
+}
 
 void ModelBenchmark::harmonicSeries_data()
 {
-	QTest::addColumn<unsigned int>("resolution");
-	QTest::addColumn<unsigned int>("numHarmonics");
-	for( unsigned int resolution : {1024, 44100} ) {
-		for( unsigned int N=0; N<=10; N+= 5 ) {
-			QTest::addRow( "res=%d, N=%d", resolution, N )
-				<< resolution
-				<< N;
-		}
-	}
+	testData();
 }
 
 void ModelBenchmark::harmonicSeriesChain_data()
 {
-	QTest::addColumn<unsigned int>("resolution");
-	QTest::addColumn<unsigned int>("numHarmonics");
-	for( unsigned int resolution : {1024, 44100} ) {
-		for( unsigned int N=0; N<=10; N+= 5 ) {
-			QTest::addRow( "res=%d, N=%d", resolution, N )
-				<< resolution
-				<< N;
-		}
-	}
+	testData();
 }
 
 void ModelBenchmark::harmonicSeries()
 {
-	QFETCH( unsigned int, resolution );
-	QFETCH( unsigned int, numHarmonics );
-	Model model;
+	QFETCH( uint, resolution );
+	QFETCH( uint, interpolation );
+	QFETCH( uint, numHarmonics );
+	SamplingSettings settings{
+		.resolution = resolution,
+		.interpolation = interpolation,
+		.caching = true
+	};
+	Model model(settings);
 	std::vector<QString> testData = {
 		(QStringList {
 			"var freq := 440;",
@@ -55,16 +68,22 @@ void ModelBenchmark::harmonicSeries()
 			model.getGraph(
 				0,
 				{0,1},
-				resolution
+				sampleResolution
 			)
 	);
 }
 
 void ModelBenchmark::harmonicSeriesChain()
 {
-	QFETCH( unsigned int, resolution );
-	QFETCH( unsigned int, numHarmonics );
-	Model model;
+	QFETCH( uint, resolution );
+	QFETCH( uint, interpolation );
+	QFETCH( uint, numHarmonics );
+	SamplingSettings settings{
+		.resolution = resolution,
+		.interpolation = interpolation,
+		.caching = true
+	};
+	Model model(settings);
 	std::vector<QString> testData = {
 		(QStringList {
 			"var freq := 440;",
@@ -91,7 +110,7 @@ void ModelBenchmark::harmonicSeriesChain()
 			model.getGraph(
 				1,
 				{0,1},
-				resolution
+				sampleResolution
 			)
 	);
 }

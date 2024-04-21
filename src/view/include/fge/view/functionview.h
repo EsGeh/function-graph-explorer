@@ -26,8 +26,10 @@ public:
 
 	QString getFormula();
 	const FunctionViewData& getViewData() const;
+	const SamplingSettings& getSamplingSettings() const;
 
   void setFormula( const QString& str );
+	void setSamplingSettings(const SamplingSettings& value);
 
   void setGraph(
       const std::vector<std::pair<C,C>>& values
@@ -49,6 +51,7 @@ private:
 	FunctionDisplayOptions* displayDialog;
 	QStatusBar* statusBar;
 	FunctionViewData viewData;
+	SamplingSettings samplingSettings;
 };
 
 #endif // FUNCTIONVIEW_H

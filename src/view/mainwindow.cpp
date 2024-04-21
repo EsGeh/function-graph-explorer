@@ -52,12 +52,6 @@ void MainWindow::resizeFunctionView(const size_t size) {
 					funcView,
 					1
 			);
-			/*
-			qDebug() << funcView->objectName();
-			qDebug() << funcView->sizePolicy();
-			qDebug() << funcView->sizeHint();
-			qDebug() << funcView->minimumSizeHint();
-			*/
 			functionViews.push_back(
 					funcView
 			);
