@@ -25,13 +25,17 @@ int main(int argc, char *argv[])
 	#endif
 
 	JackClient jack;
-	auto maybeError = jack.init();
-	if( maybeError.has_value() ) {
-		qCritical() << maybeError.value() ;
-		return 1;
+	{
+		auto maybeError =
+			jack.init()
+			.or_else([&jack](){
+				return jack.run();
+			});
+		if( maybeError ) {
+			qCritical() << maybeError.value() ;
+			return 1;
+		}
 	}
-
-	jack.startWorkerThread();
 
   QApplication a(argc, argv);
   auto model = Model(

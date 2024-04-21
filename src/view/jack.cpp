@@ -3,26 +3,15 @@
 #include <QDebug>
 
 
-const QString clientName = "fge";
-
-const double pi = acos(-1);
-const double freq = 440;
-
-
 int processAudio(
 		jack_nframes_t nframes,
 		void* arg
 );
 
-JackClient::JackClient()
-	: client( nullptr )
-	, ports({ nullptr })
-	, samplerate(0)
-	, playing(false)
-	, sampleTable()
-	, playPos(0)
-	, worker()
-	, workerStop(false)
+JackClient::JackClient(
+		const QString& clientName
+)
+	: clientName(clientName)
 {}
 
 JackClient::~JackClient()
@@ -33,7 +22,7 @@ SampleTable* JackClient::getSampleTable()
 	return &sampleTable;
 }
 
-unsigned int JackClient::getSamplerate()
+uint JackClient::getSamplerate()
 {
 	return samplerate;
 }
@@ -42,7 +31,7 @@ bool JackClient::getIsPlaying() {
 	return playing;
 }
 
-unsigned int JackClient::getPlayPos() {
+uint JackClient::getPlayPos() {
 	return playPos;
 }
 
@@ -54,7 +43,7 @@ jack_port_t* JackClient::getPort() {
 	return ports[0];
 }
 
-std::optional<Error> JackClient::init() {
+MaybeError JackClient::init() {
 	try {
 		{
 			jack_status_t status;
@@ -104,24 +93,13 @@ std::optional<Error> JackClient::init() {
 	return {};
 }
 
-void JackClient::exit() {
-	qInfo() << "Stopping jack client" << clientName << "...";
-	workerStop = true;
-	worker.join();
-
-	if(!client) {
-		return;
+MaybeError JackClient::run() {
+	if( client == nullptr ) {
+		return Error("Client not initialized. call 'JackClient::init()' first!");
 	}
-	jack_client_close(
-			client
-	);
-}
-
-void JackClient::startWorkerThread() {
 	if( jack_activate(client) ) {
-		throw QString("cannot activate client");
+		return "cannot activate client";
 	}
-	assert( client != nullptr);
 	qInfo() << "Starting jack client" << clientName << "...";
 	workerStop = false;
 	worker = std::thread([this]{
@@ -130,6 +108,19 @@ void JackClient::startWorkerThread() {
 				sleep(1);
 			};
 	});
+	return {};
+}
+
+void JackClient::exit() {
+	if(!client) {
+		return;
+	}
+	qInfo() << "Stopping jack client" << clientName << "...";
+	workerStop = true;
+	worker.join();
+	jack_client_close(
+			client
+	);
 }
 
 void JackClient::play() {
@@ -141,7 +132,7 @@ void JackClient::stop() {
 	playPos = 0;
 }
 
-void JackClient::setPlayPos(const unsigned int value) {
+void JackClient::setPlayPos(const uint value) {
 	playPos = value;
 }
 
@@ -160,7 +151,7 @@ int processAudio(
 		memset(buffer, 0, sizeof(sample_t) * nframes);
 		return 0;
 	}
-	const unsigned int samplesLeft =
+	const uint samplesLeft =
 		tableSize - jackObj->getPlayPos();
 	// if we still have enough samples
 	// to fill the buffer completely:
