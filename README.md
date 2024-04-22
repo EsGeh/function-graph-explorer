@@ -31,6 +31,11 @@ The data model is based on the idea of chaining mathematical functions.
 A function in this chain may use the output of a preceding function as input.
 Each function may be considered one step in a processing pipeline and - depending on the context and the application - represents an operation such as a generator, a filter, some transformation or data analysis (e.g. Fourier Transform).
 
+# Supported Platforms
+
+So far only tested on Linux.
+Depends on the [Jack sound server](https://jackaudio.org/) for audio playback.
+
 # Technologies
 
 This is programming exercise about development of user applications and graphical user interface design in C++.
