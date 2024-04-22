@@ -1,11 +1,13 @@
 # Function Graph Explorer
 
 This is an educational tool for the exploration of function graphs, the Fourier Transform, filter design and audio signal analysis.
-The user may enter mathematical functions by typing formulae such as "f(x) = x^2" and is imediately being presented with the corresponding graph representation.
-Additionaly, every function can be listened to on the speakers by interpreting it as an audio signal.
+The user may enter mathematical functions by typing formulae such as "f(x) = x^2" and is immediately being presented with the corresponding graph representation.
+Additionally, every function can be listened to on the speakers by interpreting it as an audio signal.
 
 The purpose of this software is to encourage people to experiment and play around.
 The immediate visual and acoustic feedback and the hands-on experience deliver a means to gain intuition about advanced concepts such as mathematical modeling, signal processing, audio synthesis and sound in a lightweight, playful way.
+
+*Remember*:
 
 Learning is fun.
 
