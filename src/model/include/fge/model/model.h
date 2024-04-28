@@ -69,8 +69,8 @@ class Model
 		void updateFormulas( const size_t startIndex );
 
 	private:
-		symbol_table_t constantSymbols;
-		symbol_table_t functionSymbols;;
+		Symbols constants;
+		// symbol_table_t constantSymbols;
 		std::vector<std::shared_ptr<FunctionEntry>> functions;
 		SamplingSettings defSamplingSettings;
 

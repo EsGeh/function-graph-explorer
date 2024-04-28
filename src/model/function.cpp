@@ -1,6 +1,41 @@
 #include "fge/model/function.h"
 
 
+Symbols::Symbols(
+		const std::map<QString,C>& constants,
+		const std::map<QString,exprtk::ifunction<C>*>& functions
+)
+	: symbols(symbol_table_t::symtab_mutability_type::e_immutable)
+{
+	for( auto [key, val] : constants ) {
+		addConstant( key, val );
+	}
+	for( auto [key, val] : functions ) {
+		addFunction( key, val );
+	}
+}
+
+void Symbols::addConstant(
+		const QString& name,
+		const C& value
+)
+{
+	symbols.add_constant( name.toStdString(), value );
+}
+
+void Symbols::addFunction(
+		const QString& name,
+		exprtk::ifunction<C>* function
+)
+{
+	symbols.add_function( name.toStdString(), *function );
+}
+
+symbol_table_t& Symbols::get()
+{
+	return symbols;
+}
+
 /*******************
  * Function
  ******************/
@@ -42,15 +77,16 @@ QString FormulaFunction::toString() const {
 
 MaybeError FormulaFunction::init(
 		const QString& formulaStr,
-		std::vector<symbol_table_t*> additionalSymbols
+		const std::vector<Symbols>& additionalSymbols
+		// std::vector<symbol_table_t*> additionalSymbols
 ) {
 	this->formulaStr = formulaStr;
 
-	symbol_table_t symbols;
-	symbols.add_variable( "x", varX );
-	formula.register_symbol_table( symbols );
-	for( auto table : additionalSymbols ) {
-		formula.register_symbol_table( *table );
+	symbol_table_t vars;
+	vars.add_variable( "x", varX );
+	formula.register_symbol_table( vars );
+	for( auto symbols : additionalSymbols ) {
+		formula.register_symbol_table( symbols.get() );
 	}
 
 	parser_t parser;
@@ -209,7 +245,7 @@ FunctionImpl::FunctionImpl(
 
 ErrorOrValue<std::shared_ptr<Function>> formulaFunctionFactory_internal(
 		const QString& formulaStr,
-		std::vector<symbol_table_t*> additionalSymbols,
+		const std::vector<Symbols>& additionalSymbols,
 		const uint resolution,
 		const uint interpolation,
 		const bool enableCaching
@@ -229,7 +265,7 @@ ErrorOrValue<std::shared_ptr<Function>> formulaFunctionFactory_internal(
 
 ErrorOrValue<std::shared_ptr<Function>> formulaFunctionFactory(
 		const QString& formulaStr,
-		std::vector<symbol_table_t*> additionalSymbols,
+		const std::vector<Symbols>& additionalSymbols,
 		const uint resolution, // = 0
 		const uint interpolation, // = 0
 		const bool enableCaching // = true 
