@@ -33,8 +33,8 @@ int main(int argc, char *argv[])
 				return jack.run();
 			});
 		if( maybeError ) {
-			qCritical() << maybeError.value() ;
-			return 1;
+			qWarning().noquote() << "Failed to start Jack. No Audio.";
+			qWarning().noquote() << maybeError.value() ;
 		}
 		qInfo().nospace() << "done";
 	}
