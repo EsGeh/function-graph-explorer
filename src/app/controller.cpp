@@ -43,6 +43,10 @@ void Controller::setFunctionCount(const size_t size) {
 				 * starting from current index
 				 * need to be repainted:
 				 */
+				model->setParameters(
+						i,
+						view->getFunctionView(i)->getParameters()
+				);
 				model->setSamplingSettings(
 						i,
 						view->getFunctionView(i)->getSamplingSettings()

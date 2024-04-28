@@ -1,5 +1,6 @@
 #include "fge/model/model.h"
 #include "fge/shared/utils.h"
+#include "include/fge/model/function.h"
 
 
 inline QString functionName( const size_t index ) {
@@ -130,13 +131,29 @@ void Model::setSamplingSettings(
 	}
 }
 
+ParameterBindings Model::getParameters(
+		const size_t index
+) const
+{
+	return functions.at( index ) ->parameters;
+}
+
+void Model::setParameters(
+		const size_t index,
+		const ParameterBindings& parameters
+)
+{
+	functions.at( index )->parameters = parameters;
+}
+
 ErrorOrValue<std::vector<std::pair<C,C>>> Model::getGraph(
 		const size_t index,
 		const std::pair<T,T>& range,
 		const unsigned int resolution
 ) const
 {
-	auto errorOrFunction = getFunction(index);
+	auto entry = functions.at( index );
+	auto errorOrFunction = entry->errorOrFunction;
 	if( !errorOrFunction ) {
 		return std::unexpected( errorOrFunction.error() );
 	}
@@ -152,7 +169,10 @@ ErrorOrValue<std::vector<std::pair<C,C>>> Model::getGraph(
 			graph.push_back(
 					{
 						x,
-						function->get( x ),
+						function->get(
+								x,
+								entry->parameters
+						),
 					}
 			);
 		}
@@ -170,7 +190,8 @@ MaybeError Model::valuesToAudioBuffer(
 		std::function<float(const double)> volumeFunction
 ) const
 {
-	auto errorOrFunction = getFunction(index);
+	auto entry = functions.at( index );
+	auto errorOrFunction = entry->errorOrFunction;
 	if( !errorOrFunction ) {
 		return errorOrFunction.error();
 	}
@@ -180,7 +201,10 @@ MaybeError Model::valuesToAudioBuffer(
 		buffer->resize( countSamples );
 		for( unsigned int i=0; i<countSamples; i++ ) {
 			T time = T(i)/samplerate;
-			T y = function->get( C(speed * time + offset, 0) );
+			T y = function->get(
+					C(speed * time + offset, 0),
+					entry->parameters
+			);
 			T vol = volumeFunction( time );
 			y = y * vol;
 			y = std::clamp( y, -1.0, +1.0 );
@@ -251,6 +275,7 @@ void Model::updateFormulas(const size_t startIndex) {
 					&constantSymbols,
 					&functionSymbols
 				},
+				descrFromParameters( entry->parameters ),
 				entry->samplingSettings.resolution,
 				entry->samplingSettings.interpolation,
 				entry->samplingSettings.caching

@@ -1,12 +1,7 @@
 #pragma once
 
-#include "fge/shared/complex_adaptor.h"
-#include <QString>
+#include "fge/shared/data.h"
 #include <expected>
-
-typedef cmplx::complex_t C;
-typedef double T;
-
 
 typedef QString Error;
 

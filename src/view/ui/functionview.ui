@@ -78,7 +78,7 @@
        <number>6</number>
       </property>
       <item>
-       <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0,0,0">
+       <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0,0,0,0">
         <item>
          <widget class="QLabel" name="formulaLabel">
           <property name="text">
@@ -101,9 +101,16 @@
          </widget>
         </item>
         <item>
+         <widget class="QToolButton" name="parametersBtn">
+          <property name="text">
+           <string>p</string>
+          </property>
+         </widget>
+        </item>
+        <item>
          <widget class="QToolButton" name="playBtn">
           <property name="text">
-           <string>play</string>
+           <string>)))</string>
           </property>
          </widget>
         </item>

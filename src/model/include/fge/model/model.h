@@ -13,6 +13,7 @@ typedef
 struct FunctionEntry {
 	QString string;
 	SamplingSettings samplingSettings;
+	ParameterBindings parameters;
 	ErrorOrFunction errorOrFunction;
 };
 
@@ -44,6 +45,13 @@ class Model
 		void setSamplingSettings(
 				const size_t index,
 				const SamplingSettings& value
+		);
+		ParameterBindings getParameters(
+				const size_t index
+		) const;
+		void setParameters(
+				const size_t index,
+				const ParameterBindings& parameters
 		);
 		ErrorOrValue<std::vector<std::pair<C,C>>> getGraph(
 				const size_t index,

@@ -3,6 +3,7 @@
 #include <QMenuBar>
 #include <QAction>
 #include <qcheckbox.h>
+#include <qnamespace.h>
 
 
 const std::vector<std::pair<QString,QString>> templates = {
@@ -70,6 +71,7 @@ const std::vector<std::pair<QString,QString>> templates = {
 };
 
 FunctionDisplayOptions::FunctionDisplayOptions(
+		const std::vector<QString>& parameters,
 		const FunctionViewData& viewData,
 		const SamplingSettings& samplingSettings,
 		QWidget *parent
@@ -164,6 +166,19 @@ QString FunctionDisplayOptions::getFormula() const
 	return ui->largeFormulaEdit->toPlainText();
 }
 
+std::vector<QString> FunctionDisplayOptions::getParameters() const
+{
+	std::vector<QString> ret;
+	auto qstringlist = ui->parametersEdit->toPlainText().split(
+			"\n",
+			Qt::SkipEmptyParts
+	);
+	for( auto line : qstringlist ) {
+		ret.push_back( line.trimmed() );
+	}
+	return ret;
+}
+
 const FunctionViewData& FunctionDisplayOptions::getViewData() const
 {
 	return viewData;
@@ -176,6 +191,15 @@ const SamplingSettings& FunctionDisplayOptions::getSamplingSettings() const
 
 void FunctionDisplayOptions::setFormula(const QString& value) {
 	ui->largeFormulaEdit->setPlainText( value );
+}
+
+void FunctionDisplayOptions::setParameters(const std::vector<QString>& value)
+{
+	QString str = "";
+	for( auto line : value ) {
+		str += (line + "\n");
+	}
+	ui->parametersEdit->setPlainText( str );
 }
 
 void FunctionDisplayOptions::setViewData(const FunctionViewData& value) {

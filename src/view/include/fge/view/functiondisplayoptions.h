@@ -16,6 +16,7 @@ class FunctionDisplayOptions : public QDialog
 
 public:
 	explicit FunctionDisplayOptions(
+			const std::vector<QString>& parameters,
 			const FunctionViewData& viewData,
 			const SamplingSettings& samplingSettings,
 			QWidget *parent = nullptr
@@ -23,10 +24,12 @@ public:
 	~FunctionDisplayOptions();
 
 	QString getFormula() const;
+	std::vector<QString> getParameters() const;
 	const FunctionViewData& getViewData() const;
 	const SamplingSettings& getSamplingSettings() const;
 
 	void setFormula(const QString& value);
+	void setParameters(const std::vector<QString>& value);
 	void setViewData(const FunctionViewData& value);
 	void setSamplingSettings(const SamplingSettings& value);
 
