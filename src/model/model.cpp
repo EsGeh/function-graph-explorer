@@ -67,25 +67,28 @@ static auto randomFunc = RandomFunction();
 Model::Model(
 		const SamplingSettings& defSamplingSettings
 )
-	: constantSymbols(symbol_table_t::symtab_mutability_type::e_immutable)
-	, functionSymbols(symbol_table_t::symtab_mutability_type::e_immutable)
+	: constants(
+		{
+			{ "pi", C(acos(-1),0) },
+			{ "e", cmplx::details::constant::e },
+			{ "i", C(0,1) },
+		},
+
+		// functions:
+		{
+			{ "abs", &absFunc },
+			{ "real", &realFunc },
+			{ "imag", &imagFunc },
+			{ "arg", &argFunc },
+			{ "conj", &conjFunc },
+			{ "complex", &complexFunc },
+			{ "polar", &polarFunc },
+			{ "rnd", &randomFunc }
+		}
+	)
 	, functions()
 	, defSamplingSettings( defSamplingSettings )
-{
-	constantSymbols.add_constant( "pi", C(acos(-1),0) );
-	constantSymbols.add_constant( "e", cmplx::details::constant::e );
-	constantSymbols.add_constant( "i", C(0,1) );
-
-	// complex functions:
-	constantSymbols.add_function( "abs", absFunc );
-	constantSymbols.add_function( "real", realFunc );
-	constantSymbols.add_function( "imag", imagFunc );
-	constantSymbols.add_function( "arg", argFunc );
-	constantSymbols.add_function( "conj", conjFunc );
-	constantSymbols.add_function( "complex", complexFunc );
-	constantSymbols.add_function( "polar", polarFunc );
-	constantSymbols.add_function( "rnd", randomFunc );
-}
+{}
 
 size_t Model::size() const
 {
@@ -249,7 +252,9 @@ ErrorOrFunction Model::getFunction(const size_t index) const
 }
 
 void Model::updateFormulas(const size_t startIndex) {
-	functionSymbols.clear();
+
+	// symbol_table_t functionSymbols(symbol_table_t::symtab_mutability_type::e_immutable);
+	Symbols functionSymbols;
 	/* dont change entries
 	 * before start index
 	 * but add their
@@ -258,9 +263,9 @@ void Model::updateFormulas(const size_t startIndex) {
 	for( size_t i=0; i<startIndex; i++ ) {
 		auto entry = functions.at(i);
 		if( entry->errorOrFunction ) {
-			functionSymbols.add_function(
-					functionName( i ).toStdString().c_str(),
-					*(entry->errorOrFunction.value())
+			functionSymbols.addFunction(
+					functionName( i ),
+					entry->errorOrFunction.value().get()
 			);
 		}
 	}
@@ -271,21 +276,20 @@ void Model::updateFormulas(const size_t startIndex) {
 		auto entry = functions.at(i);
 		entry->errorOrFunction = formulaFunctionFactory(
 				entry->string,
-				{
-					&constantSymbols,
-					&functionSymbols
-				},
 				descrFromParameters( entry->parameters ),
+				{
+					constants,
+					functionSymbols
+				},
 				entry->samplingSettings.resolution,
 				entry->samplingSettings.interpolation,
 				entry->samplingSettings.caching
 		);
 		if( entry->errorOrFunction ) {
-			functionSymbols.add_function(
-					functionName( i ).toStdString().c_str(),
-					*(entry->errorOrFunction.value())
+			functionSymbols.addFunction(
+					functionName( i ),
+					entry->errorOrFunction.value().get()
 			);
 		}
 	}
 }
-
