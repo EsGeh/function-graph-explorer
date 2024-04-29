@@ -19,4 +19,4 @@ using ParameterDescription = std::vector<QString>;
 
 using ParameterBindings = std::map<QString, C>;
 
-std::vector<QString> descrFromParameters( const ParameterBindings& parameters );
+ParameterDescription descrFromParameters( const ParameterBindings& parameters );

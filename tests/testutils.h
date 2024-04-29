@@ -13,7 +13,7 @@ inline void initTestModel(
 	model->resize(testData.size());
 	for( uint i=0; i<testData.size(); i++ ) {
 		auto funcString = testData[i] ;
-		model->set(i, funcString );
+		model->set(i, funcString, {} );
 	}
 }
 

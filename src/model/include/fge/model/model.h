@@ -3,6 +3,7 @@
 #include "fge/model/function.h"
 #include "fge/shared/data.h"
 #include <memory>
+#include <optional>
 
 
 typedef
@@ -11,10 +12,9 @@ typedef
 ;
 
 struct FunctionEntry {
-	QString string;
+	QString formula;
 	SamplingSettings samplingSettings;
-	ParameterBindings parameters;
-	ErrorOrFunction errorOrFunction;
+	ErrorOrFunction errorOrFunction = std::unexpected("not yet initialized");
 };
 
 const SamplingSettings no_optimization_settings{
@@ -46,10 +46,10 @@ class Model
 				const size_t index,
 				const SamplingSettings& value
 		);
-		ParameterBindings getParameters(
+		ErrorOrValue<ParameterBindings> getParameters(
 				const size_t index
 		) const;
-		void setParameters(
+		MaybeError setParameterValues(
 				const size_t index,
 				const ParameterBindings& parameters
 		);
@@ -67,14 +67,21 @@ class Model
 				const unsigned int samplerate,
 				std::function<float(const double)> volumeFunction
 		) const;
-		ErrorOrFunction getFunction(const size_t index) const;
 
 		// set:
 		void resize( const size_t size );
-		MaybeError set( const size_t index, const QString& functionStr );
+		MaybeError set(
+				const size_t index,
+				const QString& formula,
+				const ParameterBindings& parameters
+		);
 	
+		ErrorOrFunction getFunction(const size_t index) const;
 	private:
-		void updateFormulas( const size_t startIndex );
+		void updateFormulas(
+				const size_t startIndex,
+				const std::optional<ParameterBindings>& setBindings
+		);
 
 	private:
 		Symbols constants;

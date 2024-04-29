@@ -20,31 +20,31 @@ struct TestFunc:
 
 void TestFormulaFunction::testInit_data() {
 	QTest::addColumn<QString>("formulaString");
-	QTest::addColumn<ParameterDescription>("parameters");
+	QTest::addColumn<ParameterBindings>("parameters");
 	QTest::addColumn<Symbols>("symbols");
 	QTest::addColumn<bool>("result");
 
 	QTest::newRow("simple")
 		<< "x"
-		<< ParameterDescription{}
+		<< ParameterBindings{}
 		<< Symbols()
 		<< true
 	;
 	QTest::newRow("with parameter t")
 		<< "x * t"
-		<< ParameterDescription{ "t" }
+		<< ParameterBindings{ {"t", C(0,0) } }
 		<< Symbols()
 		<< true
 	;
 	QTest::newRow("unspecified parameter t fails")
 		<< "x * t"
-		<< ParameterDescription{}
+		<< ParameterBindings{}
 		<< Symbols()
 		<< false
 	;
 	QTest::newRow("x^2")
 		<< "x^2"
-		<< ParameterDescription{}
+		<< ParameterBindings{}
 		<< Symbols()
  		<< true
 	;
@@ -52,14 +52,14 @@ void TestFormulaFunction::testInit_data() {
 	{
 		QTest::newRow("const from symbol table")
 			<< "2pi*x"
-			<< ParameterDescription{}
+			<< ParameterBindings{}
 			<< Symbols({ {"pi", C(3.141, 0)} })
 			<< true
 		;
 	}
 	QTest::newRow("unknown var")
 		<< "2pi*x"
-		<< ParameterDescription{}
+		<< ParameterBindings{}
 		<< Symbols()
 		<< false
 	;
@@ -68,7 +68,7 @@ void TestFormulaFunction::testInit_data() {
 		static TestFunc func;
 		QTest::newRow("function from symbol table")
 			<< "f1(2*x)"
-			<< ParameterDescription{}
+			<< ParameterBindings{}
 			<< Symbols({}, { { "f1", &func } })
 			<< true
 		;
@@ -78,7 +78,7 @@ void TestFormulaFunction::testInit_data() {
 void TestFormulaFunction::testInit() {
 	// fetch test args:
 	QFETCH(QString, formulaString);
-	QFETCH(ParameterDescription, parameters);
+	QFETCH(ParameterBindings, parameters);
 	QFETCH(Symbols, symbols);
 	QFETCH(bool, result);
 	// run test:
@@ -103,7 +103,6 @@ void TestFormulaFunction::testInit() {
 
 void checkFunction(
 		Function* function,
-		const ParameterBindings& parameters,
 		std::function<C(T)> expectedFunc,
 		const std::pair<T,T>& range,
 		const uint resolution
@@ -123,7 +122,6 @@ void TestFormulaFunction::testEval()
 	auto function = errOrValue.value();
 	checkFunction(
 			function.get(),
-			{},
 			[](auto x){ return C(pow(x,2),0); },
 			{-3, 3},
 			44100
@@ -134,7 +132,7 @@ void TestFormulaFunction::testEvalWithParameters()
 {
 	auto errOrValue = formulaFunctionFactory(
 			"t * x^2",
-			{ "t" },
+			{ {"t", C(2,0)} },
 			{},
 			0, // no quantization
 			0, // no interpolation
@@ -142,26 +140,8 @@ void TestFormulaFunction::testEvalWithParameters()
 	);
 	assert( errOrValue );
 	auto function = errOrValue.value();
-	// get should fail
-	// if parameter is
-	// not bound
-	QVERIFY_THROWS_EXCEPTION(
-			std::invalid_argument,
-			function->get(
-				C(0,0),
-				{}
-			)
-	);
-	QVERIFY_THROWS_EXCEPTION(
-			std::invalid_argument,
-			function->get(
-				C(0,0),
-				{ {"z", C(0,0)} }
-			)
-	);
 	checkFunction(
 			function.get(),
-			{ {"t", C(2,0) } },
 			[](auto x){ return C(2 * pow(x,2),0); },
 			{-3, 3},
 			8
@@ -227,12 +207,12 @@ void TestFormulaFunction::testResolution()
 	for( int i=0; i<int(resolution * rangeDelta)+1; i++ )
 	{
 		const double x = range.first + T(i) / resolution;
-		const C y = function->get( C(x,0), {} );
+		const C y = function->get( C(x,0) );
 		const double xNext = range.first + T(i+1) / resolution;
-		const C yNext = function->get( C(xNext,0), {} );
+		const C yNext = function->get( C(xNext,0) );
 		// check values falling on full steps:
 		{
-			const C ret = quantizedFunction->get( C(x,0), {} );
+			const C ret = quantizedFunction->get( C(x,0) );
 			QVERIFY2(
 					float_equal( ret.c_.real(), y.c_.real() ),
 					QString( "error in function: %1 -> %2 != %3 (expected)" )
@@ -247,7 +227,7 @@ void TestFormulaFunction::testResolution()
 		{
 			const T frac = T(isub) / T(subRes) / T(resolution);
 			const T shiftedX = x+frac;
-			const C ret = quantizedFunction->get( C(shiftedX,0), {} );
+			const C ret = quantizedFunction->get( C(shiftedX,0) );
 			if( interpolation == 0 ) {
 					QVERIFY2(
 							float_equal( ret.c_.real(), y.c_.real() ),
@@ -281,7 +261,6 @@ void TestFormulaFunction::testResolution()
 
 void checkFunction(
 		Function* function,
-		const ParameterBindings& parameters,
 		std::function<C(T)> expectedFunc,
 		const std::pair<T,T>& range,
 		const uint resolution
@@ -291,7 +270,7 @@ void checkFunction(
 	for( int i=0; i<int(resolution * rangeDelta)+1; i++ )
 	{
 		const double x = range.first + T(i) / resolution;
-		const auto ret = function->get( C(x,0), parameters );
+		const auto ret = function->get( C(x,0) );
 		const T expectedY = expectedFunc(x);
 		QVERIFY2(
 				qFuzzyCompare( ret.c_.real(), expectedY )

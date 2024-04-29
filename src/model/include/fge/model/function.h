@@ -28,11 +28,14 @@ class Function:
 		Function();
 		virtual ~Function();
 		virtual C get(
-				const C& x,
-				const ParameterBindings& parameters
+				const C& x
 		) = 0;
 		virtual QString toString() const = 0;
-		virtual ParameterDescription getParameterDescription() const = 0;
+		virtual ParameterBindings getParameters() const = 0;
+		virtual MaybeError setParameter(
+				const QString& name,
+				const C& value
+		) = 0;
 		/* Quantization of input values.
 		 *   0: no quantization. infinite resolution.
 		 */
@@ -86,18 +89,20 @@ class FormulaFunction:
 		virtual ~FormulaFunction();
 		// get:
 		virtual C get(
-				const C& x,
-				const ParameterBindings& parameters
+				const C& x
 		) override;
 		virtual QString toString() const override;
-		virtual ParameterDescription getParameterDescription() const override;
+		virtual ParameterBindings getParameters() const override;
+		virtual MaybeError setParameter(
+				const QString& name,
+				const C& value
+		) override;
 
 	protected:
-		FormulaFunction(
-				const std::vector<QString>& parameters = {}
-		);
+		FormulaFunction();
 		MaybeError init(
 				const QString& formula_str,
+				const ParameterBindings& parameters,
 				const std::vector<Symbols>& additionalSymbols
 		);
 
@@ -119,14 +124,17 @@ class FunctionWithResolution:
 {
 	public:
 		FunctionWithResolution(
-				const std::vector<QString>& parameters,
 				const uint resolution,
 				const uint interpolation,
 				const bool caching
 		);
 		virtual C get(
-				const C& x,
-				const ParameterBindings& parameters
+				const C& x
+		) override;
+
+		virtual MaybeError setParameter(
+				const QString& name,
+				const C& value
 		) override;
 
 		uint getResolution() const override;
@@ -146,8 +154,7 @@ class FunctionWithResolution:
 		) const;
 		RasterIndex xToRasterIndex(const C& x);
 		C rasterIndexToY(
-				int x,
-				const ParameterBindings& parameters
+				int x
 		);
 	private:
 		uint resolution;
@@ -167,14 +174,13 @@ class FunctionImpl:
 {
 	protected:
 		FunctionImpl(
-				const std::vector<QString>& parameters,
 				const uint resolution,
 				const uint interpolation,
 				const bool enableCaching
 		);
 	friend ErrorOrValue<std::shared_ptr<Function>> formulaFunctionFactory_internal(
 			const QString& formulaStr,
-			const std::vector<QString>& parameters,
+			const ParameterBindings& parameters,
 			const std::vector<Symbols>& additionalSymbols,
 			const uint resolution,
 			const uint enableInterpolate,
@@ -188,7 +194,7 @@ class FunctionImpl:
 
 ErrorOrValue<std::shared_ptr<Function>> formulaFunctionFactory_internal(
 		const QString& formulaStr,
-		const std::vector<QString>& parameters,
+		const ParameterBindings& parameters,
 		const std::vector<Symbols>& additionalSymbols,
 		const uint resolution,
 		const uint interpolation,
@@ -197,7 +203,7 @@ ErrorOrValue<std::shared_ptr<Function>> formulaFunctionFactory_internal(
 
 ErrorOrValue<std::shared_ptr<Function>> formulaFunctionFactory(
 		const QString& formulaStr,
-		const std::vector<QString>& parameters,
+		const ParameterBindings& parameters,
 		const std::vector<Symbols>& additionalSymbols,
 		const uint resolution = 0,
 		const uint interpolation = 0,

@@ -12,21 +12,20 @@ class Cache
 		typedef C Value;
 	public:
 		inline Cache(
-				std::function<Value(Index,ParameterBindings)> function
+				std::function<Value(Index)> function
 		);
 		inline std::pair<Cache::Value,bool> lookup(
-				const Index index,
-				const ParameterBindings& parameters
+				const Index index
 		);
 		inline void clear();
 	private:
-		std::function<Value(Index,ParameterBindings)> function;
+		std::function<Value(Index)> function;
 		Index indexMin;
 		std::deque<std::optional<Value>> buffer;
 };
 
 inline Cache::Cache(
-	std::function<Value(Index,ParameterBindings)> function
+	std::function<Value(Index)> function
 )
 	: function(function)
 	, indexMin(0)
@@ -34,8 +33,7 @@ inline Cache::Cache(
 {}
 
 inline std::pair<Cache::Value,bool> Cache::lookup(
-		const Index index,
-		const ParameterBindings& parameters
+		const Index index
 ) {
 	if( buffer.size() == 0 ) {
 		indexMin = index;
@@ -63,7 +61,7 @@ inline std::pair<Cache::Value,bool> Cache::lookup(
 	if( lookupRes.has_value() ) {
 		return { lookupRes.value(), true };
 	}
-	lookupRes = function( index, parameters );
+	lookupRes = function( index );
 	assert( buffer[lookupPosition].has_value() );
 	return { lookupRes.value(), false };
 }

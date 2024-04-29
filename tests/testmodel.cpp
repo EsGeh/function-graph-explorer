@@ -108,7 +108,7 @@ void TestModel::testUpdatesReferences() {
 	}
 	/* update F0:
 	 */
-	model.set( 0, "x+1" );
+	model.set( 0, "x+1", {});
 	/* Check result:
 	 */
 	std::vector<std::pair<QString, std::function<C(T)>>> expectedResult = {
@@ -225,7 +225,7 @@ void assertExpected(
 		auto func = errOrFunc.value();
 		QCOMPARE( func->toString(), expectedString );
 		for( int x=range.first; x<range.second; x++ ) {
-			C y = func->get( C(x,0), {} );
+			C y = func->get( C(x,0) );
 			C yExpected = expectedFunc(T(x));
 			QVERIFY2(
 					cmplx::equal( y, yExpected ),

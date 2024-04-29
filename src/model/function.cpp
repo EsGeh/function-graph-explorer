@@ -53,41 +53,25 @@ Function::~Function()
 
 C Function::operator()(const C& x)
 {
-	 return this->get( x, {} );
+	 return this->get( x );
 }
 
 /*******************
  * FormulaFunction
  ******************/
 
-FormulaFunction::FormulaFunction(
-		const std::vector<QString>& parameters // = {}
-)
+FormulaFunction::FormulaFunction()
 	: formulaStr("")
 {
-	for( auto p : parameters )
-	{
-		this->parameters.insert( { p, C(0,0) } );
-	}
 }
 
 FormulaFunction::~FormulaFunction()
 {}
 
 C FormulaFunction::get(
-		const C& x,
-		const ParameterBindings& parameters
+		const C& x
 )
 {
-	for( auto& [key, value] : this->parameters ) {
-		auto el = parameters.find( key );
-		if( el == parameters.end() ) {
-			throw std::invalid_argument(
-					std::format("Parameter not found: {}", key.toStdString())
-			);
-		}
-		value = el->second;
-	}
 	varX = x;
 	return formula.value();
 }
@@ -96,20 +80,30 @@ QString FormulaFunction::toString() const {
 	return formulaStr;
 }
 
-ParameterDescription FormulaFunction::getParameterDescription() const
+ParameterBindings FormulaFunction::getParameters() const
 {
-	decltype(getParameterDescription()) ret;
-	for( auto [key, _] : parameters ) {
-		ret.push_back( key );
+	return parameters;
+}
+
+MaybeError FormulaFunction::setParameter(
+		const QString& name,
+		const C& value
+)
+{
+	auto entry = parameters.find( name );
+	if( entry == parameters.end() ) {
+		return QString("Parameter not found: '%1'").arg( name );
 	}
-	return ret;
+	entry->second = value;
+	return {};
 }
 
 MaybeError FormulaFunction::init(
 		const QString& formulaStr,
+		const ParameterBindings& parameters,
 		const std::vector<Symbols>& additionalSymbols
-		// std::vector<symbol_table_t*> additionalSymbols
-) {
+)
+{
 	this->formulaStr = formulaStr;
 
 	// build symbol table
@@ -117,7 +111,10 @@ MaybeError FormulaFunction::init(
 	symbol_table_t symbols;
 	symbols.add_variable( "x", varX );
 	for( auto& [paramName, paramValue] : parameters ) {
-		symbols.add_variable( paramName.toStdString(), paramValue );
+		symbols.add_constant(
+				paramName.toStdString(),
+				paramValue
+		);
 	}
 	// add additional symbols:
 	formula.register_symbol_table( symbols );
@@ -139,29 +136,26 @@ MaybeError FormulaFunction::init(
  ******************/
 
 FunctionWithResolution::FunctionWithResolution(
-		const std::vector<QString>& parameters,
 		const uint resolution,
 		const uint interpolation,
 		const bool caching
 )
-	: FormulaFunction( parameters )
+	: FormulaFunction()
 	, resolution(resolution)
 	, interpolation(interpolation)
-	, cache( [this](int x, const ParameterBindings& parameters){ return rasterIndexToY(x, parameters); } )
+	, cache( [this](int x){ return rasterIndexToY(x); } )
 {}
 
 C FunctionWithResolution::get(
-		const C& x,
-		const ParameterBindings& parameters
+		const C& x
 )
 {
 	if(
 			resolution == 0
 			|| x.c_.imag() != 0
 	) {
-		return FormulaFunction::get(x, parameters);
+		return FormulaFunction::get(x);
 	}
-	static std::optional<ParameterBindings> lastParameters = {};
 	/* consider `interpolation+1` points,
 	 * 	centered around `x`
 	 *   x(0-shift) ... x(k+1-shift)
@@ -179,38 +173,33 @@ C FunctionWithResolution::get(
 		? (interpolation+1-2)/2
 		: 0;
 	std::vector<C> ys;
-	// clear cache, if a parameter changed:
-	if( caching ) {
-		bool changed = false;
-		if( parameters.size() > 0 && lastParameters.has_value() ) {
-			for(auto [key,val]: parameters) {
-				if( lastParameters.value()[key] != val ) {
-					changed = true;
-					break;
-				}
-			}
-		}
-		if( changed ) {
-			cache.clear();
-		}
-		lastParameters = parameters;
-	}
 	for( int i{0}; i<int(interpolation+1); i++ ) {
 		const int xpos = xToRasterIndex(x) + i - shift;
 		if( caching ) {
-			ys.push_back(cache.lookup( xpos, parameters ).first);
+			ys.push_back(cache.lookup( xpos ).first);
 		}
 		else {
 			ys.push_back(FormulaFunction::get(
 					C(
 						T(xpos) / getResolution(),
 						0
-					),
-					parameters
+					)
 			));
 		}
 	};
 	return interpolate( x, ys, shift );
+}
+
+MaybeError FunctionWithResolution::setParameter(
+		const QString& name,
+		const C& value
+)
+{
+	auto maybeError = FormulaFunction::setParameter( name, value );
+	if( !maybeError ) {
+		cache.clear();
+	}
+	return maybeError;
 }
 
 const T epsilon = 1.0/(1<<20);
@@ -248,13 +237,11 @@ FunctionWithResolution::RasterIndex FunctionWithResolution::xToRasterIndex(const
 }
 
 C FunctionWithResolution::rasterIndexToY(
-		int x,
-		const ParameterBindings& parameters
+		int x
 )
 {
 	return FormulaFunction::get(
-			C(T(x) / getResolution(),0),
-			parameters
+			C(T(x) / getResolution(),0)
 	);
 }
 
@@ -293,13 +280,11 @@ void FunctionWithResolution::setCaching(const bool value)
  ******************/
 
 FunctionImpl::FunctionImpl(
-		const std::vector<QString>& parameters,
 		const uint resolution,
 		const uint interpolation,
 		const bool enableCaching
 )
 	: FunctionWithResolution(
-			parameters,
 			resolution,
 			interpolation,
 			enableCaching
@@ -313,7 +298,7 @@ FunctionImpl::FunctionImpl(
 
 ErrorOrValue<std::shared_ptr<Function>> formulaFunctionFactory_internal(
 		const QString& formulaStr,
-		const std::vector<QString>& parameters,
+		const ParameterBindings& parameters,
 		const std::vector<Symbols>& additionalSymbols,
 		const uint resolution,
 		const uint interpolation,
@@ -321,13 +306,16 @@ ErrorOrValue<std::shared_ptr<Function>> formulaFunctionFactory_internal(
 )
 {
 	auto function = std::shared_ptr<FunctionImpl>(new FunctionImpl(
-				parameters,
 				resolution,
 				interpolation,
 				enableCaching
 	));
-	auto maybeError = function->init( formulaStr, additionalSymbols);
-	if( maybeError ) {
+	auto maybeError = function->init(
+			formulaStr,
+			parameters,
+			additionalSymbols
+	);
+	if( maybeError.has_value() ) {
 		return std::unexpected(maybeError.value() );
 	}
 	return function;
@@ -335,7 +323,7 @@ ErrorOrValue<std::shared_ptr<Function>> formulaFunctionFactory_internal(
 
 ErrorOrValue<std::shared_ptr<Function>> formulaFunctionFactory(
 		const QString& formulaStr,
-		const std::vector<QString>& parameters,
+		const ParameterBindings& parameters,
 		const std::vector<Symbols>& additionalSymbols,
 		const uint resolution, // = 0
 		const uint interpolation, // = 0
