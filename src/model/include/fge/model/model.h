@@ -15,6 +15,7 @@ struct FunctionEntry {
 	QString formula;
 	SamplingSettings samplingSettings;
 	ErrorOrFunction errorOrFunction = std::unexpected("not yet initialized");
+	// StateDescriptions stateDescriptions;
 };
 
 const SamplingSettings no_optimization_settings{
@@ -53,6 +54,9 @@ class Model
 				const size_t index,
 				const ParameterBindings& parameters
 		);
+		ErrorOrValue<StateDescriptions> getStateDescriptions(
+				const size_t index
+		) const;
 		ErrorOrValue<std::vector<std::pair<C,C>>> getGraph(
 				const size_t index,
 				const std::pair<T,T>& range,
@@ -73,14 +77,16 @@ class Model
 		MaybeError set(
 				const size_t index,
 				const QString& formula,
-				const ParameterBindings& parameters
+				const ParameterBindings& parameters,
+				const StateDescriptions& stateDescriptions
 		);
 	
 		ErrorOrFunction getFunction(const size_t index) const;
 	private:
 		void updateFormulas(
 				const size_t startIndex,
-				const std::optional<ParameterBindings>& setBindings
+				const std::optional<ParameterBindings>& setBindings,
+				const std::optional<StateDescriptions>& setStateDescriptions
 		);
 
 	private:

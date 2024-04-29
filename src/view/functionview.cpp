@@ -65,8 +65,9 @@ FunctionView::FunctionView(
 		ui->optionsBtn,
 		&QAbstractButton::clicked,
 		[this]() {
-			displayDialog->setParameters(
-					descrFromParameters( parameters )
+			displayDialog->setFunctionDataDescriptions(
+					descrFromParameters( parameters ),
+					stateDescriptions
 			);
 			displayDialog->setViewData( viewData );
 			displayDialog->setSamplingSettings( samplingSettings ),
@@ -93,6 +94,7 @@ FunctionView::FunctionView(
 					displayDialog->getParameters(),
 					parameters
 			);
+			stateDescriptions = displayDialog->getStateDescriptions();
 			ui->parametersBtn->setVisible( parameters.size() > 0 );
 			viewData = displayDialog->getViewData();
 			samplingSettings = displayDialog->getSamplingSettings();
@@ -104,7 +106,6 @@ FunctionView::FunctionView(
 		this->graphView,
 		&GraphView::viewChanged,
 		[this]() {
-			// qDebug() << "zoom: " << viewData.scaleExp;
 			emit viewParamsChanged();
 		}
 	);
@@ -122,6 +123,11 @@ QString FunctionView::getFormula() {
 const ParameterBindings& FunctionView::getParameters() const
 {
 	return parameters;
+}
+
+const StateDescriptions& FunctionView::getStateDescriptions() const
+{
+	return stateDescriptions;
 }
 
 const FunctionViewData& FunctionView::getViewData() const {
@@ -183,7 +189,7 @@ void updateParameters(
 		auto it = parameterDescription.begin();
 		while( it != parameterDescription.end() )
 		{
-			parameters.try_emplace( *it, 0 );
+			parameters.try_emplace( *it, std::vector<C>(1,C(0)) );
 			it++;
 		}
 	}

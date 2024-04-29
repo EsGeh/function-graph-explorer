@@ -21,7 +21,7 @@ typedef typename compositor_t::function
  ******************/
 
 class Function:
-	public exprtk::ifunction<C>
+public exprtk::ifunction<C>
 {
 
 	public:
@@ -34,8 +34,9 @@ class Function:
 		virtual ParameterBindings getParameters() const = 0;
 		virtual MaybeError setParameter(
 				const QString& name,
-				const C& value
+				const std::vector<C>& value
 		) = 0;
+		virtual StateDescriptions getStateDescriptions() const = 0;
 		/* Quantization of input values.
 		 *   0: no quantization. infinite resolution.
 		 */
@@ -95,20 +96,24 @@ class FormulaFunction:
 		virtual ParameterBindings getParameters() const override;
 		virtual MaybeError setParameter(
 				const QString& name,
-				const C& value
+				const std::vector<C>& value
 		) override;
+		virtual StateDescriptions getStateDescriptions() const override;
 
 	protected:
 		FormulaFunction();
 		MaybeError init(
 				const QString& formula_str,
 				const ParameterBindings& parameters,
+				const StateDescriptions& stateDescrs,
 				const std::vector<Symbols>& additionalSymbols
 		);
 
 	private:
 		QString formulaStr;
 		ParameterBindings parameters;
+		StateDescriptions stateDescriptions;
+		ParameterBindings state;
 		expression_t formula;
 		C varX;
 
@@ -134,7 +139,7 @@ class FunctionWithResolution:
 
 		virtual MaybeError setParameter(
 				const QString& name,
-				const C& value
+				const std::vector<C>& value
 		) override;
 
 		uint getResolution() const override;
@@ -181,6 +186,7 @@ class FunctionImpl:
 	friend ErrorOrValue<std::shared_ptr<Function>> formulaFunctionFactory_internal(
 			const QString& formulaStr,
 			const ParameterBindings& parameters,
+			const StateDescriptions& state,
 			const std::vector<Symbols>& additionalSymbols,
 			const uint resolution,
 			const uint enableInterpolate,
@@ -195,6 +201,7 @@ class FunctionImpl:
 ErrorOrValue<std::shared_ptr<Function>> formulaFunctionFactory_internal(
 		const QString& formulaStr,
 		const ParameterBindings& parameters,
+		const StateDescriptions& state,
 		const std::vector<Symbols>& additionalSymbols,
 		const uint resolution,
 		const uint interpolation,
@@ -204,6 +211,7 @@ ErrorOrValue<std::shared_ptr<Function>> formulaFunctionFactory_internal(
 ErrorOrValue<std::shared_ptr<Function>> formulaFunctionFactory(
 		const QString& formulaStr,
 		const ParameterBindings& parameters,
+		const StateDescriptions& state,
 		const std::vector<Symbols>& additionalSymbols,
 		const uint resolution = 0,
 		const uint interpolation = 0,

@@ -30,7 +30,7 @@ void ParametersEdit::updateView()
 	{
 		auto paramWidget = std::make_shared<ParameterValueEntry>(
 				param.first,
-				param.second
+				param.second.at(0)
 		);
 		paramWidgets.push_back( paramWidget );
 		ui->verticalLayout->addWidget(
@@ -40,7 +40,7 @@ void ParametersEdit::updateView()
 				paramWidget.get(),
 				&ParameterValueEntry::valueChanged,
 				[this,&param](auto value) {
-					param.second = value;
+					param.second = { value };
 					emit parametersChanged();
 				}
 		);

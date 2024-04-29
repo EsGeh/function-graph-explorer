@@ -25,11 +25,15 @@ public:
 
 	QString getFormula() const;
 	std::vector<QString> getParameters() const;
+	StateDescriptions getStateDescriptions() const;
 	const FunctionViewData& getViewData() const;
 	const SamplingSettings& getSamplingSettings() const;
 
 	void setFormula(const QString& value);
-	void setParameters(const std::vector<QString>& value);
+	void setFunctionDataDescriptions(
+			const std::vector<QString>& parameters,
+			const StateDescriptions& state
+	);
 	void setViewData(const FunctionViewData& value);
 	void setSamplingSettings(const SamplingSettings& value);
 

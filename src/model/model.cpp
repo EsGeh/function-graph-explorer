@@ -56,6 +56,15 @@ DECL_FUNC_BEGIN(RandomFunction,0,)
 	return C(T(std::rand())/T(RAND_MAX), T(std::rand())/T(RAND_MAX));
 DECL_FUNC_END(RandomFunction)
 
+DECL_FUNC_BEGIN(Real_Compare,2,const C& x1, const C& x2)
+	T ret = 0;
+	if( x1.c_.real() > x2.c_.real() )
+		ret = 1;
+	else if( x1.c_.real() < x2.c_.real() )
+		ret = -1;
+	return C(ret, 0);
+DECL_FUNC_END(Real_Compare)
+
 static auto realFunc = RealFunction();
 static auto imagFunc = ImagFunction();
 
@@ -64,6 +73,7 @@ static auto argFunc = ArgFunction();
 static auto conjFunc = ConjFunction();
 static auto complexFunc = ComplexFunction();
 static auto polarFunc = PolarFunction();
+static auto realCompare = Real_Compare();
 static auto randomFunc = RandomFunction();
 
 Model::Model(
@@ -85,10 +95,10 @@ Model::Model(
 			{ "conj", &conjFunc },
 			{ "complex", &complexFunc },
 			{ "polar", &polarFunc },
+			{ "real_cmp", &realCompare },
 			{ "rnd", &randomFunc }
 		}
 	)
-	, functions()
 	, defSamplingSettings( defSamplingSettings )
 {}
 
@@ -159,12 +169,25 @@ MaybeError Model::setParameterValues(
 	}
 	auto function = errorOrFunction.value();
 	for( auto [key, val] : parameters ) {
-		auto maybeError = function->setParameter( key, val );
+		auto maybeError = function->setParameter( key, val.at(0) );
 		if( maybeError ) {
 			return maybeError.value();
 		}
 	}
 	return {};
+}
+
+ErrorOrValue<StateDescriptions> Model::getStateDescriptions(
+		const size_t index
+) const
+{
+	ErrorOrFunction errorOrFunction = functions.at( index )->errorOrFunction;
+	if( !errorOrFunction ) {
+		return std::unexpected(errorOrFunction.error());
+	}
+	auto function = errorOrFunction.value();
+	return function->getStateDescriptions();
+	// return functions.at( index )->stateDescriptions;
 }
 
 ErrorOrValue<std::vector<std::pair<C,C>>> Model::getGraph(
@@ -246,7 +269,7 @@ void Model::resize( const size_t size ) {
 			entry->samplingSettings = defSamplingSettings;
 			functions.push_back( entry );
 		}
-		updateFormulas(oldSize, {});
+		updateFormulas(oldSize, {}, {});
 	}
 	assert( this->size() == size );
 }
@@ -254,12 +277,17 @@ void Model::resize( const size_t size ) {
 MaybeError Model::set(
 		const size_t index,
 		const QString& formula,
-		const ParameterBindings& parameters
+		const ParameterBindings& parameters,
+		const StateDescriptions& stateDescriptions
 ) {
 	// assert( index < size() );
 	auto entry = functions[index];
 	entry->formula = formula;
-	updateFormulas( index, parameters );
+	updateFormulas(
+			index,
+			parameters,
+			stateDescriptions
+	);
 	return getError( index );
 }
 
@@ -270,7 +298,8 @@ ErrorOrFunction Model::getFunction(const size_t index) const
 
 void Model::updateFormulas(
 		const size_t startIndex,
-		const std::optional<ParameterBindings>& setBindings
+		const std::optional<ParameterBindings>& setBindings,
+		const std::optional<StateDescriptions>& setStateDescriptions
 ) {
 
 	Symbols functionSymbols;
@@ -300,9 +329,17 @@ void Model::updateFormulas(
 		if( i==startIndex && setBindings ) {
 			parameters = setBindings.value();
 		}
+		StateDescriptions stateDescriptions = {};
+		entry->errorOrFunction.transform([&stateDescriptions](auto function) {
+			stateDescriptions = function->getStateDescriptions();
+		});
+		if( i==startIndex && setStateDescriptions ) {
+			stateDescriptions = setStateDescriptions.value();
+		}
 		entry->errorOrFunction = formulaFunctionFactory(
 				entry->formula,
 				parameters,
+				stateDescriptions,
 				{
 					constants,
 					functionSymbols

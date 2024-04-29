@@ -87,7 +87,7 @@ ParameterBindings FormulaFunction::getParameters() const
 
 MaybeError FormulaFunction::setParameter(
 		const QString& name,
-		const C& value
+		const std::vector<C>& value
 )
 {
 	auto entry = parameters.find( name );
@@ -98,28 +98,60 @@ MaybeError FormulaFunction::setParameter(
 	return {};
 }
 
+StateDescriptions FormulaFunction::getStateDescriptions() const
+{
+	return stateDescriptions;
+}
+
 MaybeError FormulaFunction::init(
 		const QString& formulaStr,
 		const ParameterBindings& parameters,
+		const StateDescriptions& stateDescrs,
 		const std::vector<Symbols>& additionalSymbols
 )
 {
 	this->formulaStr = formulaStr;
+	this->parameters = parameters;
+	this->stateDescriptions = stateDescrs;
+
+	for( auto [name, descr] : stateDescrs )
+	{
+		std::vector<C> vector(descr.size, C(0,0) );
+		this->state.insert( { name, vector } );
+	}
 
 	// build symbol table
 	// add "x" and parameters:
 	symbol_table_t symbols;
 	symbols.add_variable( "x", varX );
-	for( auto& [paramName, paramValue] : parameters ) {
-		symbols.add_constant(
-				paramName.toStdString(),
-				paramValue
-		);
+	// parameters:
+	for( auto& [paramName, paramValue] : this->parameters ) {
+		if( paramValue.size() == 1 ) {
+			symbols.add_constant(
+					paramName.toStdString(),
+					paramValue[0]
+			);
+		}
+		else {
+			symbols.add_vector(
+					paramName.toStdString(),
+					paramValue
+			);
+		}
+	}
+	// add state:
+	for( auto& [key, value] : this->state ) {
+		if( stateDescriptions[key].size == 1 ) {
+			symbols.add_variable( key.toStdString(), value.at(0) );
+		}
+		else {
+			symbols.add_vector( key.toStdString(), value );
+		}
 	}
 	// add additional symbols:
 	formula.register_symbol_table( symbols );
-	for( auto symbols : additionalSymbols ) {
-		formula.register_symbol_table( symbols.get() );
+	for( auto additional : additionalSymbols ) {
+		formula.register_symbol_table( additional.get() );
 	}
 
 	// parse formula:
@@ -192,7 +224,7 @@ C FunctionWithResolution::get(
 
 MaybeError FunctionWithResolution::setParameter(
 		const QString& name,
-		const C& value
+		const std::vector<C>& value
 )
 {
 	auto maybeError = FormulaFunction::setParameter( name, value );
@@ -299,6 +331,7 @@ FunctionImpl::FunctionImpl(
 ErrorOrValue<std::shared_ptr<Function>> formulaFunctionFactory_internal(
 		const QString& formulaStr,
 		const ParameterBindings& parameters,
+		const StateDescriptions& state,
 		const std::vector<Symbols>& additionalSymbols,
 		const uint resolution,
 		const uint interpolation,
@@ -313,6 +346,7 @@ ErrorOrValue<std::shared_ptr<Function>> formulaFunctionFactory_internal(
 	auto maybeError = function->init(
 			formulaStr,
 			parameters,
+			state,
 			additionalSymbols
 	);
 	if( maybeError.has_value() ) {
@@ -324,6 +358,7 @@ ErrorOrValue<std::shared_ptr<Function>> formulaFunctionFactory_internal(
 ErrorOrValue<std::shared_ptr<Function>> formulaFunctionFactory(
 		const QString& formulaStr,
 		const ParameterBindings& parameters,
+		const StateDescriptions& state,
 		const std::vector<Symbols>& additionalSymbols,
 		const uint resolution, // = 0
 		const uint interpolation, // = 0
@@ -332,6 +367,7 @@ ErrorOrValue<std::shared_ptr<Function>> formulaFunctionFactory(
 	return formulaFunctionFactory_internal(
 			formulaStr,
 			parameters,
+			state,
 			additionalSymbols,
 			resolution,
 			interpolation,

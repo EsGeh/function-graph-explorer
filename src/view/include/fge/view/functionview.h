@@ -27,6 +27,7 @@ public:
 
 	QString getFormula();
 	const ParameterBindings& getParameters() const;
+	const StateDescriptions& getStateDescriptions() const;
 	const FunctionViewData& getViewData() const;
 	const SamplingSettings& getSamplingSettings() const;
 
@@ -57,6 +58,7 @@ private:
 	QStatusBar* statusBar;
 	// Data:
 	ParameterBindings parameters;
+	StateDescriptions stateDescriptions;
 	FunctionViewData viewData;
 	SamplingSettings samplingSettings;
 };
