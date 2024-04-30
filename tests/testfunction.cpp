@@ -32,7 +32,7 @@ void TestFormulaFunction::testInit_data() {
 	;
 	QTest::newRow("with parameter t")
 		<< "x * t"
-		<< ParameterBindings{ {"t", C(0,0) } }
+		<< ParameterBindings{ {"t", { C(0,0) } } }
 		<< Symbols()
 		<< true
 	;
@@ -85,6 +85,7 @@ void TestFormulaFunction::testInit() {
 	auto errOrValue = formulaFunctionFactory(
 			formulaString,
 			parameters,
+			{},
 			{symbols},
 			0 // no caching
 	);
@@ -114,6 +115,7 @@ void TestFormulaFunction::testEval()
 			"x^2",
 			{},
 			{},
+			{},
 			0, // no quantization
 			0, // no interpolation
 			false // no caching
@@ -132,7 +134,8 @@ void TestFormulaFunction::testEvalWithParameters()
 {
 	auto errOrValue = formulaFunctionFactory(
 			"t * x^2",
-			{ {"t", C(2,0)} },
+			{ {"t", { C(2,0)} } },
+			{},
 			{},
 			0, // no quantization
 			0, // no interpolation
@@ -191,12 +194,14 @@ void TestFormulaFunction::testResolution()
 			formula,
 			{},
 			{},
+			{},
 			0, // no quantization
 			0,
 			false // no caching
 	).value();
 	auto quantizedFunction = formulaFunctionFactory(
 			formula,
+			{},
 			{},
 			{},
 			resolution, // quantization

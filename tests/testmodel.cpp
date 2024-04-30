@@ -108,7 +108,7 @@ void TestModel::testUpdatesReferences() {
 	}
 	/* update F0:
 	 */
-	model.set( 0, "x+1", {});
+	model.set( 0, "x+1", {}, {});
 	/* Check result:
 	 */
 	std::vector<std::pair<QString, std::function<C(T)>>> expectedResult = {
