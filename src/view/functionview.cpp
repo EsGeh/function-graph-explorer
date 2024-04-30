@@ -1,5 +1,6 @@
 #include "fge/view/functionview.h"
 #include "include/fge/view/functiondisplayoptions.h"
+#include "include/fge/view/parameter_utils.h"
 #include "include/fge/view/parametersedit.h"
 #include "ui_functionview.h"
 
@@ -29,6 +30,7 @@ FunctionView::FunctionView(
 
 	parametersDialog = new ParametersEdit(
 			&parameters,
+			&dataDescription.parameterDescriptions,
 			this
 	);
 	displayDialog = new FunctionDisplayOptions(
@@ -65,9 +67,8 @@ FunctionView::FunctionView(
 		ui->optionsBtn,
 		&QAbstractButton::clicked,
 		[this]() {
-			displayDialog->setFunctionDataDescriptions(
-					descrFromParameters( parameters ),
-					stateDescriptions
+			displayDialog->setDataDescription(
+					functionDataDescriptionToString( dataDescription )
 			);
 			displayDialog->setViewData( viewData );
 			displayDialog->setSamplingSettings( samplingSettings ),
@@ -90,15 +91,18 @@ FunctionView::FunctionView(
 		&FunctionDisplayOptions::finished,
 		[this](int result) {
 			if( !result ) return;
+			dataDescription = parseFunctionDataDescription(
+				displayDialog->getDataDescription()
+			);
 			updateParameters(
-					displayDialog->getParameters(),
+					dataDescription.parameterDescriptions,
 					parameters
 			);
-			stateDescriptions = displayDialog->getStateDescriptions();
 			ui->parametersBtn->setVisible( parameters.size() > 0 );
 			viewData = displayDialog->getViewData();
 			samplingSettings = displayDialog->getSamplingSettings();
 			ui->formulaEdit->setText( displayDialog->getFormula() );
+			parametersDialog->updateView();
 			emit formulaChanged();
 		}
 	);
@@ -125,9 +129,9 @@ const ParameterBindings& FunctionView::getParameters() const
 	return parameters;
 }
 
-const StateDescriptions& FunctionView::getStateDescriptions() const
+StateDescriptions FunctionView::getStateDescriptions() const
 {
-	return stateDescriptions;
+	return dataDescription.stateDescriptions;
 }
 
 const FunctionViewData& FunctionView::getViewData() const {
@@ -168,7 +172,7 @@ void FunctionView::setFormulaError( const QString& str )
 }
 
 void updateParameters(
-		const std::vector<QString>& parameterDescription,
+		const std::map<QString,ParameterDescription>& parameterDescriptions,
 		ParameterBindings& parameters
 )
 {
@@ -177,19 +181,23 @@ void updateParameters(
 		auto it = parameters.begin();
 		while( it != parameters.end() )
 		{
-			if(
-					std::find( parameterDescription.begin(), parameterDescription.end(), it->first ) == parameterDescription.end() ) {
+			if( parameterDescriptions.find( it->first ) == parameterDescriptions.end() )
+			{
 				it = parameters.erase( it );
 			}
 			else{ ++it; }
+
 		}
 	}
 	// add new entries:
 	{
-		auto it = parameterDescription.begin();
-		while( it != parameterDescription.end() )
+		auto it = parameterDescriptions.begin();
+		while( it != parameterDescriptions.end() )
 		{
-			parameters.try_emplace( *it, std::vector<C>(1,C(0)) );
+			parameters.try_emplace(
+					it->first,
+					std::vector<C>(1,C(it->second.initial,0))
+			);
 			it++;
 		}
 	}

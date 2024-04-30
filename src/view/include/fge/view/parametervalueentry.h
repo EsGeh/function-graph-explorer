@@ -1,6 +1,8 @@
 #pragma once
 
 #include "fge/shared/data.h"
+#include "fge/view/parameter_utils.h"
+#include "parameter_utils.h"
 #include <QWidget>
 
 namespace Ui {
@@ -15,6 +17,7 @@ public:
     explicit ParameterValueEntry(
 				const QString& name,
 				const C& param,
+				const ParameterDescription& description,
 				QWidget *parent = nullptr
 		);
     ~ParameterValueEntry();

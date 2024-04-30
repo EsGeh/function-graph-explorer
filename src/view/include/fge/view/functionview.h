@@ -1,6 +1,7 @@
 #ifndef FUNCTIONVIEW_H
 #define FUNCTIONVIEW_H
 
+#include "fge/view/parameter_utils.h"
 #include "fge/view/viewdata.h"
 #include "fge/view/parametersedit.h"
 #include "fge/view/graphview.h"
@@ -27,7 +28,7 @@ public:
 
 	QString getFormula();
 	const ParameterBindings& getParameters() const;
-	const StateDescriptions& getStateDescriptions() const;
+	StateDescriptions getStateDescriptions() const;
 	const FunctionViewData& getViewData() const;
 	const SamplingSettings& getSamplingSettings() const;
 
@@ -58,13 +59,14 @@ private:
 	QStatusBar* statusBar;
 	// Data:
 	ParameterBindings parameters;
-	StateDescriptions stateDescriptions;
+
+	FunctionDataDescription dataDescription;
 	FunctionViewData viewData;
 	SamplingSettings samplingSettings;
 };
 
 void updateParameters(
-		const std::vector<QString>& parameterDescription,
+		const std::map<QString,ParameterDescription>& parameterDescription,
 		ParameterBindings& parameters
 );
 

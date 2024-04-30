@@ -5,11 +5,13 @@
 
 ParametersEdit::ParametersEdit(
 		ParameterBindings* parameters,
+		std::map<QString,ParameterDescription>* parameterDescriptions,
 		QWidget *parent
 )
     : QDialog(parent)
     , ui(new Ui::ParametersEdit)
 		, parameters(parameters)
+		, parameterDescriptions(parameterDescriptions)
 {
 	ui->setupUi(this);
 }
@@ -28,9 +30,11 @@ void ParametersEdit::updateView()
 	paramWidgets.clear();
 	for( auto& param : *parameters )
 	{
+		auto description = parameterDescriptions->at(param.first);
 		auto paramWidget = std::make_shared<ParameterValueEntry>(
 				param.first,
-				param.second.at(0)
+				param.second.at(0),
+				description
 		);
 		paramWidgets.push_back( paramWidget );
 		ui->verticalLayout->addWidget(

@@ -6,6 +6,7 @@
 ParameterValueEntry::ParameterValueEntry(
 		const QString& name,
 		const C& param,
+		const ParameterDescription& description,
 		QWidget *parent
 )
     : QWidget(parent)
@@ -13,6 +14,10 @@ ParameterValueEntry::ParameterValueEntry(
 {
 	ui->setupUi(this);
 	ui->nameLbl->setText( name );
+	ui->value->setRange( description.min, description.max );
+	ui->value->setSingleStep(
+			description.step>0 ? description.step : 0.1
+	);
 	connect(
 		ui->value,
 		&QDoubleSpinBox::valueChanged,

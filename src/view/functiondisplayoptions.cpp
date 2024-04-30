@@ -1,4 +1,5 @@
 #include "fge/view/functiondisplayoptions.h"
+#include "include/fge/view/parameter_utils.h"
 #include "ui_functiondisplayoptions.h"
 #include <QMenuBar>
 #include <QAction>
@@ -20,7 +21,7 @@ const std::vector<Template> templates = {
 			"cos( freq * 2pi*x )"
 		}).join("\n"),
 		.data = (QStringList {
-			"parameter 1 freq",
+			"parameter 1 freq 1 0 44100",
 		}).join("\n")
 	},
 	{
@@ -29,7 +30,7 @@ const std::vector<Template> templates = {
 			"sgn(cos( freq * 2pi*x ))"
 		}).join("\n"),
 		.data = (QStringList {
-			"parameter 1 freq",
+			"parameter 1 freq 1 0 44100",
 		}).join("\n")
 	},
 	{
@@ -38,7 +39,7 @@ const std::vector<Template> templates = {
 			"2*frac(freq * x)-1"
 		}).join("\n"),
 		.data = (QStringList {
-			"parameter 1 freq",
+			"parameter 1 freq 1 0 44100",
 		}).join("\n")
 	},
 	{
@@ -52,7 +53,7 @@ const std::vector<Template> templates = {
 			"1/N*acc;"
 		}).join("\n"),
 		.data = (QStringList {
-			"parameter 1 freq",
+			"parameter 1 freq 1 0 44100",
 		}).join("\n")
 	},
 	{
@@ -61,7 +62,7 @@ const std::vector<Template> templates = {
 			"exp( freq*i*2pi*x )"
 		}).join("\n"),
 		.data = (QStringList {
-			"parameter 1 freq",
+			"parameter 1 freq 1 0 44100",
 		}).join("\n")
 	},
 	{
@@ -215,72 +216,10 @@ QString FunctionDisplayOptions::getFormula() const
 	return ui->largeFormulaEdit->toPlainText();
 }
 
-struct ParameterDescription {};
-using StateDescription = VariableDescription;
 
-std::map<QString,std::variant<ParameterDescription,StateDescription>> parseFunctionDataDescription(
-		const QString& str
-)
+QString FunctionDisplayOptions::getDataDescription() const
 {
-	decltype(parseFunctionDataDescription(str)) ret;
-	auto qstringlist = str.split(
-			"\n",
-			Qt::SkipEmptyParts
-	);
-	for( auto lineRaw : qstringlist ) {
-		auto line = lineRaw.trimmed();
-		auto words = line.split(' ');
-		if( words.size() < 1 ) {
-			continue;
-		}
-		auto argOrState = words.at(0);
-		// <param|argument> <size> <name>
-		if( argOrState == "parameter" || argOrState == "param" ) {
-			if( words.size() < 3 ) {
-				continue;
-			}
-			ret.insert({ words.at(2), ParameterDescription{} });
-		}
-		else if( argOrState == "state" ) {
-			if( words.size() < 3 ) {
-				continue;
-			}
-			bool ok = true;
-			auto size = words.at(1).toInt( &ok, 10);
-			if( !ok || size < 0 ) {
-				continue;
-			}
-			ret.insert({ words.at(2), VariableDescription{ .size = (uint )size } });
-		}
-		else {
-			continue;
-		}
-	}
-	return ret;
-}
-
-std::vector<QString> FunctionDisplayOptions::getParameters() const
-{
-	std::vector<QString> ret;
-	auto dataDescr = parseFunctionDataDescription( ui->parametersEdit->toPlainText() );
-	for( auto [name,eitherVal] : dataDescr ) {
-		if( std::holds_alternative<ParameterDescription>( eitherVal ) ) {
-			ret.push_back( name );
-		}
-	}
-	return ret;
-}
-
-StateDescriptions FunctionDisplayOptions::getStateDescriptions() const
-{
-	decltype(getStateDescriptions()) ret;
-	auto dataDescr = parseFunctionDataDescription( ui->parametersEdit->toPlainText() );
-	for( auto [name,eitherVal] : dataDescr ) {
-		if( auto value = std::get_if<StateDescription>( &eitherVal ) ) {
-			ret.insert({ name, *value });
-		}
-	}
-	return ret;
+	return ui->parametersEdit->toPlainText();
 }
 
 const FunctionViewData& FunctionDisplayOptions::getViewData() const
@@ -297,24 +236,8 @@ void FunctionDisplayOptions::setFormula(const QString& value) {
 	ui->largeFormulaEdit->setPlainText( value );
 }
 
-void FunctionDisplayOptions::setFunctionDataDescriptions(
-		const std::vector<QString>& parameters,
-		const StateDescriptions& state
-)
-{
-	QString str = "";
-	for( auto name : parameters ) {
-		str += QString("parameter 1 %1\n")
-			.arg( name )
-		;
-	}
-	for( auto [name, value] : state ) {
-		str += QString("state %2 %1\n")
-			.arg( name )
-			.arg( value.size )
-		;
-	}
-	ui->parametersEdit->setPlainText( str );
+void FunctionDisplayOptions::setDataDescription(const QString& value ) {
+	ui->parametersEdit->setPlainText( value );
 }
 
 void FunctionDisplayOptions::setViewData(const FunctionViewData& value) {

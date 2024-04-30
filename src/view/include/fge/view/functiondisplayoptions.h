@@ -2,6 +2,7 @@
 #define FUNCTIONDISPLAYOPTIONS_H
 
 #include "fge/view/viewdata.h"
+#include "fge/view/parameter_utils.h"
 #include "fge/shared/data.h"
 #include <QDialog>
 
@@ -24,16 +25,12 @@ public:
 	~FunctionDisplayOptions();
 
 	QString getFormula() const;
-	std::vector<QString> getParameters() const;
-	StateDescriptions getStateDescriptions() const;
+	QString getDataDescription() const;
 	const FunctionViewData& getViewData() const;
 	const SamplingSettings& getSamplingSettings() const;
 
 	void setFormula(const QString& value);
-	void setFunctionDataDescriptions(
-			const std::vector<QString>& parameters,
-			const StateDescriptions& state
-	);
+	void setDataDescription( const QString& str );
 	void setViewData(const FunctionViewData& value);
 	void setSamplingSettings(const SamplingSettings& value);
 
