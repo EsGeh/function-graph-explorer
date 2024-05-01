@@ -32,6 +32,11 @@ private:
 	void updateAxes();
 
 	void wheelEvent(QWheelEvent *event);
+	void keyPressEvent(QKeyEvent *event);
+	void moveView(QPoint direction);
+	void zoomView(QPoint direction);
+	void resetTranslation();
+	void resetZoom();
 
 private:
 	FunctionViewData* viewData;

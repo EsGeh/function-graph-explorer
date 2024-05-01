@@ -1,7 +1,7 @@
 #include "fge/view/graphview.h"
-#include <math.h>
 #include <QValueAxis>
 #include <QtCharts/QLineSeries>
+#include <qnamespace.h>
 
 
 GraphView::GraphView(
@@ -115,7 +115,7 @@ void GraphView::wheelEvent(QWheelEvent *event) {
 		step.setX( sgn( val.x() ) );
 		step.setY( sgn( val.y() ) );
 	}
-	// Zoom
+	// scale:
 	if( event->modifiers() & Qt::ControlModifier ) {
 		if(
 				(event->modifiers() & Qt::ShiftModifier) == 0
@@ -125,13 +125,119 @@ void GraphView::wheelEvent(QWheelEvent *event) {
 			else if( step.y() == 0 ) step.setY( step.x() );
 		}
 		step *= -1;
-		viewData->scaleExp.first += step.x();
-		viewData->scaleExp.second += step.y();
+		zoomView( step );
 		emit viewChanged();
 	}
+	// translation:
 	else {
-		viewData->origin.first += step.x() * (viewData->getXRange().second - viewData->getXRange().first)/4;
-		viewData->origin.second += step.y() * (viewData->getYRange().second - viewData->getYRange().first)/4;
+		moveView( step );
 		emit viewChanged();
 	}
+}
+
+void GraphView::keyPressEvent(QKeyEvent *event)
+{
+	if( event->modifiers() & Qt::ControlModifier ) {
+		if( event->key() == Qt::Key_0 )
+		{
+			resetTranslation();
+			resetZoom();
+			emit viewChanged();
+			return;
+		}
+	}
+	QPoint direction = {0,0};
+	// scale:
+	if( event->modifiers() & Qt::ControlModifier ) {
+		if( event->modifiers() & Qt::ShiftModifier ) {
+			if( event->key() == Qt::Key_Down )
+			{
+				direction = {0,1};
+			}
+			else if( event->key() == Qt::Key_Up )
+			{
+				direction = {0,-1};
+			}
+		}
+		else if( event->modifiers() & Qt::AltModifier ) {
+			if( event->key() == Qt::Key_Down )
+			{
+				direction = {1,0};
+			}
+			else if( event->key() == Qt::Key_Up )
+			{
+				direction = {-1,0};
+			}
+		}
+		else
+		{
+			if( event->key() == Qt::Key_Plus )
+			{
+				direction = {-1,-1};
+			}
+			else if( event->key() == Qt::Key_Minus )
+			{
+				direction = {1,1};
+			}
+			else if( event->key() == Qt::Key_Down )
+			{
+				direction = {0,-1};
+			}
+			else if( event->key() == Qt::Key_Up )
+			{
+				direction = {0,1};
+			}
+			else if( event->key() == Qt::Key_Left )
+			{
+				direction = {-1,0};
+			}
+			else if( event->key() == Qt::Key_Right )
+			{
+				direction = {1,0};
+			}
+		}
+		if( direction != QPoint{0,0} )
+		{
+			zoomView( direction );
+			emit viewChanged();
+		}
+	}
+	// translation:
+	else {
+		if( event->key() == Qt::Key_Left )
+			direction.setX( -1 );
+		else if( event->key() == Qt::Key_Right )
+			direction.setX( 1 );
+		else if( event->key() == Qt::Key_Down )
+			direction.setY( -1 );
+		else if( event->key() == Qt::Key_Up )
+			direction.setY( 1 );
+		if( direction != QPoint{0,0} )
+		{
+			moveView( direction );
+			emit viewChanged();
+		}
+	}
+}
+
+void GraphView::moveView(QPoint direction)
+{
+		viewData->origin.first += direction.x() * (viewData->getXRange().second - viewData->getXRange().first)/4;
+		viewData->origin.second += direction.y() * (viewData->getYRange().second - viewData->getYRange().first)/4;
+}
+
+void GraphView::zoomView(QPoint direction)
+{
+		viewData->scaleExp.first += direction.x();
+		viewData->scaleExp.second += direction.y();
+}
+
+void GraphView::resetTranslation()
+{
+	viewData->origin = {0,0};
+}
+
+void GraphView::resetZoom()
+{
+		viewData->scaleExp = {0,0};
 }
