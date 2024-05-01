@@ -1,4 +1,7 @@
 #include "fge/model/function.h"
+#include <optional>
+#include <format>
+#include <stdexcept>
 
 
 Symbols::Symbols(
@@ -58,15 +61,17 @@ C Function::operator()(const C& x)
  ******************/
 
 FormulaFunction::FormulaFunction()
-	: Function()
-	, formulaStr("")
+	: formulaStr("")
 {
 }
 
 FormulaFunction::~FormulaFunction()
 {}
 
-C FormulaFunction::get( C x ) {
+C FormulaFunction::get(
+		const C& x
+)
+{
 	varX = x;
 	return formula.value();
 }
@@ -75,20 +80,81 @@ QString FormulaFunction::toString() const {
 	return formulaStr;
 }
 
+ParameterBindings FormulaFunction::getParameters() const
+{
+	return parameters;
+}
+
+MaybeError FormulaFunction::setParameter(
+		const QString& name,
+		const std::vector<C>& value
+)
+{
+	auto entry = parameters.find( name );
+	if( entry == parameters.end() ) {
+		return QString("Parameter not found: '%1'").arg( name );
+	}
+	entry->second = value;
+	return {};
+}
+
+StateDescriptions FormulaFunction::getStateDescriptions() const
+{
+	return stateDescriptions;
+}
+
 MaybeError FormulaFunction::init(
 		const QString& formulaStr,
+		const ParameterBindings& parameters,
+		const StateDescriptions& stateDescrs,
 		const std::vector<Symbols>& additionalSymbols
-		// std::vector<symbol_table_t*> additionalSymbols
-) {
+)
+{
 	this->formulaStr = formulaStr;
+	this->parameters = parameters;
+	this->stateDescriptions = stateDescrs;
 
-	symbol_table_t vars;
-	vars.add_variable( "x", varX );
-	formula.register_symbol_table( vars );
-	for( auto symbols : additionalSymbols ) {
-		formula.register_symbol_table( symbols.get() );
+	for( auto [name, descr] : stateDescrs )
+	{
+		std::vector<C> vector(descr.size, C(0,0) );
+		this->state.insert( { name, vector } );
 	}
 
+	// build symbol table
+	// add "x" and parameters:
+	symbol_table_t symbols;
+	symbols.add_variable( "x", varX );
+	// parameters:
+	for( auto& [paramName, paramValue] : this->parameters ) {
+		if( paramValue.size() == 1 ) {
+			symbols.add_constant(
+					paramName.toStdString(),
+					paramValue[0]
+			);
+		}
+		else {
+			symbols.add_vector(
+					paramName.toStdString(),
+					paramValue
+			);
+		}
+	}
+	// add state:
+	for( auto& [key, value] : this->state ) {
+		if( stateDescriptions[key].size == 1 ) {
+			symbols.add_variable( key.toStdString(), value.at(0) );
+		}
+		else {
+			symbols.add_vector( key.toStdString(), value );
+		}
+	}
+	// add additional symbols:
+	formula.register_symbol_table( symbols );
+	for( auto additional : additionalSymbols ) {
+		formula.register_symbol_table( additional.get() );
+	}
+
+	// parse formula:
 	parser_t parser;
 	auto ret = parser.compile( formulaStr.toStdString(), formula);
 	if( !ret ) {
@@ -106,12 +172,15 @@ FunctionWithResolution::FunctionWithResolution(
 		const uint interpolation,
 		const bool caching
 )
-	: resolution(resolution)
+	: FormulaFunction()
+	, resolution(resolution)
 	, interpolation(interpolation)
-	, cache( [this](int x){ return cacheIndexToY(x); } )
+	, cache( [this](int x){ return rasterIndexToY(x); } )
 {}
 
-C FunctionWithResolution::get( C x )
+C FunctionWithResolution::get(
+		const C& x
+)
 {
 	if(
 			resolution == 0
@@ -137,7 +206,7 @@ C FunctionWithResolution::get( C x )
 		: 0;
 	std::vector<C> ys;
 	for( int i{0}; i<int(interpolation+1); i++ ) {
-		const int xpos = xToCacheIndex(x) + i - shift;
+		const int xpos = xToRasterIndex(x) + i - shift;
 		if( caching ) {
 			ys.push_back(cache.lookup( xpos ).first);
 		}
@@ -151,6 +220,18 @@ C FunctionWithResolution::get( C x )
 		}
 	};
 	return interpolate( x, ys, shift );
+}
+
+MaybeError FunctionWithResolution::setParameter(
+		const QString& name,
+		const std::vector<C>& value
+)
+{
+	auto maybeError = FormulaFunction::setParameter( name, value );
+	if( !maybeError ) {
+		cache.clear();
+	}
+	return maybeError;
 }
 
 const T epsilon = 1.0/(1<<20);
@@ -182,14 +263,18 @@ C FunctionWithResolution::interpolate(
 	return sum;
 }
 
-FunctionWithResolution::CacheIndex FunctionWithResolution::xToCacheIndex(const C& x)
+FunctionWithResolution::RasterIndex FunctionWithResolution::xToRasterIndex(const C& x)
 {
 		return std::floor(x.c_.real() * getResolution() + epsilon);
 }
 
-C FunctionWithResolution::cacheIndexToY(int x)
+C FunctionWithResolution::rasterIndexToY(
+		int x
+)
 {
-	return FormulaFunction::get( C(T(x) / getResolution(),0) );
+	return FormulaFunction::get(
+			C(T(x) / getResolution(),0)
+	);
 }
 
 uint FunctionWithResolution::getResolution() const
@@ -245,6 +330,8 @@ FunctionImpl::FunctionImpl(
 
 ErrorOrValue<std::shared_ptr<Function>> formulaFunctionFactory_internal(
 		const QString& formulaStr,
+		const ParameterBindings& parameters,
+		const StateDescriptions& state,
 		const std::vector<Symbols>& additionalSymbols,
 		const uint resolution,
 		const uint interpolation,
@@ -256,8 +343,13 @@ ErrorOrValue<std::shared_ptr<Function>> formulaFunctionFactory_internal(
 				interpolation,
 				enableCaching
 	));
-	auto maybeError = function->init( formulaStr, additionalSymbols);
-	if( maybeError ) {
+	auto maybeError = function->init(
+			formulaStr,
+			parameters,
+			state,
+			additionalSymbols
+	);
+	if( maybeError.has_value() ) {
 		return std::unexpected(maybeError.value() );
 	}
 	return function;
@@ -265,6 +357,8 @@ ErrorOrValue<std::shared_ptr<Function>> formulaFunctionFactory_internal(
 
 ErrorOrValue<std::shared_ptr<Function>> formulaFunctionFactory(
 		const QString& formulaStr,
+		const ParameterBindings& parameters,
+		const StateDescriptions& state,
 		const std::vector<Symbols>& additionalSymbols,
 		const uint resolution, // = 0
 		const uint interpolation, // = 0
@@ -272,6 +366,8 @@ ErrorOrValue<std::shared_ptr<Function>> formulaFunctionFactory(
 ) {
 	return formulaFunctionFactory_internal(
 			formulaStr,
+			parameters,
+			state,
 			additionalSymbols,
 			resolution,
 			interpolation,

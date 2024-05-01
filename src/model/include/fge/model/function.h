@@ -1,7 +1,7 @@
 #pragma once
 
 #include "fge/model/cache.h"
-#include "fge/shared/utils.h"
+#include "fge/shared/data.h"
 #include "exprtk.hpp"
 
 typedef exprtk::symbol_table<C>
@@ -21,14 +21,22 @@ typedef typename compositor_t::function
  ******************/
 
 class Function:
-	public exprtk::ifunction<C>
+public exprtk::ifunction<C>
 {
 
 	public:
 		Function();
 		virtual ~Function();
-		virtual C get( C x ) = 0;
+		virtual C get(
+				const C& x
+		) = 0;
 		virtual QString toString() const = 0;
+		virtual ParameterBindings getParameters() const = 0;
+		virtual MaybeError setParameter(
+				const QString& name,
+				const std::vector<C>& value
+		) = 0;
+		virtual StateDescriptions getStateDescriptions() const = 0;
 		/* Quantization of input values.
 		 *   0: no quantization. infinite resolution.
 		 */
@@ -81,20 +89,34 @@ class FormulaFunction:
 	public:
 		virtual ~FormulaFunction();
 		// get:
-		virtual C get( C x ) override;
+		virtual C get(
+				const C& x
+		) override;
 		virtual QString toString() const override;
+		virtual ParameterBindings getParameters() const override;
+		virtual MaybeError setParameter(
+				const QString& name,
+				const std::vector<C>& value
+		) override;
+		virtual StateDescriptions getStateDescriptions() const override;
 
 	protected:
 		FormulaFunction();
 		MaybeError init(
 				const QString& formula_str,
+				const ParameterBindings& parameters,
+				const StateDescriptions& stateDescrs,
 				const std::vector<Symbols>& additionalSymbols
 		);
 
 	private:
 		QString formulaStr;
+		ParameterBindings parameters;
+		StateDescriptions stateDescriptions;
+		ParameterBindings state;
 		expression_t formula;
 		C varX;
+
 
 };
 
@@ -111,7 +133,14 @@ class FunctionWithResolution:
 				const uint interpolation,
 				const bool caching
 		);
-		virtual C get( C x ) override;
+		virtual C get(
+				const C& x
+		) override;
+
+		virtual MaybeError setParameter(
+				const QString& name,
+				const std::vector<C>& value
+		) override;
 
 		uint getResolution() const override;
 		void setResolution(const uint value) override;
@@ -122,14 +151,16 @@ class FunctionWithResolution:
 		virtual bool getCaching() const override;
 		virtual void setCaching(const bool value) override;
 	protected:
-		typedef int CacheIndex;
+		typedef int RasterIndex;
 		C interpolate(
 				const C& x,
 				const std::vector<C> ys,
 				const int shift
 		) const;
-		CacheIndex xToCacheIndex(const C& x);
-		C cacheIndexToY(int x);
+		RasterIndex xToRasterIndex(const C& x);
+		C rasterIndexToY(
+				int x
+		);
 	private:
 		uint resolution;
 		uint interpolation;
@@ -154,6 +185,8 @@ class FunctionImpl:
 		);
 	friend ErrorOrValue<std::shared_ptr<Function>> formulaFunctionFactory_internal(
 			const QString& formulaStr,
+			const ParameterBindings& parameters,
+			const StateDescriptions& state,
 			const std::vector<Symbols>& additionalSymbols,
 			const uint resolution,
 			const uint enableInterpolate,
@@ -167,6 +200,8 @@ class FunctionImpl:
 
 ErrorOrValue<std::shared_ptr<Function>> formulaFunctionFactory_internal(
 		const QString& formulaStr,
+		const ParameterBindings& parameters,
+		const StateDescriptions& state,
 		const std::vector<Symbols>& additionalSymbols,
 		const uint resolution,
 		const uint interpolation,
@@ -175,6 +210,8 @@ ErrorOrValue<std::shared_ptr<Function>> formulaFunctionFactory_internal(
 
 ErrorOrValue<std::shared_ptr<Function>> formulaFunctionFactory(
 		const QString& formulaStr,
+		const ParameterBindings& parameters,
+		const StateDescriptions& state,
 		const std::vector<Symbols>& additionalSymbols,
 		const uint resolution = 0,
 		const uint interpolation = 0,

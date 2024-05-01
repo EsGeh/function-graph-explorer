@@ -1,75 +1,124 @@
 #include "fge/view/functiondisplayoptions.h"
+#include "include/fge/view/parameter_utils.h"
 #include "ui_functiondisplayoptions.h"
 #include <QMenuBar>
 #include <QAction>
 #include <qcheckbox.h>
+#include <qnamespace.h>
+#include <variant>
 
 
-const std::vector<std::pair<QString,QString>> templates = {
-	{ "Oscillation",
-		(QStringList {
-			"var freq := 440;",
+struct Template {
+	QString name;
+	QString formula;
+	QString data;
+};
+
+const std::vector<Template> templates = {
+	{
+		.name = "Oscillation",
+		.formula = (QStringList {
 			"cos( freq * 2pi*x )"
+		}).join("\n"),
+		.data = (QStringList {
+			"parameter 1 freq 1 0 44100",
 		}).join("\n")
 	},
 	{
-		"Square Wave",
-							(QStringList {
-								"var freq := 440;",
-								"sgn(cos( freq * 2pi*x ))"
-							}).join("\n")
+		.name = "Square Wave",
+		.formula = (QStringList {
+			"sgn(cos( freq * 2pi*x ))"
+		}).join("\n"),
+		.data = (QStringList {
+			"parameter 1 freq 1 0 44100",
+		}).join("\n")
 	},
 	{
-		"Sawtooth Wave",
-							(QStringList {
-								"var freq := 440;",
-								"2*frac(freq * x)-1"
-							}).join("\n")
+		.name = "Sawtooth Wave",
+		.formula = (QStringList {
+			"2*frac(freq * x)-1"
+		}).join("\n"),
+		.data = (QStringList {
+			"parameter 1 freq 1 0 44100",
+		}).join("\n")
 	},
 	{
-		"Series",
-							(QStringList {
-								"var freq := 440;",
-								"var N := 4;",
-								"var acc := 0;",
-								"for( var k:=1; k<=N; k+=1 ) {",
-								"  acc += cos(k*freq*2pi*x);",
-								"};",
-								"1/N*acc;"
-							}).join("\n")
+		.name = "Series",
+		.formula = (QStringList {
+			"var N := 4;",
+			"var acc := 0;",
+			"for( var k:=1; k<=N; k+=1 ) {",
+			"  acc += cos(k*freq*2pi*x);",
+			"};",
+			"1/N*acc;"
+		}).join("\n"),
+		.data = (QStringList {
+			"parameter 1 freq 1 0 44100",
+		}).join("\n")
 	},
 	{
-		"Complex Oscillation",
-							(QStringList {
-								"var freq := 440;",
-								"exp( freq*i*2pi*x )"
-							}).join("\n")
+		.name = "Complex Oscillation",
+		.formula = (QStringList {
+			"exp( freq*i*2pi*x )"
+		}).join("\n"),
+		.data = (QStringList {
+			"parameter 1 freq 1 0 44100",
+		}).join("\n")
 	},
 	{
-		"Discrete Fourier Transform",
-							(QStringList {
-								"var N := 16;",
-								"var acc := 0;",
-								"for( var k:=0; k<N; k+=1 ) {",
-								"  acc += exp(-i*2pi*k*x/N) * f0(k/N);",
-								"};",
-								"1/N*acc;"
-							}).join("\n")
-	},
-	{
-		"Fourier Series",
-		(QStringList {
+		.name = "DFT (naive)",
+		.formula = (QStringList {
 			"var N := 16;",
 			"var acc := 0;",
 			"for( var k:=0; k<N; k+=1 ) {",
-			"  acc += exp(i*2pi*k*x/N) * f1(k);",
+			"  acc += exp(-i*2pi*k*x/N) * f0(k/N);",
 			"};",
-			"acc;"
+			"1/N*acc;"
 		}).join("\n")
-	}
+	},
+	{
+		.name = "DFT (buffered)",
+		.formula = (QStringList {
+			"var N := 256;",
+			"if( filled = 0 ) {",
+			"  for( var j:=0; j<N; j+=1 ) {",
+			"  for( var k:=0; k<N; k+=1 ) {",
+			"    buffer[j] += exp(-i*2pi*k*j/N) * f0(k/N);",
+			"  };",
+			"  buffer[j] /= N;",
+			"  };",
+			"  filled := 1;",
+			"};",
+			"buffer[x%N];"
+		}).join("\n"),
+		.data = (QStringList {
+			"state 256 buffer",
+			"state 1 filled"
+		}).join("\n")
+	},
+	{
+		.name = "Inverse DFT",
+		.formula = (QStringList {
+			"var N := 256;",
+			"if( filled = 0 ) {",
+			"  for( var j:=0; j<N; j+=1 ) {",
+			"  for( var k:=0; k<N; k+=1 ) {",
+			"    buffer[j] += exp(i*2pi*k*j/N) * f1(k);",
+			"  };",
+			"  };",
+			"  filled := 1;",
+			"};",
+			"buffer[(x*N)%N];"
+		}).join("\n"),
+		.data = (QStringList {
+			"state 256 buffer",
+			"state 1 filled"
+		}).join("\n")
+	},
 };
 
 FunctionDisplayOptions::FunctionDisplayOptions(
+		const std::vector<QString>& parameters,
 		const FunctionViewData& viewData,
 		const SamplingSettings& samplingSettings,
 		QWidget *parent
@@ -84,12 +133,15 @@ FunctionDisplayOptions::FunctionDisplayOptions(
 	auto menuBar = new QMenuBar(this);
 	ui->verticalLayout->insertWidget( 0, menuBar );
 	QMenu* menu1 = menuBar->addMenu("Templates");
-	for( auto templateData : templates ) {
-		auto action = menu1->addAction( templateData.first );
+	for( auto templateDescr : templates ) {
+		auto action = menu1->addAction( templateDescr.name );
 		connect( action, &QAction::triggered,
-				[this,templateData]() {
+				[this,templateDescr]() {
 					ui->largeFormulaEdit->setPlainText(
-							templateData.second
+							templateDescr.formula
+					);
+					ui->parametersEdit->setPlainText(
+							templateDescr.data
 					);
 				}
 		);
@@ -164,6 +216,12 @@ QString FunctionDisplayOptions::getFormula() const
 	return ui->largeFormulaEdit->toPlainText();
 }
 
+
+QString FunctionDisplayOptions::getDataDescription() const
+{
+	return ui->parametersEdit->toPlainText();
+}
+
 const FunctionViewData& FunctionDisplayOptions::getViewData() const
 {
 	return viewData;
@@ -176,6 +234,10 @@ const SamplingSettings& FunctionDisplayOptions::getSamplingSettings() const
 
 void FunctionDisplayOptions::setFormula(const QString& value) {
 	ui->largeFormulaEdit->setPlainText( value );
+}
+
+void FunctionDisplayOptions::setDataDescription(const QString& value ) {
+	ui->parametersEdit->setPlainText( value );
 }
 
 void FunctionDisplayOptions::setViewData(const FunctionViewData& value) {

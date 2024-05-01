@@ -1,5 +1,6 @@
 #include <cstdlib>
 #include <qtestcase.h>
+#include <stdexcept>
 #include "testfunction.h"
 #include "fge/model/function.h"
 
@@ -19,16 +20,31 @@ struct TestFunc:
 
 void TestFormulaFunction::testInit_data() {
 	QTest::addColumn<QString>("formulaString");
+	QTest::addColumn<ParameterBindings>("parameters");
 	QTest::addColumn<Symbols>("symbols");
 	QTest::addColumn<bool>("result");
 
 	QTest::newRow("simple")
 		<< "x"
+		<< ParameterBindings{}
 		<< Symbols()
 		<< true
 	;
+	QTest::newRow("with parameter t")
+		<< "x * t"
+		<< ParameterBindings{ {"t", { C(0,0) } } }
+		<< Symbols()
+		<< true
+	;
+	QTest::newRow("unspecified parameter t fails")
+		<< "x * t"
+		<< ParameterBindings{}
+		<< Symbols()
+		<< false
+	;
 	QTest::newRow("x^2")
 		<< "x^2"
+		<< ParameterBindings{}
 		<< Symbols()
  		<< true
 	;
@@ -36,12 +52,14 @@ void TestFormulaFunction::testInit_data() {
 	{
 		QTest::newRow("const from symbol table")
 			<< "2pi*x"
+			<< ParameterBindings{}
 			<< Symbols({ {"pi", C(3.141, 0)} })
 			<< true
 		;
 	}
 	QTest::newRow("unknown var")
 		<< "2pi*x"
+		<< ParameterBindings{}
 		<< Symbols()
 		<< false
 	;
@@ -50,6 +68,7 @@ void TestFormulaFunction::testInit_data() {
 		static TestFunc func;
 		QTest::newRow("function from symbol table")
 			<< "f1(2*x)"
+			<< ParameterBindings{}
 			<< Symbols({}, { { "f1", &func } })
 			<< true
 		;
@@ -59,11 +78,14 @@ void TestFormulaFunction::testInit_data() {
 void TestFormulaFunction::testInit() {
 	// fetch test args:
 	QFETCH(QString, formulaString);
+	QFETCH(ParameterBindings, parameters);
 	QFETCH(Symbols, symbols);
 	QFETCH(bool, result);
 	// run test:
 	auto errOrValue = formulaFunctionFactory(
 			formulaString,
+			parameters,
+			{},
 			{symbols},
 			0 // no caching
 	);
@@ -92,6 +114,8 @@ void TestFormulaFunction::testEval()
 	auto errOrValue = formulaFunctionFactory(
 			"x^2",
 			{},
+			{},
+			{},
 			0, // no quantization
 			0, // no interpolation
 			false // no caching
@@ -103,6 +127,27 @@ void TestFormulaFunction::testEval()
 			[](auto x){ return C(pow(x,2),0); },
 			{-3, 3},
 			44100
+	);
+}
+
+void TestFormulaFunction::testEvalWithParameters()
+{
+	auto errOrValue = formulaFunctionFactory(
+			"t * x^2",
+			{ {"t", { C(2,0)} } },
+			{},
+			{},
+			0, // no quantization
+			0, // no interpolation
+			false // no caching
+	);
+	assert( errOrValue );
+	auto function = errOrValue.value();
+	checkFunction(
+			function.get(),
+			[](auto x){ return C(2 * pow(x,2),0); },
+			{-3, 3},
+			8
 	);
 }
 
@@ -148,12 +193,16 @@ void TestFormulaFunction::testResolution()
 	auto function = formulaFunctionFactory(
 			formula,
 			{},
+			{},
+			{},
 			0, // no quantization
 			0,
 			false // no caching
 	).value();
 	auto quantizedFunction = formulaFunctionFactory(
 			formula,
+			{},
+			{},
 			{},
 			resolution, // quantization
 			interpolation,
@@ -163,9 +212,9 @@ void TestFormulaFunction::testResolution()
 	for( int i=0; i<int(resolution * rangeDelta)+1; i++ )
 	{
 		const double x = range.first + T(i) / resolution;
-		const C y = function->get(C(x,0));
+		const C y = function->get( C(x,0) );
 		const double xNext = range.first + T(i+1) / resolution;
-		const C yNext = function->get(C(xNext,0));
+		const C yNext = function->get( C(xNext,0) );
 		// check values falling on full steps:
 		{
 			const C ret = quantizedFunction->get( C(x,0) );

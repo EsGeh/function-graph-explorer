@@ -1,5 +1,6 @@
 add_library(shared
 	utils.cpp
+	data.cpp
 )
 
 target_link_libraries(shared PUBLIC cpp_flags)

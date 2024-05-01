@@ -43,6 +43,16 @@ void Controller::setFunctionCount(const size_t size) {
 				 * starting from current index
 				 * need to be repainted:
 				 */
+
+				auto functionView = view->getFunctionView(i);
+				MaybeError maybeError = model->setParameterValues(
+						i,
+						functionView->getParameters()
+				);
+				maybeError.and_then([functionView](auto error) {
+					functionView->setFormulaError( error );
+					return MaybeError{};
+				} );
 				model->setSamplingSettings(
 						i,
 						view->getFunctionView(i)->getSamplingSettings()
@@ -109,7 +119,9 @@ void Controller::updateGraph(const size_t iFunction) {
 	{
 		auto maybeError = model->set( 
 				iFunction,
-				functionView->getFormula()
+				functionView->getFormula(),
+				functionView->getParameters(),
+				functionView->getStateDescriptions()
 		);
 		maybeError.and_then([functionView](auto error) {
 			functionView->setFormulaError( error );

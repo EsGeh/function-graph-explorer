@@ -53,7 +53,7 @@
          <x>0</x>
          <y>0</y>
          <width>692</width>
-         <height>292</height>
+         <height>270</height>
         </rect>
        </property>
        <layout class="QVBoxLayout" name="verticalLayout">
@@ -75,6 +75,16 @@
      </widget>
     </item>
    </layout>
+  </widget>
+  <widget class="QMenuBar" name="menuBar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>712</width>
+     <height>22</height>
+    </rect>
+   </property>
   </widget>
  </widget>
  <resources/>

@@ -1,5 +1,8 @@
 #include "fge/model/model.h"
 #include "fge/shared/utils.h"
+#include "include/fge/model/function.h"
+#include <cstdio>
+#include <functional>
 
 
 inline QString functionName( const size_t index ) {
@@ -53,6 +56,15 @@ DECL_FUNC_BEGIN(RandomFunction,0,)
 	return C(T(std::rand())/T(RAND_MAX), T(std::rand())/T(RAND_MAX));
 DECL_FUNC_END(RandomFunction)
 
+DECL_FUNC_BEGIN(Real_Compare,2,const C& x1, const C& x2)
+	T ret = 0;
+	if( x1.c_.real() > x2.c_.real() )
+		ret = 1;
+	else if( x1.c_.real() < x2.c_.real() )
+		ret = -1;
+	return C(ret, 0);
+DECL_FUNC_END(Real_Compare)
+
 static auto realFunc = RealFunction();
 static auto imagFunc = ImagFunction();
 
@@ -61,6 +73,7 @@ static auto argFunc = ArgFunction();
 static auto conjFunc = ConjFunction();
 static auto complexFunc = ComplexFunction();
 static auto polarFunc = PolarFunction();
+static auto realCompare = Real_Compare();
 static auto randomFunc = RandomFunction();
 
 Model::Model(
@@ -82,10 +95,10 @@ Model::Model(
 			{ "conj", &conjFunc },
 			{ "complex", &complexFunc },
 			{ "polar", &polarFunc },
+			{ "real_cmp", &realCompare },
 			{ "rnd", &randomFunc }
 		}
 	)
-	, functions()
 	, defSamplingSettings( defSamplingSettings )
 {}
 
@@ -98,7 +111,7 @@ QString Model::getFormula(
 		const size_t index
 ) const 
 {
-	return functions.at( index )->string;
+	return functions.at( index )->formula;
 }
 
 MaybeError Model::getError(
@@ -133,13 +146,58 @@ void Model::setSamplingSettings(
 	}
 }
 
+ErrorOrValue<ParameterBindings> Model::getParameters(
+		const size_t index
+) const
+{
+	ErrorOrFunction errorOrFunction = functions.at( index )->errorOrFunction;
+	if( !errorOrFunction ) {
+		return std::unexpected(errorOrFunction.error());
+	}
+	auto function = errorOrFunction.value();
+	return function->getParameters();
+}
+
+MaybeError Model::setParameterValues(
+		const size_t index,
+		const ParameterBindings& parameters
+)
+{
+	ErrorOrFunction errorOrFunction = functions.at( index )->errorOrFunction;
+	if( !errorOrFunction ) {
+		return errorOrFunction.error();
+	}
+	auto function = errorOrFunction.value();
+	for( auto [key, val] : parameters ) {
+		auto maybeError = function->setParameter( key, val.at(0) );
+		if( maybeError ) {
+			return maybeError.value();
+		}
+	}
+	return {};
+}
+
+ErrorOrValue<StateDescriptions> Model::getStateDescriptions(
+		const size_t index
+) const
+{
+	ErrorOrFunction errorOrFunction = functions.at( index )->errorOrFunction;
+	if( !errorOrFunction ) {
+		return std::unexpected(errorOrFunction.error());
+	}
+	auto function = errorOrFunction.value();
+	return function->getStateDescriptions();
+	// return functions.at( index )->stateDescriptions;
+}
+
 ErrorOrValue<std::vector<std::pair<C,C>>> Model::getGraph(
 		const size_t index,
 		const std::pair<T,T>& range,
 		const unsigned int resolution
 ) const
 {
-	auto errorOrFunction = getFunction(index);
+	auto entry = functions.at( index );
+	auto errorOrFunction = entry->errorOrFunction;
 	if( !errorOrFunction ) {
 		return std::unexpected( errorOrFunction.error() );
 	}
@@ -155,7 +213,7 @@ ErrorOrValue<std::vector<std::pair<C,C>>> Model::getGraph(
 			graph.push_back(
 					{
 						x,
-						function->get( x ),
+						function->get(x)
 					}
 			);
 		}
@@ -173,7 +231,8 @@ MaybeError Model::valuesToAudioBuffer(
 		std::function<float(const double)> volumeFunction
 ) const
 {
-	auto errorOrFunction = getFunction(index);
+	auto entry = functions.at( index );
+	auto errorOrFunction = entry->errorOrFunction;
 	if( !errorOrFunction ) {
 		return errorOrFunction.error();
 	}
@@ -183,7 +242,9 @@ MaybeError Model::valuesToAudioBuffer(
 		buffer->resize( countSamples );
 		for( unsigned int i=0; i<countSamples; i++ ) {
 			T time = T(i)/samplerate;
-			T y = function->get( C(speed * time + offset, 0) );
+			T y = function->get(
+					C(speed * time + offset, 0)
+			);
 			T vol = volumeFunction( time );
 			y = y * vol;
 			y = std::clamp( y, -1.0, +1.0 );
@@ -201,24 +262,32 @@ void Model::resize( const size_t size ) {
 	else if( size > oldSize ) {
 		for( auto i=oldSize; i<size; i++ ) {
 			auto entry = std::shared_ptr<FunctionEntry>(new FunctionEntry {
-				(i>0)
+				.formula = (i>0)
 					? QString("%1(x)").arg( functionName(i-1) )
-					: "cos( 2pi * x )",
-				{}
+					: "cos( 2pi * x )"
 			});
 			entry->samplingSettings = defSamplingSettings;
 			functions.push_back( entry );
 		}
-		updateFormulas(oldSize);
+		updateFormulas(oldSize, {}, {});
 	}
 	assert( this->size() == size );
 }
 
-MaybeError Model::set( const size_t index, const QString& functionStr ) {
+MaybeError Model::set(
+		const size_t index,
+		const QString& formula,
+		const ParameterBindings& parameters,
+		const StateDescriptions& stateDescriptions
+) {
 	// assert( index < size() );
 	auto entry = functions[index];
-	entry->string = functionStr;
-	updateFormulas( index );
+	entry->formula = formula;
+	updateFormulas(
+			index,
+			parameters,
+			stateDescriptions
+	);
 	return getError( index );
 }
 
@@ -227,9 +296,12 @@ ErrorOrFunction Model::getFunction(const size_t index) const
 	return functions.at( index )->errorOrFunction;
 }
 
-void Model::updateFormulas(const size_t startIndex) {
+void Model::updateFormulas(
+		const size_t startIndex,
+		const std::optional<ParameterBindings>& setBindings,
+		const std::optional<StateDescriptions>& setStateDescriptions
+) {
 
-	// symbol_table_t functionSymbols(symbol_table_t::symtab_mutability_type::e_immutable);
 	Symbols functionSymbols;
 	/* dont change entries
 	 * before start index
@@ -238,7 +310,7 @@ void Model::updateFormulas(const size_t startIndex) {
 	 */
 	for( size_t i=0; i<startIndex; i++ ) {
 		auto entry = functions.at(i);
-		if( entry->errorOrFunction ) {
+		if( entry->errorOrFunction.has_value() ) {
 			functionSymbols.addFunction(
 					functionName( i ),
 					entry->errorOrFunction.value().get()
@@ -250,8 +322,24 @@ void Model::updateFormulas(const size_t startIndex) {
 	 */
 	for( size_t i=startIndex; i<functions.size(); i++ ) {
 		auto entry = functions.at(i);
+		ParameterBindings parameters = {};
+		entry->errorOrFunction.transform([&parameters](auto function) {
+			parameters = function->getParameters();
+		});
+		if( i==startIndex && setBindings ) {
+			parameters = setBindings.value();
+		}
+		StateDescriptions stateDescriptions = {};
+		entry->errorOrFunction.transform([&stateDescriptions](auto function) {
+			stateDescriptions = function->getStateDescriptions();
+		});
+		if( i==startIndex && setStateDescriptions ) {
+			stateDescriptions = setStateDescriptions.value();
+		}
 		entry->errorOrFunction = formulaFunctionFactory(
-				entry->string,
+				entry->formula,
+				parameters,
+				stateDescriptions,
 				{
 					constants,
 					functionSymbols

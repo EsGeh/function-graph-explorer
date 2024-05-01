@@ -12,9 +12,11 @@ class Cache
 		typedef C Value;
 	public:
 		inline Cache(
-			std::function<Value(Index)> function
+				std::function<Value(Index)> function
 		);
-		inline std::pair<Cache::Value,bool> lookup( const Index index );
+		inline std::pair<Cache::Value,bool> lookup(
+				const Index index
+		);
 		inline void clear();
 	private:
 		std::function<Value(Index)> function;
@@ -30,7 +32,9 @@ inline Cache::Cache(
 	, buffer()
 {}
 
-inline std::pair<Cache::Value,bool> Cache::lookup( const Index index ) {
+inline std::pair<Cache::Value,bool> Cache::lookup(
+		const Index index
+) {
 	if( buffer.size() == 0 ) {
 		indexMin = index;
 	}
@@ -57,7 +61,6 @@ inline std::pair<Cache::Value,bool> Cache::lookup( const Index index ) {
 	if( lookupRes.has_value() ) {
 		return { lookupRes.value(), true };
 	}
-	// qDebug().nospace() << this->toString() << ": cache fail at " << index;
 	lookupRes = function( index );
 	assert( buffer[lookupPosition].has_value() );
 	return { lookupRes.value(), false };

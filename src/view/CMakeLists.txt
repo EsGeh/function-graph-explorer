@@ -8,13 +8,21 @@ qt_add_library(view
 	functionview.cpp
 	graphview.cpp
 	functiondisplayoptions.cpp
+	parametersedit.cpp
+	parametervalueentry.cpp
+	parameter_utils.cpp
 	include/fge/view/mainwindow.h
 	include/fge/view/functionview.h
 	include/fge/view/graphview.h
 	include/fge/view/functiondisplayoptions.h
+	include/fge/view/parametersedit.h
+	include/fge/view/parametervalueentry.h
+	include/fge/view/parameter_utils.h
 	${UI_DIR}/mainwindow.ui
 	${UI_DIR}/functionview.ui
 	${UI_DIR}/functiondisplayoptions.ui
+	${UI_DIR}/parametersedit.ui
+	${UI_DIR}/parametervalueentry.ui
 )
 
 target_link_libraries(view PUBLIC cpp_flags)

@@ -9,6 +9,7 @@ private slots:
 	void testInit_data();
 	void testInit();
 	void testEval();
+	void testEvalWithParameters();
 	void testResolution_data();
 	void testResolution();
 };
