@@ -20,6 +20,19 @@ typedef typename compositor_t::function
  * Function
  ******************/
 
+/**
+The output depends on
+- The input variable x
+- Parameters.
+  These are considered constant
+  for the lifetime of the funtion.
+- State: These are values, that
+  may be read and written during
+  function evaluation. These can
+	make the result depend on the
+	sampling strategy.
+*/
+
 class Function:
 public exprtk::ifunction<C>
 {
@@ -116,8 +129,6 @@ class FormulaFunction:
 		ParameterBindings state;
 		expression_t formula;
 		C varX;
-
-
 };
 
 /*******************

@@ -73,7 +73,7 @@ MaybeError JackClient::init() {
 			{
 				ports[0] = jack_port_register(
 					client,
-					"out_left",
+					"out",
 					JACK_DEFAULT_AUDIO_TYPE,
 					flags,
 					0

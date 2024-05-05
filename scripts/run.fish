@@ -11,4 +11,11 @@ if test (count $EXE) -eq 0
 	exit 1
 end
 
-$EXE[1]
+$EXE[1] &
+
+sleep 1
+
+jack_connect fge:out system:playback_1
+jack_connect fge:out system:playback_2
+
+wait $last_pid

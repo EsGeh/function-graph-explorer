@@ -1,7 +1,5 @@
 #include "fge/model/function.h"
 #include <optional>
-#include <format>
-#include <stdexcept>
 
 
 Symbols::Symbols(
