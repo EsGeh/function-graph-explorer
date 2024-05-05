@@ -3,6 +3,7 @@
 #include "include/fge/model/function.h"
 #include <cstdio>
 #include <functional>
+#include <mutex>
 
 
 inline QString functionName( const size_t index ) {
@@ -102,32 +103,36 @@ Model::Model(
 	, defSamplingSettings( defSamplingSettings )
 {}
 
-size_t Model::size() const
+#define WITH_LOCK() \
+	const std::scoped_lock<std::mutex> guard(lock);
+
+size_t Model::size()
 {
+	WITH_LOCK()
 	return functions.size();
 }
 
 QString Model::getFormula(
 		const size_t index
-) const 
+)
 {
+	WITH_LOCK()
 	return functions.at( index )->formula;
 }
 
 MaybeError Model::getError(
 		const size_t index
-) const
+)
 {
-	auto errorOrFunction = getFunction(index);
-	if( !errorOrFunction ) {
-		return errorOrFunction.error();
-	}
-	return {};
+	WITH_LOCK()
+	return getErrorPrivate(index);
 }
+
 SamplingSettings Model::getSamplingSettings(
 		const size_t index
-) const
+)
 {
+	WITH_LOCK()
 	return functions.at( index )->samplingSettings;
 }
 
@@ -136,8 +141,9 @@ void Model::setSamplingSettings(
 		const SamplingSettings& value
 )
 {
+	WITH_LOCK()
 	functions.at( index )->samplingSettings = value;
-	auto errorOrFunction = getFunction( index );
+	auto errorOrFunction = getFunctionPrivate( index );
 	if( errorOrFunction ) {
 		auto function = errorOrFunction.value();
 		function->setResolution( value.resolution );
@@ -148,8 +154,9 @@ void Model::setSamplingSettings(
 
 ErrorOrValue<ParameterBindings> Model::getParameters(
 		const size_t index
-) const
+)
 {
+	WITH_LOCK()
 	ErrorOrFunction errorOrFunction = functions.at( index )->errorOrFunction;
 	if( !errorOrFunction ) {
 		return std::unexpected(errorOrFunction.error());
@@ -163,6 +170,7 @@ MaybeError Model::setParameterValues(
 		const ParameterBindings& parameters
 )
 {
+	WITH_LOCK()
 	ErrorOrFunction errorOrFunction = functions.at( index )->errorOrFunction;
 	if( !errorOrFunction ) {
 		return errorOrFunction.error();
@@ -179,23 +187,24 @@ MaybeError Model::setParameterValues(
 
 ErrorOrValue<StateDescriptions> Model::getStateDescriptions(
 		const size_t index
-) const
+)
 {
+	WITH_LOCK()
 	ErrorOrFunction errorOrFunction = functions.at( index )->errorOrFunction;
 	if( !errorOrFunction ) {
 		return std::unexpected(errorOrFunction.error());
 	}
 	auto function = errorOrFunction.value();
 	return function->getStateDescriptions();
-	// return functions.at( index )->stateDescriptions;
 }
 
 ErrorOrValue<std::vector<std::pair<C,C>>> Model::getGraph(
 		const size_t index,
 		const std::pair<T,T>& range,
 		const unsigned int resolution
-) const
+)
 {
+	WITH_LOCK()
 	auto entry = functions.at( index );
 	auto errorOrFunction = entry->errorOrFunction;
 	if( !errorOrFunction ) {
@@ -221,40 +230,44 @@ ErrorOrValue<std::vector<std::pair<C,C>>> Model::getGraph(
 	}
 }
 
-MaybeError Model::valuesToAudioBuffer(
-		const size_t index,
-		std::vector<float>* buffer,
-		const T duration,
-		const T speed,
-		const T offset,
-		const unsigned int samplerate,
-		std::function<float(const double)> volumeFunction
-) const
+float Model::audioFunction(
+		const unsigned long int position,
+		const uint samplerate
+)
 {
+	WITH_LOCK()
+	double ret = 0;
+	C time = C(T(position) / T(samplerate), 0);
+	for( auto entry : functions ) {
+		if( !(entry->errorOrFunction) || !(entry->isAudioEnabled) )
+			continue;
+		auto function = entry->errorOrFunction.value();
+		ret += function->get( time ).c_.real();
+	}
+	return std::clamp( ret, -1.0, +1.0 );
+}
+
+bool Model::getIsPlaybackEnabled(
+		const uint index
+)
+{
+	WITH_LOCK()
 	auto entry = functions.at( index );
-	auto errorOrFunction = entry->errorOrFunction;
-	if( !errorOrFunction ) {
-		return errorOrFunction.error();
-	}
-	{
-		auto function = errorOrFunction.value();
-		const unsigned int countSamples = duration*samplerate; 
-		buffer->resize( countSamples );
-		for( unsigned int i=0; i<countSamples; i++ ) {
-			T time = T(i)/samplerate;
-			T y = function->get(
-					C(speed * time + offset, 0)
-			);
-			T vol = volumeFunction( time );
-			y = y * vol;
-			y = std::clamp( y, -1.0, +1.0 );
-			buffer->at(i) = y;
-		}
-	}
-	return {};
+	return entry->isAudioEnabled;
+}
+
+void Model::setIsPlaybackEnabled(
+		const uint index,
+		const bool value
+)
+{
+	WITH_LOCK()
+	auto entry = functions.at( index );
+	entry->isAudioEnabled = value;
 }
 
 void Model::resize( const size_t size ) {
+	WITH_LOCK()
 	const auto oldSize = functions.size();
 	if( size < oldSize ) {
 		functions.resize( size );
@@ -271,7 +284,7 @@ void Model::resize( const size_t size ) {
 		}
 		updateFormulas(oldSize, {}, {});
 	}
-	assert( this->size() == size );
+	assert( functions.size() == size );
 }
 
 MaybeError Model::set(
@@ -280,6 +293,7 @@ MaybeError Model::set(
 		const ParameterBindings& parameters,
 		const StateDescriptions& stateDescriptions
 ) {
+	WITH_LOCK()
 	// assert( index < size() );
 	auto entry = functions[index];
 	entry->formula = formula;
@@ -288,10 +302,27 @@ MaybeError Model::set(
 			parameters,
 			stateDescriptions
 	);
-	return getError( index );
+	return getErrorPrivate( index );
 }
 
-ErrorOrFunction Model::getFunction(const size_t index) const
+ErrorOrFunction Model::getFunction(const size_t index)
+{
+	WITH_LOCK()
+	return getFunctionPrivate(index);
+}
+
+MaybeError Model::getErrorPrivate(
+		const size_t index
+) const
+{
+	auto errorOrFunction = getFunctionPrivate(index);
+	if( !errorOrFunction ) {
+		return errorOrFunction.error();
+	}
+	return {};
+}
+
+ErrorOrFunction Model::getFunctionPrivate(const size_t index) const
 {
 	return functions.at( index )->errorOrFunction;
 }
@@ -300,8 +331,8 @@ void Model::updateFormulas(
 		const size_t startIndex,
 		const std::optional<ParameterBindings>& setBindings,
 		const std::optional<StateDescriptions>& setStateDescriptions
-) {
-
+)
+{
 	Symbols functionSymbols;
 	/* dont change entries
 	 * before start index

@@ -16,7 +16,7 @@
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="mainLayout" stretch="0,0">
     <item>
-     <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,1">
+     <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,1,0,0">
       <item>
        <widget class="QLabel" name="label">
         <property name="text">
@@ -37,6 +37,23 @@
         </property>
        </widget>
       </item>
+      <item>
+       <widget class="QCheckBox" name="audioEnabled">
+        <property name="text">
+         <string>audio</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QDoubleSpinBox" name="time">
+        <property name="maximum">
+         <double>3600.000000000000000</double>
+        </property>
+        <property name="singleStep">
+         <double>0.100000000000000</double>
+        </property>
+       </widget>
+      </item>
      </layout>
     </item>
     <item>
@@ -53,7 +70,7 @@
          <x>0</x>
          <y>0</y>
          <width>692</width>
-         <height>270</height>
+         <height>292</height>
         </rect>
        </property>
        <layout class="QVBoxLayout" name="verticalLayout">
@@ -75,16 +92,6 @@
      </widget>
     </item>
    </layout>
-  </widget>
-  <widget class="QMenuBar" name="menuBar">
-   <property name="geometry">
-    <rect>
-     <x>0</x>
-     <y>0</y>
-     <width>712</width>
-     <height>22</height>
-    </rect>
-   </property>
   </widget>
  </widget>
  <resources/>

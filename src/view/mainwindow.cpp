@@ -2,6 +2,7 @@
 #include "ui_mainwindow.h"
 #include <QChart>
 #include <QDoubleSpinBox>
+#include <QCheckBox>
 
 
 MainWindow::MainWindow(QWidget *parent)
@@ -15,6 +16,13 @@ MainWindow::MainWindow(QWidget *parent)
 		&QSpinBox::valueChanged,
 		[this]( int value ) {
 			emit functionCountChanged( value );
+		}
+	);
+	connect(
+		ui->audioEnabled,
+		&QCheckBox::stateChanged,
+		[this]( auto value ) {
+			emit isAudioEnabledChanged( value != 0 );
 		}
 	);
 }

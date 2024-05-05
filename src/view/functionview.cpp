@@ -3,6 +3,7 @@
 #include "include/fge/view/parameter_utils.h"
 #include "include/fge/view/parametersedit.h"
 #include "ui_functionview.h"
+#include <qcheckbox.h>
 
 FunctionView::FunctionView(
 		const QString& title,
@@ -76,14 +77,10 @@ FunctionView::FunctionView(
 		}
 	);
 	connect(
-		ui->playBtn,
-		&QAbstractButton::clicked,
-		[this]() {
-			emit playButtonPressed(
-					viewData.playbackDuration,
-					viewData.playbackSpeed,
-					viewData.playbackOffset
-			);
+		ui->playbackEnabled,
+		&QCheckBox::stateChanged,
+		[this](auto value) {
+			emit playbackEnabledChanged(value != 0);
 		}
 	);
 	connect(

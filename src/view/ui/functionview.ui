@@ -108,9 +108,9 @@
          </widget>
         </item>
         <item>
-         <widget class="QToolButton" name="playBtn">
+         <widget class="QCheckBox" name="playbackEnabled">
           <property name="text">
-           <string>)))</string>
+           <string>play</string>
           </property>
          </widget>
         </item>

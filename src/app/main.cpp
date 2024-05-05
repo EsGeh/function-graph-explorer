@@ -6,6 +6,7 @@
 
 #include <QApplication>
 #include <QDebug>
+#include <thread>
 
 
 const auto defSamplingSettings = SamplingSettings{
@@ -22,16 +23,13 @@ int main(int argc, char *argv[])
 	qInfo().nospace() << "-----------------------------";
 	#ifndef NDEBUG
 	qDebug().nospace() << "DEBUG configuration!";
+	qDebug().nospace() << "MAIN THREAD / GUI THREAD: " << to_qstring(std::this_thread::get_id());
 	#endif
 
 	JackClient jack("fge");
 	{
 		qInfo().nospace() << "start jack client '" << jack.getClientName() << "'...";
-		auto maybeError =
-			jack.init()
-			.or_else([&jack](){
-				return jack.run();
-			});
+		auto maybeError = jack.init();
 		if( maybeError ) {
 			qWarning().noquote() << "Failed to start Jack. No Audio.";
 			qWarning().noquote() << maybeError.value() ;
@@ -39,11 +37,11 @@ int main(int argc, char *argv[])
 		qInfo().nospace() << "done";
 	}
 
-  QApplication a(argc, argv);
-  auto model = Model(
+	QApplication a(argc, argv);
+	auto model = Model(
 			defSamplingSettings
 	);
-  auto view = MainWindow();
+	auto view = MainWindow();
 	Controller controller(
 			&model,
 			&view,
@@ -52,7 +50,7 @@ int main(int argc, char *argv[])
 	);
 	controller.run();
 
-  auto ret = a.exec();
+	auto ret = a.exec();
 
 	qInfo().nospace() << "stop audio...";
 	jack.exit();

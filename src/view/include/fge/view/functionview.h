@@ -44,11 +44,7 @@ public:
 signals:
   void formulaChanged();
   void viewParamsChanged();
-  void playButtonPressed(
-			const T duration,
-			const T speed,
-			const T offset
-	);
+	void playbackEnabledChanged(const bool value);
 
 private:
 	// UI:

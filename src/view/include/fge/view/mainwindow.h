@@ -28,6 +28,7 @@ public:
 
 signals:
 	void functionCountChanged(const size_t count);
+	void isAudioEnabledChanged(const bool value);
 
 private:
 	Ui::MainWindow *ui;

@@ -1,5 +1,4 @@
 #include "controller.h"
-#include <algorithm>
 
 
 Controller::Controller(
@@ -18,6 +17,20 @@ Controller::Controller(
 		&MainWindow::functionCountChanged,
 		[this]( size_t value ) {
 			setFunctionCount( value );
+		}
+	);
+	connect(
+		view,
+		&MainWindow::isAudioEnabledChanged,
+		[jack,model]( bool value ) {
+			if(value) {
+				jack->start([model](auto position, auto samplerate) {
+						return model->audioFunction( position, samplerate );
+				});
+			}
+			else {
+				jack->stop();
+			}
 		}
 	);
 	setFunctionCount( view->getFunctionViewCount() );
@@ -43,7 +56,6 @@ void Controller::setFunctionCount(const size_t size) {
 				 * starting from current index
 				 * need to be repainted:
 				 */
-
 				auto functionView = view->getFunctionView(i);
 				MaybeError maybeError = model->setParameterValues(
 						i,
@@ -62,6 +74,7 @@ void Controller::setFunctionCount(const size_t size) {
 				}
 			}
 		);
+		// View -> Model:
 		connect(
 			functionView,
 			&FunctionView::viewParamsChanged,
@@ -71,30 +84,9 @@ void Controller::setFunctionCount(const size_t size) {
 		);
 		connect(
 			functionView,
-			&FunctionView::playButtonPressed,
-			[this,i](
-					const T duration,
-					const T speed,
-					const T offset
-			) {
-				jack->stop();
-				const auto rampTime = T(20)/1000;
-				model->valuesToAudioBuffer(
-						i,
-						jack->getSampleTable(),
-						duration,
-						speed,
-						offset,
-						jack->getSamplerate(),
-						[duration,rampTime](const double time) {
-							return std::min(1.0,
-								time < rampTime ? time/rampTime : (
-									(duration-time) < rampTime ? (duration-time)/rampTime : 1
-								)
-							);
-						}
-				);
-				jack->play();
+			&FunctionView::playbackEnabledChanged,
+			[this,i](bool value) {
+				model->setIsPlaybackEnabled(i,value);
 			}
 		);
 	}
