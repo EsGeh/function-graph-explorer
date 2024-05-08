@@ -61,7 +61,7 @@ FunctionView::FunctionView(
 		parametersDialog,
 		&ParametersEdit::parametersChanged,
 		[this]() {
-			emit formulaChanged();
+			emit parameterValuesChanged();
 		}
 	);
 	connect(

@@ -13,9 +13,21 @@ typedef QString Error;
 using PlaybackPosition = unsigned long int;
 
 using SampleTable = std::vector<sample_t>;
+
 using AudioCallback =
 	std::function<sample_t(PlaybackPosition position,uint samplerate)>;
 
+using SchedulerCallback =
+	std::function<void(PlaybackPosition position,uint samplerate)>;
+
+using SignalCallback = std::function<void()>;
+
+struct Callbacks {
+	SignalCallback startAudio, stopAudio;
+	AudioCallback audioCallback;
+	SchedulerCallback rampingCallback;
+	SchedulerCallback betweenAudioCallback;
+};
 
 /**
 Work a little bit ahead 
@@ -31,7 +43,7 @@ class AudioWorker
 	const static uint count = 2;
 	public:
 		void init(
-				AudioCallback audioCallback,
+				const Callbacks& callbacks,
 				const uint size,
 				const uint samplerate
 		);
@@ -69,7 +81,7 @@ class AudioWorker
 		uint readIndex = 0;
 		uint writeIndex = 0;
 		// audio callback:
-		AudioCallback audioCallback = nullptr;
+		Callbacks callbacks;
 		PlaybackPosition position = 0;
 		uint samplerate = 0;
 };
@@ -92,10 +104,13 @@ class JackClient {
 
 		// start processing audio:
 		MaybeError start(
-			AudioCallback callback
+				const Callbacks& callbacks
 		);
 		// stop processing audio:
 		void stop();
+
+		bool isRunning() const;
+
 
 
 		QString getClientName() const;

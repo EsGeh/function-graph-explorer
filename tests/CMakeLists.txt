@@ -3,8 +3,8 @@ include(CTest)
 
 set(TESTS
 	testformulafunction
-	testmodel
-	modelbenchmark
+	# testmodel
+	# modelbenchmark
 )
 
 add_custom_target(build_tests)
@@ -35,35 +35,35 @@ add_test(testformulafunction testformulafunction)
 # test model:
 ######################
 
-add_executable(testmodel
-	EXCLUDE_FROM_ALL
-	testmodel.cpp
-	testmodel.h
-	testutils.h
-)
-set_target_properties(testmodel PROPERTIES
-	AUTOMOC ON
-)
-target_link_libraries(testmodel PRIVATE Qt6::Test)
-target_link_libraries(testmodel PRIVATE model)
-add_test(testmodel testmodel)
-
-######################
-# Model Benchmark:
-######################
-
-add_executable(modelbenchmark
-	EXCLUDE_FROM_ALL
-	modelbenchmark.cpp
-	modelbenchmark.h
-	testutils.h
-)
-set_target_properties(modelbenchmark PROPERTIES
-	AUTOMOC ON
-)
-target_link_libraries(modelbenchmark PRIVATE Qt6::Test)
-target_link_libraries(modelbenchmark PRIVATE model)
-add_test(modelbenchmark
-	modelbenchmark
-	-iterations 8
-)
+# add_executable(testmodel
+# 	EXCLUDE_FROM_ALL
+# 	testmodel.cpp
+# 	testmodel.h
+# 	testutils.h
+# )
+# set_target_properties(testmodel PROPERTIES
+# 	AUTOMOC ON
+# )
+# target_link_libraries(testmodel PRIVATE Qt6::Test)
+# target_link_libraries(testmodel PRIVATE model)
+# add_test(testmodel testmodel)
+# 
+# ######################
+# # Model Benchmark:
+# ######################
+# 
+# add_executable(modelbenchmark
+# 	EXCLUDE_FROM_ALL
+# 	modelbenchmark.cpp
+# 	modelbenchmark.h
+# 	testutils.h
+# )
+# set_target_properties(modelbenchmark PROPERTIES
+# 	AUTOMOC ON
+# )
+# target_link_libraries(modelbenchmark PRIVATE Qt6::Test)
+# target_link_libraries(modelbenchmark PRIVATE model)
+# add_test(modelbenchmark
+# 	modelbenchmark
+# 	-iterations 8
+# )

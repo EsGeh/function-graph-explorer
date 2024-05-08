@@ -44,6 +44,7 @@ public:
 signals:
   void formulaChanged();
   void viewParamsChanged();
+  void parameterValuesChanged();
 	void playbackEnabledChanged(const bool value);
 
 private:

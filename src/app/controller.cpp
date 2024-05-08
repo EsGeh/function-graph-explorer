@@ -24,11 +24,28 @@ Controller::Controller(
 		&MainWindow::isAudioEnabledChanged,
 		[jack,model]( bool value ) {
 			if(value) {
-				jack->start([model](auto position, auto samplerate) {
-						return model->audioFunction( position, samplerate );
-				});
+				model->setAudioSchedulingEnabled(true);
+				jack->start(
+						Callbacks{
+							.startAudio = [model]() { model->readLock().lock(); },
+							.stopAudio = [model]() { model->readLock().unlock(); },
+							// audio callback:
+							.audioCallback = [model](auto position, auto samplerate) {
+								return model->audioFunction( position, samplerate );
+							},
+							// ramping 
+							.rampingCallback = [model](auto position, auto samplerate) {
+								model->updateRamps( position, samplerate );
+							},
+							// update:
+							.betweenAudioCallback = [model](auto position, auto samplerate) {
+								model->executeWriteOperations( position, samplerate );
+							}
+						}
+				);
 			}
 			else {
+				model->setAudioSchedulingEnabled(false);
 				jack->stop();
 			}
 		}
@@ -47,7 +64,6 @@ void Controller::setFunctionCount(const size_t size) {
 		functionView->setSamplingSettings(
 				model->getSamplingSettings(i)
 		);
-		// Model -> View:
 		connect(
 			functionView,
 			&FunctionView::formulaChanged,
@@ -57,14 +73,18 @@ void Controller::setFunctionCount(const size_t size) {
 				 * need to be repainted:
 				 */
 				auto functionView = view->getFunctionView(i);
-				MaybeError maybeError = model->setParameterValues(
-						i,
-						functionView->getParameters()
-				);
-				maybeError.and_then([functionView](auto error) {
-					functionView->setFormulaError( error );
-					return MaybeError{};
-				} );
+				{
+					auto maybeError = model->set(
+							i,
+							functionView->getFormula(),
+							functionView->getParameters(),
+							functionView->getStateDescriptions()
+					);
+					maybeError.and_then([functionView](auto error) {
+						functionView->setFormulaError( error );
+						return MaybeError{};
+					} );
+				}
 				model->setSamplingSettings(
 						i,
 						view->getFunctionView(i)->getSamplingSettings()
@@ -75,6 +95,26 @@ void Controller::setFunctionCount(const size_t size) {
 			}
 		);
 		// View -> Model:
+		connect(
+			functionView,
+			&FunctionView::parameterValuesChanged,
+			[this,i]() {
+				auto functionView = view->getFunctionView(i);
+				{
+					MaybeError maybeError = model->setParameterValues(
+							i,
+							functionView->getParameters()
+					);
+					maybeError.and_then([functionView](auto error) {
+						functionView->setFormulaError( error );
+						return MaybeError{};
+					} );
+				}
+				for( auto j=i; j<model->size(); j++ ) {
+					updateGraph(j);
+				}
+			}
+		);
 		connect(
 			functionView,
 			&FunctionView::viewParamsChanged,
@@ -107,30 +147,14 @@ void Controller::updateFormula(const size_t iFunction) {
 
 void Controller::updateGraph(const size_t iFunction) {
 	const auto functionView = view->getFunctionView(iFunction);
-	// update formula:
-	{
-		auto maybeError = model->set( 
-				iFunction,
-				functionView->getFormula(),
-				functionView->getParameters(),
-				functionView->getStateDescriptions()
-		);
-		maybeError.and_then([functionView](auto error) {
-			functionView->setFormulaError( error );
-			return MaybeError{};
-		} );
-	}
-	// update graph:
-	{
-		auto errorOrPoints = model->getGraph(
-				iFunction,
-				functionView->getViewData().getXRange(),
-				viewResolution
-		);
-		if( errorOrPoints ) {
-			auto points = errorOrPoints.value();
-			functionView->setGraph( points );
-		}
+	auto errorOrPoints = model->getGraph(
+			iFunction,
+			functionView->getViewData().getXRange(),
+			viewResolution
+	);
+	if( errorOrPoints ) {
+		auto points = errorOrPoints.value();
+		functionView->setGraph( points );
 	}
 }
 

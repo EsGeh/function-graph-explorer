@@ -21,12 +21,12 @@ int setBufferSizeCallback(
 *********************/
 
 void AudioWorker::init(
-		AudioCallback audioCallback,
+		const Callbacks& callbacks,
 		const uint size,
 		const uint samplerate
 )
 {
-	this->audioCallback = audioCallback;
+	this->callbacks = callbacks;
 	this->samplerate = samplerate;
 	for( uint i=0; i<count; i++ ) {
 		buffer[i].resize(size);
@@ -49,15 +49,21 @@ void AudioWorker::run() {
 	writeIndex = 0;
 	position = 0;
 	stopWorker = false;
+	callbacks.startAudio();
 	fillBuffer(writeIndex);
+	callbacks.stopAudio();
 	writeIndex = (writeIndex + 1) % count;
 	// fill next buffer
 	worker = std::thread([this]{
 		while(!stopWorker) {
 			lock.lock();
+			callbacks.startAudio();
 			fillBuffer(writeIndex);
+			callbacks.stopAudio();
 			writeIndex = (writeIndex + 1) % count;
+			callbacks.betweenAudioCallback(position, samplerate);
 		}
+		qDebug().nospace() << "AUDIO THREAD done: ";
 	});
 	qDebug().nospace() << "AUDIO THREAD: " << to_qstring(worker.get_id());
 }
@@ -79,7 +85,10 @@ void AudioWorker::fillBuffer(const uint index) {
 			pos++
 	) {
 		buffer[index][pos] =
-			audioCallback(position+pos, samplerate);
+			callbacks.audioCallback(position+pos, samplerate);
+		if( pos % 1 == 0 ) {
+			callbacks.rampingCallback(position+pos, samplerate);
+		}
 	}
 	position +=buffer[index].size();
 }
@@ -162,7 +171,7 @@ void JackClient::exit() {
 }
 
 MaybeError JackClient::start(
-		AudioCallback callback
+		const Callbacks& callbacks
 ) {
 	if( !client ) {
 		return Error("No client!");
@@ -171,7 +180,7 @@ MaybeError JackClient::start(
 		return "failed to determine buffer size";
 	}
 	audioWorker.init(
-			callback,
+			callbacks,
 			bufferSize,
 			samplerate
 	);
@@ -186,6 +195,11 @@ void JackClient::stop() {
 	if( audioWorker.isRunning() ) {
 		audioWorker.stop();
 	}
+}
+
+bool JackClient::isRunning() const
+{
+	return audioWorker.isRunning();
 }
 
 QString JackClient::getClientName() const

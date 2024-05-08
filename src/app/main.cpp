@@ -53,6 +53,9 @@ int main(int argc, char *argv[])
 	auto ret = a.exec();
 
 	qInfo().nospace() << "stop audio...";
+	if( jack.isRunning() ) {
+		jack.stop();
+	}
 	jack.exit();
 
 	qInfo().nospace() << "exit.";

@@ -1,9 +1,6 @@
 #include "fge/model/model.h"
-#include "fge/shared/utils.h"
-#include "include/fge/model/function.h"
-#include <cstdio>
-#include <functional>
 #include <mutex>
+#include <strings.h>
 
 
 inline QString functionName( const size_t index ) {
@@ -77,9 +74,7 @@ static auto polarFunc = PolarFunction();
 static auto realCompare = Real_Compare();
 static auto randomFunc = RandomFunction();
 
-Model::Model(
-		const SamplingSettings& defSamplingSettings
-)
+FuncNetworkImpl::FuncNetworkImpl()
 	: constants(
 		{
 			{ "pi", C(acos(-1),0) },
@@ -100,84 +95,119 @@ Model::Model(
 			{ "rnd", &randomFunc }
 		}
 	)
-	, defSamplingSettings( defSamplingSettings )
 {}
 
-#define WITH_LOCK() \
-	const std::scoped_lock<std::mutex> guard(lock);
-
-size_t Model::size()
+uint FuncNetworkImpl::size() const
 {
-	WITH_LOCK()
-	return functions.size();
+	return entries.size();
 }
 
-QString Model::getFormula(
-		const size_t index
-)
+FunctionOrError FuncNetworkImpl::get(const uint index) const
 {
-	WITH_LOCK()
-	return functions.at( index )->formula;
+	auto entry = entries.at( index );
+	return entry->functionOrError
+	.transform_error([](auto invalidEntry) {
+			return invalidEntry.error;
+	});
 }
 
-MaybeError Model::getError(
-		const size_t index
-)
+FunctionParameters FuncNetworkImpl::getFunctionParameters(const uint index) const
 {
-	WITH_LOCK()
-	return getErrorPrivate(index);
-}
-
-SamplingSettings Model::getSamplingSettings(
-		const size_t index
-)
-{
-	WITH_LOCK()
-	return functions.at( index )->samplingSettings;
-}
-
-void Model::setSamplingSettings(
-		const size_t index,
-		const SamplingSettings& value
-)
-{
-	WITH_LOCK()
-	functions.at( index )->samplingSettings = value;
-	auto errorOrFunction = getFunctionPrivate( index );
-	if( errorOrFunction ) {
-		auto function = errorOrFunction.value();
-		function->setResolution( value.resolution );
-		function->setInterpolation( value.interpolation );
-		function->setCaching( value.caching );
+	auto entry = entries.at( index );
+	if( entry->functionOrError ) {
+		auto function = entry->functionOrError.value();
+		return FunctionParameters{
+			.formula = function->toString(),
+			.parameters = function->getParameters(),
+			.stateDescriptions = function->getStateDescriptions()
+		};
+	}
+	else {
+		auto error = entry->functionOrError.error();
+		return error.parameters;
 	}
 }
 
-ErrorOrValue<ParameterBindings> Model::getParameters(
-		const size_t index
-)
+bool FuncNetworkImpl::getIsPlaybackEnabled(
+		const uint index
+) const
 {
-	WITH_LOCK()
-	ErrorOrFunction errorOrFunction = functions.at( index )->errorOrFunction;
-	if( !errorOrFunction ) {
-		return std::unexpected(errorOrFunction.error());
-	}
-	auto function = errorOrFunction.value();
-	return function->getParameters();
+	return entries.at( index )->isAudioEnabled;
 }
 
-MaybeError Model::setParameterValues(
-		const size_t index,
+void FuncNetworkImpl::setIsPlaybackEnabled(
+		const uint index,
+		const bool value
+)
+{
+	auto entry = entries.at( index );
+	entry->isAudioEnabled = value;
+}
+
+
+void FuncNetworkImpl::resize( const uint size ) {
+	const auto oldSize = entries.size();
+	if( size < oldSize ) {
+		entries.resize( size );
+	}
+	else if( size > oldSize ) {
+		for( uint i=oldSize; i<size; i++ ) {
+			auto entry = std::shared_ptr<NetworkEntry>(new NetworkEntry {
+					.functionOrError = std::unexpected(InvalidEntry{
+						.error = "not yet initialized",
+						.parameters = FunctionParameters{
+								.formula = (i>0)
+									? QString("%1(x)").arg( functionName(i-1) )
+									: "cos( 2pi * x )"
+						}
+					})
+			});
+			entries.push_back( entry );
+		}
+		updateFormulas(oldSize, {});
+	}
+	assert( entries.size() == size );
+}
+
+MaybeError FuncNetworkImpl::set(
+		const uint index,
+		const FunctionParameters& parameters
+) {
+	// assert( index < size() );
+	Symbols functionSymbols;
+	/* dont change entries
+	 * before start index
+	 * but add their
+	 * function symbols
+	 */
+	for( size_t i=0; i<index; i++ ) {
+		auto entry = entries.at(i);
+		if( entry->functionOrError.has_value() ) {
+			functionSymbols.addFunction(
+					functionName( i ),
+					entry->functionOrError.value().get()
+			);
+		}
+	}
+	updateFormulas( index, parameters );
+	if( !get(index) ) {
+		return get(index).error();
+	}
+	return {};
+}
+
+MaybeError FuncNetworkImpl::setParameterValues(
+		const Index index,
 		const ParameterBindings& parameters
 )
 {
-	WITH_LOCK()
-	ErrorOrFunction errorOrFunction = functions.at( index )->errorOrFunction;
-	if( !errorOrFunction ) {
-		return errorOrFunction.error();
+	FunctionOrError functionOrError = get( index );
+	if( !functionOrError ) {
+		return functionOrError.error();
 	}
-	auto function = errorOrFunction.value();
+	auto function = functionOrError.value();
 	for( auto [key, val] : parameters ) {
-		auto maybeError = function->setParameter( key, val.at(0) );
+		auto maybeError = function->setParameter( key, val );
 		if( maybeError ) {
 			return maybeError.value();
 		}
@@ -185,31 +215,315 @@ MaybeError Model::setParameterValues(
 	return {};
 }
 
-ErrorOrValue<StateDescriptions> Model::getStateDescriptions(
-		const size_t index
+void FuncNetworkImpl::updateFormulas(
+		const size_t startIndex,
+		const std::optional<FunctionParameters>& parameters
 )
 {
-	WITH_LOCK()
-	ErrorOrFunction errorOrFunction = functions.at( index )->errorOrFunction;
-	if( !errorOrFunction ) {
-		return std::unexpected(errorOrFunction.error());
+	Symbols functionSymbols;
+	/* dont change entries
+	 * before start index
+	 * but add their
+	 * function symbols
+	 */
+	for( size_t i=0; i<startIndex; i++ ) {
+		auto entry = entries.at(i);
+		if( entry->functionOrError.has_value() ) {
+			functionSymbols.addFunction(
+					functionName( i ),
+					entry->functionOrError.value().get()
+			);
+		}
 	}
-	auto function = errorOrFunction.value();
-	return function->getStateDescriptions();
+	/* update entries
+	 * from startIndex:
+	 */
+	for( size_t i=startIndex; i<entries.size(); i++ ) {
+		auto entry = entries.at(i);
+		FunctionParameters params = getFunctionParameters(i);
+		if( i==startIndex && parameters ) {
+			params = parameters.value();
+		}
+		entry->functionOrError = formulaFunctionFactory(
+				params.formula,
+				params.parameters,
+				params.stateDescriptions,
+				{
+					constants,
+					functionSymbols
+				}
+		).transform_error([params](auto error){
+			return InvalidEntry{
+				.error = error,
+				.parameters = params
+			};
+		});
+		if( entry->functionOrError ) {
+			functionSymbols.addFunction(
+					functionName( i ),
+					entry->functionOrError.value().get()
+			);
+		}
+	}
 }
 
-ErrorOrValue<std::vector<std::pair<C,C>>> Model::getGraph(
-		const size_t index,
+/************************
+ * FuncNetworkScheduled
+************************/
+
+#define START_READ() \
+	if( audioSchedulingEnabled ) { \
+		std::lock_guard lock( networkLock ); \
+	}
+
+#define LOCK_TASKS() \
+	std::lock_guard lock( tasksLock );
+
+FuncNetworkScheduled::FuncNetworkScheduled(
+		const SamplingSettings& defSamplingSettings
+)
+{}
+
+SamplingSettings FuncNetworkScheduled::getSamplingSettings(
+		const Index index
+)
+{
+	return no_optimization_settings;
+}
+
+void FuncNetworkScheduled::setSamplingSettings(
+		const Index index,
+		const SamplingSettings& value
+)
+{}
+
+uint FuncNetworkScheduled::size() const
+{
+	START_READ()
+	return getNetwork()->size();
+}
+
+void FuncNetworkScheduled::resize(const uint size)
+{
+	if( !audioSchedulingEnabled ) {
+		return getNetwork()->resize( size );
+	}
+	tasksLock.lock();
+	// ramp down first:
+	{
+		auto task = RampMasterTask{ 1, 0 };
+		writeTasks.push_back(std::move(task));
+	}
+	// set value:
+	auto future = [this,size](){
+		auto task = ResizeTask{
+			size
+		};
+		task.pos = this->position;
+		auto future = task.promise.get_future();
+		writeTasks.push_back(std::move(task));
+		return future;
+	}();
+	// later ramp up again:
+	{
+		auto task = RampMasterTask{ 0, 1 };
+		writeTasks.push_back(std::move(task));
+	}
+	auto returnSignal = [this](){
+		auto task = SignalReturnTask{};
+		auto future = task.promise.get_future();
+		writeTasks.push_back(std::move(task));
+		return future;
+	}();
+	tasksLock.unlock();
+	future.get();
+	returnSignal.get();
+	return;
+}
+
+FunctionOrError FuncNetworkScheduled::get(const Index index) const
+{
+	START_READ()
+	return getNetwork()->get(index);
+}
+
+MaybeError FuncNetworkScheduled::set(
+		const uint index,
+		const FunctionParameters& parameters
+)
+{
+	if( !audioSchedulingEnabled ) {
+		return getNetwork()->set( index,parameters );
+	}
+	tasksLock.lock();
+	// ramp down first:
+	for(uint i=index; i<getNetwork()->size(); i++) {
+		auto task = RampTask{ i, 1, 0 };
+		writeTasks.push_back(std::move(task));
+	}
+	// set value:
+	auto future = [this,index,parameters](){
+		auto task = SetTask{
+			index, parameters
+		};
+		task.pos = this->position;
+		auto future = task.promise.get_future();
+		writeTasks.push_back(std::move(task));
+		return future;
+	}();
+	// later ramp up again:
+	for(uint i=index; i<getNetwork()->size(); i++) {
+		auto task = RampTask{ i, 0, 1 };
+		writeTasks.push_back(std::move(task));
+	}
+	auto returnSignal = [this](){
+		auto task = SignalReturnTask{};
+		auto future = task.promise.get_future();
+		writeTasks.push_back(std::move(task));
+		return future;
+	}();
+	tasksLock.unlock();
+	auto ret = future.get();
+	returnSignal.get();
+	return ret;
+}
+
+MaybeError FuncNetworkScheduled::setParameterValues(
+		const uint index,
+		const ParameterBindings& parameters
+)
+{
+	if( !audioSchedulingEnabled ) {
+		return getNetwork()->setParameterValues( index,parameters );
+	}
+	tasksLock.lock();
+	// ramp down first:
+	for(uint i=index; i<getNetwork()->size(); i++) {
+		auto task = RampTask{ i, 1,0 };
+		writeTasks.push_back(std::move(task));
+	}
+	// set value:
+	auto future = [this,index,parameters](){
+		auto task = SetParameterValuesTask{ index,parameters };
+		task.pos = this->position;
+		auto future = task.promise.get_future();
+		writeTasks.push_back(std::move(task));
+		return future;
+	}();
+	// later ramp up again:
+	for(uint i=index; i<getNetwork()->size(); i++) {
+		auto task = RampTask{ i, 0,1 };
+		writeTasks.push_back(std::move(task));
+	}
+	auto returnSignal = [this](){
+		auto task = SignalReturnTask{};
+		auto future = task.promise.get_future();
+		writeTasks.push_back(std::move(task));
+		return future;
+	}();
+	tasksLock.unlock();
+	auto ret = future.get();
+	returnSignal.get();
+	return ret;
+}
+
+FunctionParameters FuncNetworkScheduled::getFunctionParameters(const uint index) const
+{
+	START_READ()
+	return getNetwork()->getFunctionParameters(index);
+}
+
+bool FuncNetworkScheduled::getIsPlaybackEnabled(
+		const uint index
+) const
+{
+	START_READ()
+	return getNetwork()->getIsPlaybackEnabled(index);
+}
+
+void FuncNetworkScheduled::setIsPlaybackEnabled(
+		const uint index,
+		const bool value
+)
+{
+	if( !audioSchedulingEnabled ) {
+		return getNetwork()->setIsPlaybackEnabled( index,value );
+	}
+	tasksLock.lock();
+	// ramp down first:
+	if( !value )
+	{
+		volumeEnvelopes[index] = 1;
+		auto task = RampTask{ index, 1,0 };
+		writeTasks.push_back(std::move(task));
+	}
+	// set value:
+	auto future = [this,index,value](){
+		auto task = SetIsPlaybackEnabledTask{
+			index, value
+		};
+		task.pos = this->position;
+		auto future = task.promise.get_future();
+		writeTasks.push_back(std::move(task));
+		return future;
+	}();
+	// later ramp up again:
+	if( value )
+	{
+		auto task = RampTask{ index, 0,1 };
+		writeTasks.push_back(std::move(task));
+		volumeEnvelopes[index] = 0;
+	}
+	auto returnSignal = [this](){
+		auto task = SignalReturnTask{};
+		auto future = task.promise.get_future();
+		writeTasks.push_back(std::move(task));
+		return future;
+	}();
+	tasksLock.unlock();
+	future.get();
+	returnSignal.get();
+	return;
+}
+
+float FuncNetworkScheduled::audioFunction(
+		const PlaybackPosition position,
+		const uint samplerate
+)
+{
+	double ret = 0;
+	C time = C(T(position) / T(samplerate), 0);
+	for( Index i=0; i<getNetwork()->size(); i++ ) {
+		auto functionOrError = getNetwork()->get(i);
+		auto isPlaybackEnabled = getNetwork()->getIsPlaybackEnabled(i);
+		if( !functionOrError || !isPlaybackEnabled )
+			continue;
+		auto function = functionOrError.value();
+		double volEnv = 1;
+		if( auto it = volumeEnvelopes.find(i); it != volumeEnvelopes.end() ) {
+			volEnv = it->second;
+		}
+		ret += (
+				function->get( time ).c_.real()
+				* volEnv
+		);
+	}
+	ret *= masterVolumeEnv;
+	return std::clamp( ret, -1.0, +1.0 );
+}
+
+ErrorOrValue<std::vector<std::pair<C,C>>> FuncNetworkScheduled::getGraph(
+		const Index index,
 		const std::pair<T,T>& range,
 		const unsigned int resolution
 )
 {
-	WITH_LOCK()
-	auto entry = functions.at( index );
-	auto errorOrFunction = entry->errorOrFunction;
+	START_READ()
+	auto errorOrFunction = getNetwork()->get( index );
 	if( !errorOrFunction ) {
 		return std::unexpected( errorOrFunction.error() );
 	}
+	else
 	{
 		auto function = errorOrFunction.value();
 		auto
@@ -230,160 +544,153 @@ ErrorOrValue<std::vector<std::pair<C,C>>> Model::getGraph(
 	}
 }
 
-float Model::audioFunction(
-		const unsigned long int position,
+void FuncNetworkScheduled::updateRamps(
+		const PlaybackPosition position,
 		const uint samplerate
 )
 {
-	WITH_LOCK()
-	double ret = 0;
-	C time = C(T(position) / T(samplerate), 0);
-	for( auto entry : functions ) {
-		if( !(entry->errorOrFunction) || !(entry->isAudioEnabled) )
-			continue;
-		auto function = entry->errorOrFunction.value();
-		ret += function->get( time ).c_.real();
+	this->position = position;
+	{
+	{
+		if( !writeTasks.empty() ) {
+			auto& someTask = writeTasks.front();
+			if( auto task = std::get_if<RampMasterTask>(&someTask) ) {
+				if( !task->pos) {
+					task->pos = position;
+				}
+				double time = double(position - task->pos.value()) / double(samplerate);
+				if( time < rampTime ) {
+					masterVolumeEnv =
+						task->src + (task->dst - task->src)
+						* (time / rampTime)
+					;
+				}
+				else {
+					writeTasks.pop_front();
+				}
+			}
+			else if( auto task = std::get_if<RampTask>(&someTask) ) {
+				if( !task->pos) {
+					task->pos = position;
+				}
+				double time = double(position - task->pos.value()) / double(samplerate);
+				if( time < rampTime ) {
+					double env = 1;
+					env =
+						task->src + (task->dst - task->src)
+						* (time / rampTime)
+					;
+					volumeEnvelopes[task->index] = env;
+				}
+				else {
+					writeTasks.pop_front();
+				}
+			}
+		}
 	}
-	return std::clamp( ret, -1.0, +1.0 );
+	}
 }
 
-bool Model::getIsPlaybackEnabled(
-		const uint index
+void FuncNetworkScheduled::executeWriteOperations(
+		const PlaybackPosition position,
+		const uint samplerate
 )
 {
-	WITH_LOCK()
-	auto entry = functions.at( index );
-	return entry->isAudioEnabled;
+	this->position = position;
+	// only write, if no one is reading:
+	if( networkLock.try_lock() ) {
+		// only write, if no one is adding a task:
+		if( tasksLock.try_lock() ) {
+			if( !writeTasks.empty() ) {
+				auto& someTask = writeTasks.front();
+				// resize:
+				if( auto task = std::get_if<ResizeTask>(&someTask) ) {
+					getNetwork()->resize( task->size );
+					task->promise.set_value();
+					writeTasks.pop_front();
+				}
+				// set:
+				else if( auto task = std::get_if<SetTask>(&someTask) ) {
+					auto taskRet = getNetwork()->set(
+							task->index,
+							task->parameters
+					);
+					task->promise.set_value( taskRet );
+					writeTasks.pop_front();
+				}
+				// setParameterValues:
+				else if( auto task = std::get_if<SetParameterValuesTask>(&someTask) ) {
+					auto taskRet = getNetwork()->setParameterValues(
+							task->index,
+							task->parameters
+					);
+					task->promise.set_value( taskRet );
+					writeTasks.pop_front();
+				}
+				// setIsPlaybackEnabled:
+				else if( auto task = std::get_if<SetIsPlaybackEnabledTask>(&someTask) ) {
+					getNetwork()->setIsPlaybackEnabled(
+							task->index,
+							task->value
+					);
+					task->promise.set_value();
+					writeTasks.pop_front();
+				}
+				else if( auto task = std::get_if<SignalReturnTask>(&someTask) ) {
+					task->promise.set_value();
+					writeTasks.pop_front();
+				}
+			}
+			tasksLock.unlock();
+		}
+		networkLock.unlock();
+	}
 }
 
-void Model::setIsPlaybackEnabled(
-		const uint index,
+void FuncNetworkScheduled::setAudioSchedulingEnabled(
 		const bool value
 )
 {
-	WITH_LOCK()
-	auto entry = functions.at( index );
-	entry->isAudioEnabled = value;
-}
-
-void Model::resize( const size_t size ) {
-	WITH_LOCK()
-	const auto oldSize = functions.size();
-	if( size < oldSize ) {
-		functions.resize( size );
-	}
-	else if( size > oldSize ) {
-		for( auto i=oldSize; i<size; i++ ) {
-			auto entry = std::shared_ptr<FunctionEntry>(new FunctionEntry {
-				.formula = (i>0)
-					? QString("%1(x)").arg( functionName(i-1) )
-					: "cos( 2pi * x )"
-			});
-			entry->samplingSettings = defSamplingSettings;
-			functions.push_back( entry );
+	// switch on:
+	if( value == 1 && !audioSchedulingEnabled ) {
+		audioSchedulingEnabled = value;
+		tasksLock.lock();
+		{
+			auto task = RampMasterTask{ 0, 1 };
+			writeTasks.push_back(std::move(task));
 		}
-		updateFormulas(oldSize, {}, {});
+		tasksLock.unlock();
+		return;
 	}
-	assert( functions.size() == size );
+	// switch off:
+	else if( value == 0 && audioSchedulingEnabled ) {
+		assert( masterVolumeEnv >= 0.99 );
+		tasksLock.lock();
+		{
+			auto task = RampMasterTask{ 1, 0 };
+			writeTasks.push_back(std::move(task));
+		}
+		auto returnSignal = [this](){
+			auto task = SignalReturnTask{};
+			auto future = task.promise.get_future();
+			writeTasks.push_back(std::move(task));
+			return future;
+		}();
+		tasksLock.unlock();
+		returnSignal.get();
+		assert( masterVolumeEnv < 0.01 );
+		audioSchedulingEnabled = value;
+		return;
+	}
+	else {
+		assert( false );
+	}
 }
 
-MaybeError Model::set(
-		const size_t index,
-		const QString& formula,
-		const ParameterBindings& parameters,
-		const StateDescriptions& stateDescriptions
-) {
-	WITH_LOCK()
-	// assert( index < size() );
-	auto entry = functions[index];
-	entry->formula = formula;
-	updateFormulas(
-			index,
-			parameters,
-			stateDescriptions
-	);
-	return getErrorPrivate( index );
-}
-
-ErrorOrFunction Model::getFunction(const size_t index)
+double FuncNetworkScheduled::currentEnvVal(const Index index) const
 {
-	WITH_LOCK()
-	return getFunctionPrivate(index);
-}
-
-MaybeError Model::getErrorPrivate(
-		const size_t index
-) const
-{
-	auto errorOrFunction = getFunctionPrivate(index);
-	if( !errorOrFunction ) {
-		return errorOrFunction.error();
+	if( auto it = volumeEnvelopes.find(index); it != volumeEnvelopes.end() ) {
+		return it->second;
 	}
-	return {};
-}
-
-ErrorOrFunction Model::getFunctionPrivate(const size_t index) const
-{
-	return functions.at( index )->errorOrFunction;
-}
-
-void Model::updateFormulas(
-		const size_t startIndex,
-		const std::optional<ParameterBindings>& setBindings,
-		const std::optional<StateDescriptions>& setStateDescriptions
-)
-{
-	Symbols functionSymbols;
-	/* dont change entries
-	 * before start index
-	 * but add their
-	 * function symbols
-	 */
-	for( size_t i=0; i<startIndex; i++ ) {
-		auto entry = functions.at(i);
-		if( entry->errorOrFunction.has_value() ) {
-			functionSymbols.addFunction(
-					functionName( i ),
-					entry->errorOrFunction.value().get()
-			);
-		}
-	}
-	/* update entries
-	 * from startIndex:
-	 */
-	for( size_t i=startIndex; i<functions.size(); i++ ) {
-		auto entry = functions.at(i);
-		ParameterBindings parameters = {};
-		entry->errorOrFunction.transform([&parameters](auto function) {
-			parameters = function->getParameters();
-		});
-		if( i==startIndex && setBindings ) {
-			parameters = setBindings.value();
-		}
-		StateDescriptions stateDescriptions = {};
-		entry->errorOrFunction.transform([&stateDescriptions](auto function) {
-			stateDescriptions = function->getStateDescriptions();
-		});
-		if( i==startIndex && setStateDescriptions ) {
-			stateDescriptions = setStateDescriptions.value();
-		}
-		entry->errorOrFunction = formulaFunctionFactory(
-				entry->formula,
-				parameters,
-				stateDescriptions,
-				{
-					constants,
-					functionSymbols
-				},
-				entry->samplingSettings.resolution,
-				entry->samplingSettings.interpolation,
-				entry->samplingSettings.caching
-		);
-		if( entry->errorOrFunction ) {
-			functionSymbols.addFunction(
-					functionName( i ),
-					entry->errorOrFunction.value().get()
-			);
-		}
-	}
+	return 1;
 }

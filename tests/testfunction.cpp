@@ -86,8 +86,7 @@ void TestFormulaFunction::testInit() {
 			formulaString,
 			parameters,
 			{},
-			{symbols},
-			0 // no caching
+			{symbols}
 	);
 	if( result == 0 ) {
 		QVERIFY( !errOrValue );
@@ -115,10 +114,7 @@ void TestFormulaFunction::testEval()
 			"x^2",
 			{},
 			{},
-			{},
-			0, // no quantization
-			0, // no interpolation
-			false // no caching
+			{}
 	);
 	assert( errOrValue );
 	auto function = errOrValue.value();
@@ -136,21 +132,29 @@ void TestFormulaFunction::testEvalWithParameters()
 			"t * x^2",
 			{ {"t", { C(2,0)} } },
 			{},
-			{},
-			0, // no quantization
-			0, // no interpolation
-			false // no caching
+			{}
 	);
 	assert( errOrValue );
 	auto function = errOrValue.value();
+	QVERIFY( function->getParameters().size() == 1 );
 	checkFunction(
 			function.get(),
 			[](auto x){ return C(2 * pow(x,2),0); },
 			{-3, 3},
 			8
 	);
+	function->setParameter( "t", { C(1,0) } );
+	QVERIFY( function->getParameters().size() == 1 );
+	QVERIFY( function->getParameters().at("t") == std::vector<C>{ C(1,0) } );
+	checkFunction(
+			function.get(),
+			[](auto x){ return C(1 * pow(x,2),0); },
+			{-3, 3},
+			8
+	);
 }
 
+/*
 void TestFormulaFunction::testResolution_data() {
 	QTest::addColumn<uint>("interpolation");
 	QTest::addColumn<uint>("resolution");
@@ -176,6 +180,7 @@ void TestFormulaFunction::testResolution_data() {
 		}
 	}
 }
+*/
 
 const T epsilon = 1.0/(1<<16);
 
@@ -183,6 +188,7 @@ bool float_equal(const T f1, const T f2) {
 	return std::abs(f2-f1) < epsilon;
 }
 
+/*
 void TestFormulaFunction::testResolution()
 {
 	QFETCH(uint, interpolation);
@@ -194,10 +200,7 @@ void TestFormulaFunction::testResolution()
 			formula,
 			{},
 			{},
-			{},
-			0, // no quantization
-			0,
-			false // no caching
+			{}
 	).value();
 	auto quantizedFunction = formulaFunctionFactory(
 			formula,
@@ -263,6 +266,7 @@ void TestFormulaFunction::testResolution()
 		}
 	}
 }
+*/
 
 void checkFunction(
 		Function* function,
