@@ -284,6 +284,8 @@ FuncNetworkScheduled::FuncNetworkScheduled(
 )
 {}
 
+// Getters:
+
 SamplingSettings FuncNetworkScheduled::getSamplingSettings(
 		const Index index
 )
@@ -291,17 +293,89 @@ SamplingSettings FuncNetworkScheduled::getSamplingSettings(
 	return no_optimization_settings;
 }
 
-void FuncNetworkScheduled::setSamplingSettings(
-		const Index index,
-		const SamplingSettings& value
-)
-{}
-
 uint FuncNetworkScheduled::size() const
 {
 	START_READ()
 	return getNetwork()->size();
 }
+
+FunctionOrError FuncNetworkScheduled::get(const Index index) const
+{
+	START_READ()
+	return getNetwork()->get(index);
+}
+
+FunctionParameters FuncNetworkScheduled::getFunctionParameters(const uint index) const
+{
+	START_READ()
+	return getNetwork()->getFunctionParameters(index);
+}
+
+bool FuncNetworkScheduled::getIsPlaybackEnabled(
+		const uint index
+) const
+{
+	START_READ()
+	return getNetwork()->getIsPlaybackEnabled(index);
+}
+
+ErrorOrValue<std::vector<std::pair<C,C>>> FuncNetworkScheduled::getGraph(
+		const Index index,
+		const std::pair<T,T>& range,
+		const unsigned int resolution
+) const
+{
+	START_READ()
+	auto errorOrFunction = getNetwork()->get( index );
+	if( !errorOrFunction ) {
+		return std::unexpected( errorOrFunction.error() );
+	}
+	else
+	{
+		auto function = errorOrFunction.value();
+		auto
+			xMin = range.first,
+			xMax = range.second
+		;
+		std::vector<std::pair<C,C>> graph;
+		for( unsigned int i=0; i<resolution; i++ ) {
+			auto x = C( xMin + (T(i) / (resolution-1))*(xMax - xMin), 0);
+			graph.push_back(
+					{
+						x,
+						function->get(x)
+					}
+			);
+		}
+		return graph;
+	}
+}
+
+void FuncNetworkScheduled::valuesToBuffer(
+		std::vector<float>* buffer,
+		const PlaybackPosition position,
+		const unsigned int samplerate
+)
+{
+	std::scoped_lock lock( networkLock, tasksLock );
+	for(
+			PlaybackPosition pos=0;
+			pos<buffer->size();
+			pos++
+	) {
+		buffer->data()[pos] =
+			audioFunction(position+pos, samplerate);
+		updateRamps(position+pos,samplerate);
+	}
+}
+
+// Setters:
+
+void FuncNetworkScheduled::setSamplingSettings(
+		const Index index,
+		const SamplingSettings& value
+)
+{}
 
 void FuncNetworkScheduled::resize(const uint size)
 {
@@ -339,12 +413,6 @@ void FuncNetworkScheduled::resize(const uint size)
 	future.get();
 	returnSignal.get();
 	return;
-}
-
-FunctionOrError FuncNetworkScheduled::get(const Index index) const
-{
-	START_READ()
-	return getNetwork()->get(index);
 }
 
 MaybeError FuncNetworkScheduled::set(
@@ -427,20 +495,6 @@ MaybeError FuncNetworkScheduled::setParameterValues(
 	return ret;
 }
 
-FunctionParameters FuncNetworkScheduled::getFunctionParameters(const uint index) const
-{
-	START_READ()
-	return getNetwork()->getFunctionParameters(index);
-}
-
-bool FuncNetworkScheduled::getIsPlaybackEnabled(
-		const uint index
-) const
-{
-	START_READ()
-	return getNetwork()->getIsPlaybackEnabled(index);
-}
-
 void FuncNetworkScheduled::setIsPlaybackEnabled(
 		const uint index,
 		const bool value
@@ -486,63 +540,45 @@ void FuncNetworkScheduled::setIsPlaybackEnabled(
 	return;
 }
 
-float FuncNetworkScheduled::audioFunction(
-		const PlaybackPosition position,
-		const uint samplerate
+// Control Scheduling:
+void FuncNetworkScheduled::setAudioSchedulingEnabled(
+		const bool value
 )
 {
-	double ret = 0;
-	C time = C(T(position) / T(samplerate), 0);
-	for( Index i=0; i<getNetwork()->size(); i++ ) {
-		auto functionOrError = getNetwork()->get(i);
-		auto isPlaybackEnabled = getNetwork()->getIsPlaybackEnabled(i);
-		if( !functionOrError || !isPlaybackEnabled )
-			continue;
-		auto function = functionOrError.value();
-		double volEnv = 1;
-		if( auto it = volumeEnvelopes.find(i); it != volumeEnvelopes.end() ) {
-			volEnv = it->second;
+	// switch on:
+	if( value == 1 && !audioSchedulingEnabled ) {
+		audioSchedulingEnabled = value;
+		tasksLock.lock();
+		{
+			auto task = RampMasterTask{ 0, 1 };
+			writeTasks.push_back(std::move(task));
 		}
-		ret += (
-				function->get( time ).c_.real()
-				* volEnv
-		);
+		tasksLock.unlock();
+		return;
 	}
-	ret *= masterVolumeEnv;
-	return std::clamp( ret, -1.0, +1.0 );
+	// switch off:
+	else if( value == 0 && audioSchedulingEnabled ) {
+		// assert( masterVolumeEnv >= 0.99 );
+		tasksLock.lock();
+		{
+			auto task = RampMasterTask{ 1, 0 };
+			writeTasks.push_back(std::move(task));
+		}
+		auto returnSignal = [this](){
+			auto task = SignalReturnTask{};
+			auto future = task.promise.get_future();
+			writeTasks.push_back(std::move(task));
+			return future;
+		}();
+		tasksLock.unlock();
+		returnSignal.get();
+		// assert( masterVolumeEnv < 0.01 );
+		audioSchedulingEnabled = value;
+		return;
+	}
 }
 
-ErrorOrValue<std::vector<std::pair<C,C>>> FuncNetworkScheduled::getGraph(
-		const Index index,
-		const std::pair<T,T>& range,
-		const unsigned int resolution
-)
-{
-	START_READ()
-	auto errorOrFunction = getNetwork()->get( index );
-	if( !errorOrFunction ) {
-		return std::unexpected( errorOrFunction.error() );
-	}
-	else
-	{
-		auto function = errorOrFunction.value();
-		auto
-			xMin = range.first,
-			xMax = range.second
-		;
-		std::vector<std::pair<C,C>> graph;
-		for( unsigned int i=0; i<resolution; i++ ) {
-			auto x = C( xMin + (T(i) / (resolution-1))*(xMax - xMin), 0);
-			graph.push_back(
-					{
-						x,
-						function->get(x)
-					}
-			);
-		}
-		return graph;
-	}
-}
+// Private:
 
 void FuncNetworkScheduled::updateRamps(
 		const PlaybackPosition position,
@@ -550,44 +586,40 @@ void FuncNetworkScheduled::updateRamps(
 )
 {
 	this->position = position;
-	{
-	{
-		if( !writeTasks.empty() ) {
-			auto& someTask = writeTasks.front();
-			if( auto task = std::get_if<RampMasterTask>(&someTask) ) {
-				if( !task->pos) {
-					task->pos = position;
-				}
-				double time = double(position - task->pos.value()) / double(samplerate);
-				if( time < rampTime ) {
-					masterVolumeEnv =
-						task->src + (task->dst - task->src)
-						* (time / rampTime)
-					;
-				}
-				else {
-					writeTasks.pop_front();
-				}
+	if( !writeTasks.empty() ) {
+		auto& someTask = writeTasks.front();
+		if( auto task = std::get_if<RampMasterTask>(&someTask) ) {
+			if( !task->pos) {
+				task->pos = position;
 			}
-			else if( auto task = std::get_if<RampTask>(&someTask) ) {
-				if( !task->pos) {
-					task->pos = position;
-				}
-				double time = double(position - task->pos.value()) / double(samplerate);
-				if( time < rampTime ) {
-					double env = 1;
-					env =
-						task->src + (task->dst - task->src)
-						* (time / rampTime)
-					;
-					volumeEnvelopes[task->index] = env;
-				}
-				else {
-					writeTasks.pop_front();
-				}
+			double time = double(position - task->pos.value()) / double(samplerate);
+			if( time < rampTime ) {
+				masterVolumeEnv =
+					task->src + (task->dst - task->src)
+					* (time / rampTime)
+				;
+			}
+			else {
+				currentEnvTaskDone = true;
 			}
 		}
-	}
+		else if( auto task = std::get_if<RampTask>(&someTask) ) {
+			if( !task->pos) {
+				task->pos = position;
+			}
+			double time = double(position - task->pos.value()) / double(samplerate);
+			if( time < rampTime ) {
+				double env = 1;
+				env =
+					task->src + (task->dst - task->src)
+					* (time / rampTime)
+				;
+				volumeEnvelopes[task->index] = env;
+			}
+			else {
+				currentEnvTaskDone = true;
+			}
+		}
 	}
 }
 
@@ -640,6 +672,18 @@ void FuncNetworkScheduled::executeWriteOperations(
 					task->promise.set_value();
 					writeTasks.pop_front();
 				}
+				else if( std::get_if<RampTask>(&someTask) ) {
+					if( currentEnvTaskDone ) {
+						writeTasks.pop_front();
+						currentEnvTaskDone = false;
+					}
+				}
+				else if( std::get_if<RampMasterTask>(&someTask) ) {
+					if( currentEnvTaskDone ) {
+						writeTasks.pop_front();
+						currentEnvTaskDone = false;
+					}
+				}
 			}
 			tasksLock.unlock();
 		}
@@ -647,50 +691,28 @@ void FuncNetworkScheduled::executeWriteOperations(
 	}
 }
 
-void FuncNetworkScheduled::setAudioSchedulingEnabled(
-		const bool value
+float FuncNetworkScheduled::audioFunction(
+		const PlaybackPosition position,
+		const uint samplerate
 )
 {
-	// switch on:
-	if( value == 1 && !audioSchedulingEnabled ) {
-		audioSchedulingEnabled = value;
-		tasksLock.lock();
-		{
-			auto task = RampMasterTask{ 0, 1 };
-			writeTasks.push_back(std::move(task));
+	double ret = 0;
+	C time = C(T(position) / T(samplerate), 0);
+	for( Index i=0; i<getNetwork()->size(); i++ ) {
+		auto functionOrError = getNetwork()->get(i);
+		auto isPlaybackEnabled = getNetwork()->getIsPlaybackEnabled(i);
+		if( !functionOrError || !isPlaybackEnabled )
+			continue;
+		auto function = functionOrError.value();
+		double volEnv = 1;
+		if( auto it = volumeEnvelopes.find(i); it != volumeEnvelopes.end() ) {
+			volEnv = it->second;
 		}
-		tasksLock.unlock();
-		return;
+		ret += (
+				function->get( time ).c_.real()
+				* volEnv
+		);
 	}
-	// switch off:
-	else if( value == 0 && audioSchedulingEnabled ) {
-		assert( masterVolumeEnv >= 0.99 );
-		tasksLock.lock();
-		{
-			auto task = RampMasterTask{ 1, 0 };
-			writeTasks.push_back(std::move(task));
-		}
-		auto returnSignal = [this](){
-			auto task = SignalReturnTask{};
-			auto future = task.promise.get_future();
-			writeTasks.push_back(std::move(task));
-			return future;
-		}();
-		tasksLock.unlock();
-		returnSignal.get();
-		assert( masterVolumeEnv < 0.01 );
-		audioSchedulingEnabled = value;
-		return;
-	}
-	else {
-		assert( false );
-	}
-}
-
-double FuncNetworkScheduled::currentEnvVal(const Index index) const
-{
-	if( auto it = volumeEnvelopes.find(index); it != volumeEnvelopes.end() ) {
-		return it->second;
-	}
-	return 1;
+	ret *= masterVolumeEnv;
+	return std::clamp( ret, -1.0, +1.0 );
 }

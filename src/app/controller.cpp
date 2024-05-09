@@ -24,18 +24,11 @@ Controller::Controller(
 		&MainWindow::isAudioEnabledChanged,
 		[jack,model]( bool value ) {
 			if(value) {
-				model->setAudioSchedulingEnabled(true);
-				jack->start(
+				auto maybeError = jack->start(
 						Callbacks{
-							.startAudio = [model]() { model->readLock().lock(); },
-							.stopAudio = [model]() { model->readLock().unlock(); },
 							// audio callback:
-							.audioCallback = [model](auto position, auto samplerate) {
-								return model->audioFunction( position, samplerate );
-							},
-							// ramping 
-							.rampingCallback = [model](auto position, auto samplerate) {
-								model->updateRamps( position, samplerate );
+							.valuesToBuffer = [model](std::vector<float>* buffer, const PlaybackPosition position, const uint samplerate) {
+								model->valuesToBuffer( buffer, position, samplerate );
 							},
 							// update:
 							.betweenAudioCallback = [model](auto position, auto samplerate) {
@@ -43,6 +36,9 @@ Controller::Controller(
 							}
 						}
 				);
+				if( !maybeError ) {
+					model->setAudioSchedulingEnabled(true);
+				}
 			}
 			else {
 				model->setAudioSchedulingEnabled(false);

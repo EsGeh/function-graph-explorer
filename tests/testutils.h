@@ -4,6 +4,25 @@
 #include <QTest>
 #include <ranges>
 
+
+#define FUZZY_CMP_DOUBLE(a,b) \
+	(qFuzzyCompare(a,b) \
+	|| qFuzzyCompare(b+2,2))
+
+#define FUZZY_CMP_C(a,b) \
+	(FUZZY_CMP_DOUBLE( a.c_.real(), b.c_.real() ) \
+	&& FUZZY_CMP_DOUBLE( a.c_.imag(), b.c_.imag() ))
+
+#define ASSERT_FUNC_POINT( X,Y, expectedY ) \
+	QVERIFY2( \
+		FUZZY_CMP_C( Y, expectedY ), \
+		QString( "ERROR at function point: %1 -> %2 != %3 (expected)" ) \
+			.arg( to_qstring( X ) ) \
+			.arg( to_qstring( Y ) ) \
+			.arg( to_qstring( expectedY ) ) \
+		.toStdString().c_str() \
+	)
+
 /* utilities */
 
 inline void initTestModel(

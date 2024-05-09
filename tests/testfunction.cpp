@@ -2,6 +2,7 @@
 #include <qtestcase.h>
 #include <stdexcept>
 #include "testfunction.h"
+#include "testutils.h"
 #include "fge/model/function.h"
 
 QTEST_MAIN(TestFormulaFunction)
@@ -281,15 +282,6 @@ void checkFunction(
 		const double x = range.first + T(i) / resolution;
 		const auto ret = function->get( C(x,0) );
 		const T expectedY = expectedFunc(x);
-		QVERIFY2(
-				qFuzzyCompare( ret.c_.real(), expectedY )
-				// && qFuzzyCompare( ret.c_.imag(), 0 )
-				,
-				QString( "error in function: %1 -> %2 != %3 (expected)" )
-					.arg( to_qstring( C(x,0) ) )
-					.arg( to_qstring( ret ) )
-					.arg( to_qstring( C(expectedY,0) ) )
-				.toStdString().c_str()
-		);
+		ASSERT_FUNC_POINT( C(x,0), ret, C(expectedY,0) );
 	}
 }

@@ -49,17 +49,13 @@ void AudioWorker::run() {
 	writeIndex = 0;
 	position = 0;
 	stopWorker = false;
-	callbacks.startAudio();
 	fillBuffer(writeIndex);
-	callbacks.stopAudio();
 	writeIndex = (writeIndex + 1) % count;
 	// fill next buffer
 	worker = std::thread([this]{
 		while(!stopWorker) {
 			lock.lock();
-			callbacks.startAudio();
 			fillBuffer(writeIndex);
-			callbacks.stopAudio();
 			writeIndex = (writeIndex + 1) % count;
 			callbacks.betweenAudioCallback(position, samplerate);
 		}
@@ -79,18 +75,12 @@ bool AudioWorker::isRunning() const {
 }
 
 void AudioWorker::fillBuffer(const uint index) {
-	for(
-			PlaybackPosition pos=0;
-			pos<buffer[index].size();
-			pos++
-	) {
-		buffer[index][pos] =
-			callbacks.audioCallback(position+pos, samplerate);
-		if( pos % 1 == 0 ) {
-			callbacks.rampingCallback(position+pos, samplerate);
-		}
-	}
-	position +=buffer[index].size();
+	callbacks.valuesToBuffer(
+			&buffer[index],
+			position,
+			samplerate
+	);
+	this->position += buffer[index].size();
 }
 
 /********************

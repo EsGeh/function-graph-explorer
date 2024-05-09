@@ -15,7 +15,7 @@ using PlaybackPosition = unsigned long int;
 using SampleTable = std::vector<sample_t>;
 
 using AudioCallback =
-	std::function<sample_t(PlaybackPosition position,uint samplerate)>;
+	std::function<void(std::vector<float>* buffer,const PlaybackPosition position, const uint samplerate)>;
 
 using SchedulerCallback =
 	std::function<void(PlaybackPosition position,uint samplerate)>;
@@ -24,8 +24,7 @@ using SignalCallback = std::function<void()>;
 
 struct Callbacks {
 	SignalCallback startAudio, stopAudio;
-	AudioCallback audioCallback;
-	SchedulerCallback rampingCallback;
+	AudioCallback valuesToBuffer;
 	SchedulerCallback betweenAudioCallback;
 };
 

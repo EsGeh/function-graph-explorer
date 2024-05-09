@@ -109,15 +109,16 @@ class FuncNetworkHighLevel {
 		using Index = FuncNetwork::Index;
 		using PlaybackPosition = unsigned long int;
 	public:
-		virtual float audioFunction(
+		virtual void valuesToBuffer(
+				std::vector<float>* buffer,
 				const PlaybackPosition position,
-				const uint samplerate
+				const unsigned int samplerate
 		) = 0;
 		virtual ErrorOrValue<std::vector<std::pair<C,C>>> getGraph(
 				const Index index,
 				const std::pair<T,T>& range,
 				const unsigned int resolution
-		) = 0;
+		) const = 0;
 };
 
 const SamplingSettings no_optimization_settings{
@@ -157,17 +158,34 @@ class FuncNetworkScheduled:
 		FuncNetworkScheduled(
 				const SamplingSettings& defSamplingSettings = no_optimization_settings
 		);
+		// getters:
 		SamplingSettings getSamplingSettings(
 				const Index index
 		);
+		virtual Index size() const override;
+		virtual FunctionOrError get(const Index index) const override;
+		virtual FunctionParameters getFunctionParameters(const uint index) const override;
+		virtual bool getIsPlaybackEnabled(
+				const Index index
+		) const override;
+		virtual ErrorOrValue<std::vector<std::pair<C,C>>> getGraph(
+				const Index index,
+				const std::pair<T,T>& range,
+				const unsigned int resolution
+		) const override;
+
+		virtual void valuesToBuffer(
+				std::vector<float>* buffer,
+				const PlaybackPosition position,
+				const unsigned int samplerate
+		) override;
+
+		// setters:
 		void setSamplingSettings(
 				const Index index,
 				const SamplingSettings& value
 		);
-		virtual Index size() const override;
 		virtual void resize( const uint size ) override;
-
-		virtual FunctionOrError get(const Index index) const override;
 		virtual MaybeError set(
 				const Index index,
 				const FunctionParameters& parameters
@@ -177,49 +195,35 @@ class FuncNetworkScheduled:
 				const ParameterBindings& parameters
 		) override;
 
-		virtual FunctionParameters getFunctionParameters(const uint index) const override;
-
-		virtual bool getIsPlaybackEnabled(
-				const Index index
-		) const override;
 		virtual void setIsPlaybackEnabled(
 				const Index index,
 				const bool value
 		) override;
 
-		std::mutex& readLock() {
-			return networkLock;
-		}
-		virtual float audioFunction(
-				const PlaybackPosition position,
-				const uint samplerate
-		) override;
+		// Control Scheduling:
 
-		virtual ErrorOrValue<std::vector<std::pair<C,C>>> getGraph(
-				const Index index,
-				const std::pair<T,T>& range,
-				const unsigned int resolution
-		) override;
+		void setAudioSchedulingEnabled(
+				const bool value
+		);
 
 		void updateRamps(
 				const PlaybackPosition position,
 				const uint samplerate
 		);
+
 		void executeWriteOperations(
 				const PlaybackPosition position,
 				const uint samplerate
 		);
 
-		// drive the scheduler:
-		void setAudioSchedulingEnabled(
-				const bool value
+		float audioFunction(
+				const PlaybackPosition position,
+				const uint samplerate
 		);
 
-	private:
 		FuncNetworkImpl* getNetwork() const {
 			return this->network.get();
 		}
-		double currentEnvVal(const Index index) const;
 
 	private:
 		struct ResizeTask
@@ -288,6 +292,7 @@ class FuncNetworkScheduled:
 		PlaybackPosition position = 0;
 		double masterVolumeEnv = 1;
 		std::map<Index,double> volumeEnvelopes;
+		bool currentEnvTaskDone = false;
 		mutable std::mutex networkLock;
 		std::shared_ptr<FuncNetworkImpl> network = std::make_shared<FuncNetworkImpl>();
 		mutable std::mutex tasksLock;
@@ -299,6 +304,7 @@ class Model:
 {
 	public:
 		using Father = FuncNetworkScheduled;
+		using Father::Index;
 	public:
 		Model(
 				const SamplingSettings& defSamplingSettings = no_optimization_settings
@@ -329,26 +335,26 @@ class Model:
 		using Father::getSamplingSettings;
 		using Father::setSamplingSettings;
 		using Father::getGraph;
-		using Father::audioFunction;
+		using Father::valuesToBuffer;
 		using Father::getIsPlaybackEnabled;
 		using Father::setIsPlaybackEnabled;
 		using Father::setAudioSchedulingEnabled;
-		using Father::updateRamps;
 		using Father::executeWriteOperations;
-		using Father::readLock;
 
 		QString getFormula(
 				const size_t index
-		) {
+		) const {
 			return Father::getFunctionParameters(index).formula;
 		}
 		MaybeError getError(
 				const Index index
-		) {
+		) const {
 			auto functionOrError = Father::get(index);
 			if( !functionOrError ) {
 				return functionOrError.error();
 			}
 			return {};
 		}
+	protected:
+		
 };
