@@ -1,5 +1,8 @@
 add_library(model
 	model.cpp
+	model_impl.cpp
+	func_network.cpp
+	func_network_impl.cpp
 	function.cpp
 )
 

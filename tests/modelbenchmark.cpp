@@ -50,7 +50,7 @@ void ModelBenchmark::harmonicSeries()
 		.interpolation = interpolation,
 		.caching = true
 	};
-	Model model(settings);
+	auto model = modelFactory(settings);
 	std::vector<QString> testData = {
 		(QStringList {
 			"var freq := 440;",
@@ -63,9 +63,9 @@ void ModelBenchmark::harmonicSeries()
 		}).join("\n")
 			.arg( numHarmonics )
 	};
-	initTestModel( &model, testData );
+	initTestModel( model.get(), testData );
 	QBENCHMARK(
-			model.getGraph(
+			model->getGraph(
 				0,
 				{0,1},
 				sampleResolution
@@ -83,7 +83,7 @@ void ModelBenchmark::harmonicSeriesChain()
 		.interpolation = interpolation,
 		.caching = true
 	};
-	Model model(settings);
+	auto model = modelFactory(settings);
 	std::vector<QString> testData = {
 		(QStringList {
 			"var freq := 440;",
@@ -105,9 +105,9 @@ void ModelBenchmark::harmonicSeriesChain()
 		}).join("\n")
 			.arg( numHarmonics )
 	};
-	initTestModel( &model, testData );
+	initTestModel( model.get(), testData );
 	QBENCHMARK(
-			model.getGraph(
+			model->getGraph(
 				1,
 				{0,1},
 				sampleResolution

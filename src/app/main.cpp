@@ -38,12 +38,12 @@ int main(int argc, char *argv[])
 	}
 
 	QApplication a(argc, argv);
-	auto model = Model(
+	auto model = modelFactory(
 			defSamplingSettings
 	);
 	auto view = MainWindow();
 	Controller controller(
-			&model,
+			model.get(),
 			&view,
 			&jack,
 			viewResolution

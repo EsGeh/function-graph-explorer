@@ -1,5 +1,6 @@
 #include "testmodel.h"
 #include "testutils.h"
+#include <memory>
 #include <qcoreapplication.h>
 #include <qfloat16.h>
 #include <qtestcase.h>
@@ -12,149 +13,149 @@ QTEST_MAIN(TestModel)
 // UTILS:
 
 void assertAllFunctionsValid(
-		const Model& model,
+		const std::shared_ptr<Model> model,
 		const std::vector<std::pair<QString, std::function<C(T)>>>& expectedResult
 );
 
 void assertCorrectGraph(
-		const Model& model,
+		const std::shared_ptr<Model> model,
 		const std::vector<std::pair<QString, std::function<C(T)>>>& expectedResult
 );
 
 /* TEST */
 
 void TestModel::testInit() {
-	Model model;
-	QCOMPARE( model.size(), 0 );
+	auto model = modelFactory();
+	QCOMPARE( model->size(), 0 );
 	QVERIFY_THROWS_EXCEPTION(
 			std::out_of_range,
-			model.getFormula( model.size() )
+			model->getFormula( model->size() )
 	);
 	QVERIFY_THROWS_EXCEPTION(
 			std::out_of_range,
-			model.getError( model.size() )
+			model->getError( model->size() )
 	);
 	QVERIFY_THROWS_EXCEPTION(
 			std::out_of_range,
-			model.getIsPlaybackEnabled( model.size() )
+			model->getIsPlaybackEnabled( model->size() )
 	);
 	QVERIFY_THROWS_EXCEPTION(
 			std::out_of_range,
-			model.getGraph( model.size(), {0,1}, 8)
+			model->getGraph( model->size(), {0,1}, 8)
 	);
 }
 
 void TestModel::testResizeUp() {
-	Model model;
-	model.resize(3);
-	QCOMPARE( model.size(), 3 );
-	for( uint i=0; i<model.size(); i++ ) {
+	auto model = modelFactory();
+	model->resize(3);
+	QCOMPARE( model->size(), 3 );
+	for( uint i=0; i<model->size(); i++ ) {
 		QVERIFY_THROWS_NO_EXCEPTION(
-			model.getFormula( i )
+			model->getFormula( i )
 		);
 		QVERIFY_THROWS_NO_EXCEPTION(
-			model.getError( i )
+			model->getError( i )
 		);
 		QVERIFY_THROWS_NO_EXCEPTION(
-			model.getIsPlaybackEnabled( i )
+			model->getIsPlaybackEnabled( i )
 		);
 		QVERIFY_THROWS_NO_EXCEPTION(
-			model.getGraph( i, {0,1}, 8)
+			model->getGraph( i, {0,1}, 8)
 		);
 	}
 	QVERIFY_THROWS_EXCEPTION(
 			std::out_of_range,
-			model.getFormula( model.size() )
+			model->getFormula( model->size() )
 	);
 	QVERIFY_THROWS_EXCEPTION(
 			std::out_of_range,
-			model.getError( model.size() )
+			model->getError( model->size() )
 	);
 	QVERIFY_THROWS_EXCEPTION(
 			std::out_of_range,
-			model.getIsPlaybackEnabled( model.size() )
+			model->getIsPlaybackEnabled( model->size() )
 	);
 	QVERIFY_THROWS_EXCEPTION(
 			std::out_of_range,
-			model.getGraph( model.size(), {0,1}, 8)
+			model->getGraph( model->size(), {0,1}, 8)
 	);
 }
 
 void TestModel::testResizeDown() {
-	Model model;
-	model.resize(3);
-	auto oldFormula = model.getFormula(0);
-	auto oldError = model.getError(0);
-	auto oldIsPlaybackEnabled = model.getIsPlaybackEnabled(0);
-	auto oldGraph = model.getGraph(0, {0,1},8);
-	model.resize(1);
-	QCOMPARE( model.size(), 1 );
+	auto model = modelFactory();
+	model->resize(3);
+	auto oldFormula = model->getFormula(0);
+	auto oldError = model->getError(0);
+	auto oldIsPlaybackEnabled = model->getIsPlaybackEnabled(0);
+	auto oldGraph = model->getGraph(0, {0,1},8);
+	model->resize(1);
+	QCOMPARE( model->size(), 1 );
 	/* downsizing invalidates
 	 * entries from the tail,
 	 * but leaves the head
 	 * untouched
 	 */
 	{
-		auto newFormula = model.getFormula(0);
-		QCOMPARE( model.getFormula(0), oldFormula );
-		QCOMPARE( model.getError(0), oldError );
-		QCOMPARE( model.getIsPlaybackEnabled(0), oldIsPlaybackEnabled );
-		QCOMPARE( model.getGraph(0,{0,1},8), oldGraph );
+		auto newFormula = model->getFormula(0);
+		QCOMPARE( model->getFormula(0), oldFormula );
+		QCOMPARE( model->getError(0), oldError );
+		QCOMPARE( model->getIsPlaybackEnabled(0), oldIsPlaybackEnabled );
+		QCOMPARE( model->getGraph(0,{0,1},8), oldGraph );
 	}
 	QVERIFY_THROWS_EXCEPTION(
 			std::out_of_range,
-			model.getFormula( model.size() )
+			model->getFormula( model->size() )
 	);
 	QVERIFY_THROWS_EXCEPTION(
 			std::out_of_range,
-			model.getError( model.size() )
+			model->getError( model->size() )
 	);
 	QVERIFY_THROWS_EXCEPTION(
 			std::out_of_range,
-			model.getIsPlaybackEnabled( model.size() )
+			model->getIsPlaybackEnabled( model->size() )
 	);
 	QVERIFY_THROWS_EXCEPTION(
 			std::out_of_range,
-			model.getGraph( model.size(), {0,1}, 8)
+			model->getGraph( model->size(), {0,1}, 8)
 	);
 }
 
 void TestModel::testSetEntry() {
-	Model model;
+	auto model = modelFactory();
 	std::vector<std::pair<QString, std::function<C(T)>>> testData = {
 		{ "x^1", [](auto x){ return C(x,0); } },
 		{ "x^2", [](auto x){ return C(x*x,0); } },
 		{ "x^3", [](auto x){ return C(x*x*x,0); } }
 	};
-	initTestModel( &model, testData );
+	initTestModel( model.get(), testData );
 	assertAllFunctionsValid( model, testData );
 	assertCorrectGraph( model, testData );
 }
 
 void TestModel::testFunctionReferences() {
-	Model model;
+	auto model = modelFactory();
 	std::vector<std::pair<QString, std::function<C(T)>>> testData = {
 		{ "x-1", [](T x){ return C(x-1, 0); } },
 		{ "(x+1)*f0(x)", [](T x){ return C((x+1)*(x-1), 0); } }
 	};
-	initTestModel( &model, testData );
+	initTestModel( model.get(), testData );
 	assertAllFunctionsValid( model, testData );
 	assertCorrectGraph( model, testData );
 }
 
 void TestModel::testUpdatesReferences() {
-	Model model;
+	auto model = modelFactory();
 	// initial state:
 	{
 		std::vector<std::pair<QString, std::function<C(T)>>> testData = {
 			{ "x-1", [](T x){ return C(x-1, 0); } },
 			{ "(x+1)*f0(x)", [](T x){ return C((x+1)*(x-1), 0); } }
 		};
-		initTestModel( &model, testData );
+		initTestModel( model.get(), testData );
 	}
 	/* update F0:
 	 */
-	model.set( 0, "x+1", {}, {});
+	model->set( 0, "x+1", {}, {});
 	/* Check result:
 	 */
 	std::vector<std::pair<QString, std::function<C(T)>>> expectedResult = {
@@ -167,30 +168,30 @@ void TestModel::testUpdatesReferences() {
 
 void TestModel::testGetGraph()
 {
-	Model model;
+	auto model = modelFactory();
 	std::vector<std::pair<QString, std::function<C(T)>>> testData = {
 		{ "x-1", [](T x){ return C(x-1, 0); } },
 		{ "(x+1)*f0(x)", [](T x){ return C((x+1)*(x-1), 0); } }
 	};
-	initTestModel( &model, testData );
+	initTestModel( model.get(), testData );
 	assertCorrectGraph( model, testData );
 }
 
 void TestModel::testValuesToBuffer()
 {
-	Model model;
+	auto model = modelFactory();
 	const double pi = asin(1);
 	std::vector<std::pair<QString, std::function<C(T)>>> testData = {
 		{ "cos(440 * 2pi * x)", [pi](T x){ return C(cos(440 * 2*pi * x), 0); } },
 	};
 	const uint samplerate = 44100;
-	initTestModel( &model, testData );
+	initTestModel( model.get(), testData );
 	std::vector<float> buffer;
 	buffer.resize( samplerate );
 
 	// if playback not enabled,
 	// buffer should be all zeroes:
-	model.valuesToBuffer( 
+	model->valuesToBuffer( 
 			&buffer,
 			0,
 			samplerate
@@ -200,8 +201,8 @@ void TestModel::testValuesToBuffer()
 
 	// after enabling playback
 	// the buffer should contain sth:
-	model.setIsPlaybackEnabled( 0, true );
-	model.valuesToBuffer( 
+	model->setIsPlaybackEnabled( 0, true );
+	model->valuesToBuffer( 
 			&buffer,
 			0,
 			samplerate
@@ -214,24 +215,24 @@ void TestModel::testValuesToBuffer()
 /* utilities */
 
 void assertAllFunctionsValid(
-		const Model& model,
+		const std::shared_ptr<Model> model,
 		const std::vector<std::pair<QString, std::function<C(T)>>>& expectedResult
 )
 {
 	for( uint i=0; i<expectedResult.size(); i++ ) {
-		auto maybeError = model.getError( i );
+		auto maybeError = model->getError( i );
 		auto errStr = maybeError ? maybeError.value() : "";
 		QVERIFY2( !maybeError, 
 			QString("error in expression: %1")
 				.arg( errStr )
 			.toStdString().c_str()
 		);
-		QVERIFY( model.getGraph(i, {0,1}, 8) );
+		QVERIFY( model->getGraph(i, {0,1}, 8) );
 	}
 }
 
 void assertCorrectGraph(
-		const Model& model,
+		const std::shared_ptr<Model> model,
 		const std::vector<std::pair<QString, std::function<C(T)>>>& expectedResult
 )
 {
@@ -240,7 +241,7 @@ void assertCorrectGraph(
 	for( uint iFunction=0; iFunction<expectedResult.size(); iFunction++ ) {
 		auto expectedString = expectedResult[iFunction].first ;
 		auto expectedFunc = expectedResult[iFunction].second ;
-		auto errOrGraph = model.getGraph(
+		auto errOrGraph = model->getGraph(
 				iFunction,
 				range,
 				resolution
