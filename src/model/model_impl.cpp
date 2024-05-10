@@ -25,9 +25,7 @@
 ************************/
 
 #define START_READ() \
-	if( audioSchedulingEnabled ) { \
-		std::lock_guard lock( networkLock ); \
-	}
+	std::lock_guard lock( networkLock );
 
 #define LOCK_TASKS() \
 	std::lock_guard lock( tasksLock );
@@ -123,7 +121,7 @@ void ModelImpl::valuesToBuffer(
 		const unsigned int samplerate
 )
 {
-	std::scoped_lock lock( networkLock, tasksLock );
+	std::scoped_lock lock( networkLock );
 	for(
 			PlaybackPosition pos=0;
 			pos<buffer->size();
