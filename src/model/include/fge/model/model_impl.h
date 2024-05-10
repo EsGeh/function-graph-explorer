@@ -1,6 +1,7 @@
 #pragma once
 
 #include "fge/model/model.h"
+#include "func_network.h"
 #include <future>
 
 
@@ -25,6 +26,7 @@ const double rampTime = 50.0 / 1000.0;
 	sampling periods.
 */
 
+
 class ModelImpl:
 	virtual public Model
 {
@@ -32,7 +34,7 @@ class ModelImpl:
 		using Model::Index;
 	public:
 		ModelImpl(
-				const SamplingSettings& defSamplingSettings = no_optimization_settings
+				const SamplingSettings& defSamplingSettings
 		);
 
 		// Read access functions:
@@ -113,10 +115,6 @@ class ModelImpl:
 				const uint samplerate
 		);
 
-		std::shared_ptr<FuncNetwork> getNetwork() const {
-			return this->network;
-		}
-
 	private:
 		struct ResizeTask
 		{
@@ -179,14 +177,23 @@ class ModelImpl:
 			RampMasterTask,
 			SignalReturnTask
 		>;
+		struct NodeInfo {
+			bool isPlaybackEnabled = false;
+			double volumeEnvelope = 1;
+		};
+
+	private:
+		std::shared_ptr<FuncNetworkWithInfo<NodeInfo>> getNetwork() const {
+			return this->network;
+		}
 	private:
 		bool audioSchedulingEnabled = false;
 		PlaybackPosition position = 0;
 		double masterVolumeEnv = 1;
-		std::map<Index,double> volumeEnvelopes;
+		// std::map<Index,double> volumeEnvelopes;
 		bool currentEnvTaskDone = false;
 		mutable std::mutex networkLock;
-		std::shared_ptr<FuncNetwork> network;
+		std::shared_ptr<FuncNetworkWithInfo<NodeInfo>> network;
 		mutable std::mutex tasksLock;
 		std::deque<WriteTask> writeTasks;
 };

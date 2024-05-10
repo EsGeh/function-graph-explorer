@@ -110,8 +110,6 @@ class JackClient {
 
 		bool isRunning() const;
 
-
-
 		QString getClientName() const;
 		uint getSamplerate();
 

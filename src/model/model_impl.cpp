@@ -1,7 +1,23 @@
 #include "fge/model/model_impl.h"
-#include "fge/model/func_network.h"
+#include "fge/model/func_network_impl.h"
+#include <ctime>
 #include <mutex>
 #include <strings.h>
+#include <QDebug>
+#include <source_location>
+
+
+#ifdef LOG_MODEL
+
+#define LOG_FUNCTION() \
+{ \
+	const auto location = std::source_location::current(); \
+	qDebug() << location.file_name() << location.function_name(); \
+}
+
+#else
+#define LOG_FUNCTION()
+#endif
 
 
 /************************
@@ -19,7 +35,7 @@
 ModelImpl::ModelImpl(
 		const SamplingSettings& defSamplingSettings
 ):
-	network( funcNetworkFabric() )
+	network( funcNetworkWithInfoFabric<NodeInfo>() )
 {}
 
 // Getters:
@@ -28,11 +44,13 @@ SamplingSettings ModelImpl::getSamplingSettings(
 		const Index index
 )
 {
+	LOG_FUNCTION()
 	return no_optimization_settings;
 }
 
 uint ModelImpl::size() const
 {
+	LOG_FUNCTION()
 	START_READ()
 	return getNetwork()->size();
 }
@@ -40,6 +58,7 @@ uint ModelImpl::size() const
 QString ModelImpl::getFormula(
 		const size_t index
 ) const {
+	LOG_FUNCTION()
 	START_READ()
 	return getNetwork()->getFunctionParameters(index).formula;
 }
@@ -47,6 +66,7 @@ QString ModelImpl::getFormula(
 MaybeError ModelImpl::getError(
 		const Index index
 ) const {
+	LOG_FUNCTION()
 	START_READ()
 	auto functionOrError = getNetwork()->get(index);
 	if( !functionOrError ) {
@@ -59,8 +79,9 @@ bool ModelImpl::getIsPlaybackEnabled(
 		const uint index
 ) const
 {
+	LOG_FUNCTION()
 	START_READ()
-	return getNetwork()->getIsPlaybackEnabled(index);
+	return getNetwork()->getNodeInfo(index)->isPlaybackEnabled;
 }
 
 ErrorOrValue<std::vector<std::pair<C,C>>> ModelImpl::getGraph(
@@ -69,6 +90,7 @@ ErrorOrValue<std::vector<std::pair<C,C>>> ModelImpl::getGraph(
 		const unsigned int resolution
 ) const
 {
+	LOG_FUNCTION()
 	START_READ()
 	auto errorOrFunction = getNetwork()->get( index );
 	if( !errorOrFunction ) {
@@ -123,6 +145,7 @@ void ModelImpl::setSamplingSettings(
 
 void ModelImpl::resize(const uint size)
 {
+	LOG_FUNCTION()
 	if( !audioSchedulingEnabled ) {
 		return getNetwork()->resize( size );
 	}
@@ -166,6 +189,7 @@ MaybeError ModelImpl::set(
 		const StateDescriptions& stateDescriptions
 )
 {
+	LOG_FUNCTION()
 	auto functionParameters = FunctionParameters{
 		.formula = formula,
 		.parameters = parameters,
@@ -212,6 +236,7 @@ MaybeError ModelImpl::setParameterValues(
 		const ParameterBindings& parameters
 )
 {
+	LOG_FUNCTION()
 	if( !audioSchedulingEnabled ) {
 		return getNetwork()->setParameterValues( index,parameters );
 	}
@@ -251,14 +276,16 @@ void ModelImpl::setIsPlaybackEnabled(
 		const bool value
 )
 {
+	LOG_FUNCTION()
 	if( !audioSchedulingEnabled ) {
-		return getNetwork()->setIsPlaybackEnabled( index,value );
+		getNetwork()->getNodeInfo(index)->isPlaybackEnabled = value;
+		return;
 	}
 	tasksLock.lock();
 	// ramp down first:
 	if( !value )
 	{
-		volumeEnvelopes[index] = 1;
+		getNetwork()->getNodeInfo(index)->volumeEnvelope = 1;
 		auto task = RampTask{ index, 1,0 };
 		writeTasks.push_back(std::move(task));
 	}
@@ -277,7 +304,7 @@ void ModelImpl::setIsPlaybackEnabled(
 	{
 		auto task = RampTask{ index, 0,1 };
 		writeTasks.push_back(std::move(task));
-		volumeEnvelopes[index] = 0;
+		getNetwork()->getNodeInfo(index)->volumeEnvelope = 0;
 	}
 	auto returnSignal = [this](){
 		auto task = SignalReturnTask{};
@@ -335,9 +362,7 @@ void ModelImpl::executeWriteOperations(
 )
 {
 	this->position = position;
-	// only write, if no one is reading:
 	if( networkLock.try_lock() ) {
-		// only write, if no one is adding a task:
 		if( tasksLock.try_lock() ) {
 			if( !writeTasks.empty() ) {
 				auto& someTask = writeTasks.front();
@@ -367,10 +392,7 @@ void ModelImpl::executeWriteOperations(
 				}
 				// setIsPlaybackEnabled:
 				else if( auto task = std::get_if<SetIsPlaybackEnabledTask>(&someTask) ) {
-					getNetwork()->setIsPlaybackEnabled(
-							task->index,
-							task->value
-					);
+					getNetwork()->getNodeInfo(task->index)->isPlaybackEnabled = task->value;
 					task->promise.set_value();
 					writeTasks.pop_front();
 				}
@@ -433,7 +455,7 @@ void ModelImpl::updateRamps(
 					task->src + (task->dst - task->src)
 					* (time / rampTime)
 				;
-				volumeEnvelopes[task->index] = env;
+				getNetwork()->getNodeInfo(task->index)->volumeEnvelope = env;
 			}
 			else {
 				currentEnvTaskDone = true;
@@ -451,14 +473,11 @@ float ModelImpl::audioFunction(
 	C time = C(T(position) / T(samplerate), 0);
 	for( Index i=0; i<getNetwork()->size(); i++ ) {
 		auto functionOrError = getNetwork()->get(i);
-		auto isPlaybackEnabled = getNetwork()->getIsPlaybackEnabled(i);
+		auto isPlaybackEnabled = getNetwork()->getNodeInfo(i)->isPlaybackEnabled;
 		if( !functionOrError || !isPlaybackEnabled )
 			continue;
 		auto function = functionOrError.value();
-		double volEnv = 1;
-		if( auto it = volumeEnvelopes.find(i); it != volumeEnvelopes.end() ) {
-			volEnv = it->second;
-		}
+		double volEnv = getNetwork()->getNodeInfo(i)->volumeEnvelope;
 		ret += (
 				function->get( time ).c_.real()
 				* volEnv

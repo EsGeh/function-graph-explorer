@@ -37,14 +37,16 @@ class FuncNetwork
 				const Index index,
 				const ParameterBindings& parameters
 		) = 0;
-
-		virtual bool getIsPlaybackEnabled(
-				const Index index
-		) const = 0;
-		virtual void setIsPlaybackEnabled(
-				const Index index,
-				const bool value
-		) = 0;
 };
 
-std::shared_ptr<FuncNetwork> funcNetworkFabric();
+template <class NodeInfo>
+class FuncNetworkWithInfo:
+	virtual public FuncNetwork
+{
+	public:
+		using Index = FuncNetwork::Index;
+	public:
+		virtual NodeInfo* getNodeInfo(
+				const Index index
+		) const = 0;
+};

@@ -4,7 +4,12 @@
 
 
 /**
-- hide direct access to functions
+Represents the following concepts:
+
+- sampling:
+  direct access to functions is
+	forbidden. The interface only
+	allows sampling a function
 */
 class FuncNetworkHighLevel
 {
@@ -54,6 +59,12 @@ class FuncNetworkHighLevel
 				const Index index,
 				const ParameterBindings& parameters
 		) = 0;
+};
+
+class AudioScheduled:
+	virtual public FuncNetworkHighLevel
+{
+	public:
 		virtual void setIsPlaybackEnabled(
 				const Index index,
 				const bool value
@@ -62,12 +73,7 @@ class FuncNetworkHighLevel
 				const Index index,
 				const SamplingSettings& value
 		) = 0;
-};
 
-class AudioScheduled:
-	virtual public FuncNetworkHighLevel
-{
-	public:
 		virtual void setAudioSchedulingEnabled(
 				const bool value
 		) = 0;

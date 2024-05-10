@@ -1,11 +1,6 @@
 #include "fge/model/func_network_impl.h"
 
 
-inline QString functionName( const size_t index ) {
-	return QString("f%1").arg( index );
-}
-
-
 #define DECL_FUNC_BEGIN(CLASS, ORD, ...) \
 struct CLASS: \
 	public exprtk::ifunction<C>  \
@@ -72,8 +67,9 @@ static auto polarFunc = PolarFunction();
 static auto realCompare = Real_Compare();
 static auto randomFunc = RandomFunction();
 
-FuncNetworkImpl::FuncNetworkImpl()
-	: constants(
+Symbols symbols()
+{
+	return Symbols(
 		{
 			{ "pi", C(acos(-1),0) },
 			{ "e", cmplx::details::constant::e },
@@ -92,175 +88,5 @@ FuncNetworkImpl::FuncNetworkImpl()
 			{ "real_cmp", &realCompare },
 			{ "rnd", &randomFunc }
 		}
-	)
-{}
-
-uint FuncNetworkImpl::size() const
-{
-	return entries.size();
-}
-
-FunctionOrError FuncNetworkImpl::get(const uint index) const
-{
-	auto entry = entries.at( index );
-	return entry->functionOrError
-	.transform_error([](auto invalidEntry) {
-			return invalidEntry.error;
-	});
-}
-
-FunctionParameters FuncNetworkImpl::getFunctionParameters(const uint index) const
-{
-	auto entry = entries.at( index );
-	if( entry->functionOrError ) {
-		auto function = entry->functionOrError.value();
-		return FunctionParameters{
-			.formula = function->toString(),
-			.parameters = function->getParameters(),
-			.stateDescriptions = function->getStateDescriptions()
-		};
-	}
-	else {
-		auto error = entry->functionOrError.error();
-		return error.parameters;
-	}
-}
-
-bool FuncNetworkImpl::getIsPlaybackEnabled(
-		const uint index
-) const
-{
-	return entries.at( index )->isAudioEnabled;
-}
-
-void FuncNetworkImpl::setIsPlaybackEnabled(
-		const uint index,
-		const bool value
-)
-{
-	auto entry = entries.at( index );
-	entry->isAudioEnabled = value;
-}
-
-
-void FuncNetworkImpl::resize( const uint size ) {
-	const auto oldSize = entries.size();
-	if( size < oldSize ) {
-		entries.resize( size );
-	}
-	else if( size > oldSize ) {
-		for( uint i=oldSize; i<size; i++ ) {
-			auto entry = std::shared_ptr<NetworkEntry>(new NetworkEntry {
-					.functionOrError = std::unexpected(InvalidEntry{
-						.error = "not yet initialized",
-						.parameters = FunctionParameters{
-								.formula = (i>0)
-									? QString("%1(x)").arg( functionName(i-1) )
-									: "cos( 2pi * x )"
-						}
-					})
-			});
-			entries.push_back( entry );
-		}
-		updateFormulas(oldSize, {});
-	}
-	assert( entries.size() == size );
-}
-
-MaybeError FuncNetworkImpl::set(
-		const uint index,
-		const FunctionParameters& parameters
-) {
-	// assert( index < size() );
-	Symbols functionSymbols;
-	/* dont change entries
-	 * before start index
-	 * but add their
-	 * function symbols
-	 */
-	for( size_t i=0; i<index; i++ ) {
-		auto entry = entries.at(i);
-		if( entry->functionOrError.has_value() ) {
-			functionSymbols.addFunction(
-					functionName( i ),
-					entry->functionOrError.value().get()
-			);
-		}
-	}
-	updateFormulas( index, parameters );
-	if( !get(index) ) {
-		return get(index).error();
-	}
-	return {};
-}
-
-MaybeError FuncNetworkImpl::setParameterValues(
-		const Index index,
-		const ParameterBindings& parameters
-)
-{
-	FunctionOrError functionOrError = get( index );
-	if( !functionOrError ) {
-		return functionOrError.error();
-	}
-	auto function = functionOrError.value();
-	for( auto [key, val] : parameters ) {
-		auto maybeError = function->setParameter( key, val );
-		if( maybeError ) {
-			return maybeError.value();
-		}
-	}
-	return {};
-}
-
-void FuncNetworkImpl::updateFormulas(
-		const size_t startIndex,
-		const std::optional<FunctionParameters>& parameters
-)
-{
-	Symbols functionSymbols;
-	/* dont change entries
-	 * before start index
-	 * but add their
-	 * function symbols
-	 */
-	for( size_t i=0; i<startIndex; i++ ) {
-		auto entry = entries.at(i);
-		if( entry->functionOrError.has_value() ) {
-			functionSymbols.addFunction(
-					functionName( i ),
-					entry->functionOrError.value().get()
-			);
-		}
-	}
-	/* update entries
-	 * from startIndex:
-	 */
-	for( size_t i=startIndex; i<entries.size(); i++ ) {
-		auto entry = entries.at(i);
-		FunctionParameters params = getFunctionParameters(i);
-		if( i==startIndex && parameters ) {
-			params = parameters.value();
-		}
-		entry->functionOrError = formulaFunctionFactory(
-				params.formula,
-				params.parameters,
-				params.stateDescriptions,
-				{
-					constants,
-					functionSymbols
-				}
-		).transform_error([params](auto error){
-			return InvalidEntry{
-				.error = error,
-				.parameters = params
-			};
-		});
-		if( entry->functionOrError ) {
-			functionSymbols.addFunction(
-					functionName( i ),
-					entry->functionOrError.value().get()
-			);
-		}
-	}
+	);
 }
