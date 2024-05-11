@@ -4,10 +4,38 @@
 #include "func_network.h"
 #include "func_network_impl.h"
 #include <future>
+#include <memory>
+#include <optional>
 
 
 // 50ms
 const double rampTime = 50.0 / 1000.0;
+
+C getWithResolution(
+		std::shared_ptr<Function> function,
+		const C& x,
+		const SamplingSettings& samplingSettings,
+		std::shared_ptr<Cache> cache
+);
+
+C interpolate(
+		const C& x,
+		const std::vector<C> ys,
+		const int shift,
+		const uint resolution
+
+);
+
+int xToRasterIndex(
+		const C& x,
+		const uint resolution
+);
+
+C rasterIndexToY(
+		std::shared_ptr<Function> function,
+		int x,
+		const uint resolution
+);
 
 /**
 	The model is accessed by 2 threads:
@@ -31,6 +59,8 @@ struct NodeInfo:
 {
 	bool isPlaybackEnabled = false;
 	double volumeEnvelope = 1;
+	SamplingSettings samplingSettings;
+	mutable std::shared_ptr<Cache> cache;
 };
 
 using AudioCallback = std::function<void(
@@ -129,14 +159,20 @@ class SampledFunctionCollectionImpl:
 				const uint samplerate
 		);
 	private:
-		virtual std::shared_ptr<LowLevel::NodeInfo> createNodeInfo() override {
-			return std::shared_ptr<NodeInfo>(new ::NodeInfo{});
-		};
+		virtual std::shared_ptr<LowLevel::NodeInfo> createNodeInfo(
+				const Index index,
+				std::shared_ptr<Function> maybeFunction
+		) override;
+
+		void updateCaches( const Index index );
+		std::shared_ptr<Cache> updateCache( std::shared_ptr<Function> maybeFunction );
+
 		const ::NodeInfo* getNodeInfoConst( const Index index ) const {
 			return static_cast<::NodeInfo*>(LowLevel::getNodeInfo(index));
 		}
 
 	private:
+		SamplingSettings defSamplingSettings;
 		AudioCallback audioCallback;
 		double masterVolume = 1;
 };
@@ -257,6 +293,15 @@ class ScheduledFunctionCollectionImpl:
 			PlaybackPosition pos = 0;
 			std::promise<ReturnType> promise;
 		};
+		struct SetSamplingSettingsTask
+		{
+			Index index;
+			SamplingSettings value;
+			using ReturnType =
+				decltype(std::declval<SampledFunctionCollectionInternal>().setSamplingSettings(index,value));
+			PlaybackPosition pos = 0;
+			std::promise<ReturnType> promise;
+		};
 		struct RampTask
 		{
 			Index index;
@@ -279,6 +324,7 @@ class ScheduledFunctionCollectionImpl:
 			SetTask,
 			SetParameterValuesTask,
 			SetIsPlaybackEnabledTask,
+			SetSamplingSettingsTask,
 			RampTask,
 			RampMasterTask,
 			SignalReturnTask
@@ -296,8 +342,6 @@ class ScheduledFunctionCollectionImpl:
 	private:
 		bool audioSchedulingEnabled = false;
 		PlaybackPosition position = 0;
-		// double masterVolumeEnv = 1;
-		// std::map<Index,double> volumeEnvelopes;
 		bool currentEnvTaskDone = false;
 		mutable std::mutex networkLock;
 		std::shared_ptr<SampledFunctionCollectionImpl> network;

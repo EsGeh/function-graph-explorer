@@ -17,11 +17,11 @@ struct SampledFunctionCollection
 {
 	using Index = FunctionCollection::Index;
 	virtual ~SampledFunctionCollection() {};
-	
+
 	// Size
 	virtual uint size() const = 0;
 	virtual void resize( const uint size ) = 0;
-	
+
 	// Read entries:
 	virtual QString getFormula(
 			const size_t index
@@ -29,7 +29,7 @@ struct SampledFunctionCollection
 	virtual MaybeError getError(
 			const Index index
 	) const = 0;
-	
+
 	// Write entries:
 	virtual MaybeError set(
 			const Index index,
@@ -41,11 +41,11 @@ struct SampledFunctionCollection
 			const Index index,
 			const ParameterBindings& parameters
 	) = 0;
-	
+
 	/***************
 	 * Sampling
 	 ***************/
-	
+
 	// general settings:
 	virtual SamplingSettings getSamplingSettings(
 			const Index index
@@ -54,14 +54,14 @@ struct SampledFunctionCollection
 			const Index index,
 			const SamplingSettings& value
 	) = 0;
-	
+
 	// sampling for visual representation:
 	virtual ErrorOrValue<std::vector<std::pair<C,C>>> getGraph(
 			const Index index,
 			const std::pair<T,T>& range,
 			const unsigned int resolution
 	) const = 0;
-	
+
 	// sampling for audio:
 	virtual void valuesToBuffer(
 			std::vector<float>* buffer,

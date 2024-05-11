@@ -50,7 +50,11 @@ class FunctionCollectionWithInfo:
 				const Index index
 		) const = 0;
 
-		virtual std::shared_ptr<NodeInfo> createNodeInfo() {
+		virtual std::shared_ptr<NodeInfo> createNodeInfo(
+				const Index index,
+				std::shared_ptr<Function> maybeFunction
+		)
+		{
 			return std::shared_ptr<NodeInfo>(new NodeInfo{});
 		};
 };

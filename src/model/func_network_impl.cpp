@@ -1,5 +1,6 @@
 #include "fge/model/func_network_impl.h"
 #include "include/fge/model/func_network.h"
+#include <memory>
 
 
 #define DECL_FUNC_BEGIN(CLASS, ORD, ...) \
@@ -146,8 +147,7 @@ void FunctionCollectionImpl::resize( const uint size ) {
 									? QString("%1(x)").arg( functionName(i-1) )
 									: "cos( 2pi * x )"
 						}
-					}),
-					.info = createNodeInfo()
+					})
 			});
 			entries.push_back( entry );
 		}
@@ -245,6 +245,17 @@ void FunctionCollectionImpl::updateFormulas(
 				.parameters = params
 			};
 		});
+		if( !entry->info )
+		{
+			std::shared_ptr<Function> maybeFunction = {};
+			if( entry->functionOrError ) {
+				maybeFunction = entry->functionOrError.value();
+			}
+			entry->info = createNodeInfo(
+					i,
+					maybeFunction
+			);
+		}
 		if( entry->functionOrError ) {
 			functionSymbols.addFunction(
 					functionName( i ),
