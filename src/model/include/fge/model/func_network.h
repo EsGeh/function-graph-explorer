@@ -15,12 +15,12 @@ struct FunctionParameters
 using FunctionOrError =
 	std::expected<std::shared_ptr<Function>,Error>;
 
-class FuncNetwork
+class FunctionCollection
 {
 	public:
 		using Index = uint;
 	public:
-		virtual ~FuncNetwork() {};
+		virtual ~FunctionCollection() {};
 		// Size
 		virtual uint size() const = 0;
 		virtual void resize( const uint size ) = 0;
@@ -39,11 +39,11 @@ class FuncNetwork
 		) = 0;
 };
 
-class FuncNetworkWithInfo:
-	virtual public FuncNetwork
+class FunctionCollectionWithInfo:
+	virtual public FunctionCollection
 {
 	public:
-		using Index = FuncNetwork::Index;
+		using Index = FunctionCollection::Index;
 		struct NodeInfo {};
 	public:
 		virtual NodeInfo* getNodeInfo(

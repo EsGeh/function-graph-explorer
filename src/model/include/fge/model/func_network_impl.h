@@ -4,13 +4,13 @@
 #include <memory>
 
 
-class FuncNetworkImpl:
-	public FuncNetworkWithInfo
+class FunctionCollectionImpl:
+	public FunctionCollectionWithInfo
 {
 	public:
-		using Base = FuncNetworkWithInfo;
+		using Base = FunctionCollectionWithInfo;
 		using Index = Base::Index;
-		using NodeInfo = FuncNetworkWithInfo::NodeInfo;
+		using NodeInfo = FunctionCollectionWithInfo::NodeInfo;
 
 	private:
 		struct InvalidEntry
@@ -31,7 +31,7 @@ class FuncNetworkImpl:
 		};
 
 	public:
-		FuncNetworkImpl();
+		FunctionCollectionImpl();
 
 		virtual uint size() const override;
 		virtual void resize( const uint size ) override;

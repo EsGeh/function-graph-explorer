@@ -13,10 +13,10 @@ Represents the following concepts:
 	hidden. The interface only
 	allows sampling a function
 */
-struct FuncNetworkHighLevelBase
+struct SampledFunctionCollection
 {
-	using Index = FuncNetwork::Index;
-	virtual ~FuncNetworkHighLevelBase() {};
+	using Index = FunctionCollection::Index;
+	virtual ~SampledFunctionCollection() {};
 	
 	// Size
 	virtual uint size() const = 0;
@@ -78,8 +78,8 @@ struct FuncNetworkHighLevelBase
 
 };
 
-struct FuncNetworkHighLevelInternal:
-	public FuncNetworkHighLevelBase
+struct SampledFunctionCollectionInternal:
+	public SampledFunctionCollection
 {
 	virtual double getMasterVolume() const = 0;
 	virtual void setMasterVolume(const double value) = 0;
@@ -100,7 +100,7 @@ struct AudioScheduled
 };
 
 struct Model:
-	public FuncNetworkHighLevelBase,
+	public SampledFunctionCollection,
 	public AudioScheduled
 {
 	virtual ~Model() {};

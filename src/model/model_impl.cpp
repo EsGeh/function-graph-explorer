@@ -21,10 +21,10 @@
 
 
 /************************
- * FuncNetworkHighLevelImpl
+ * SampledFunctionCollectionImpl
 ************************/
 
-FuncNetworkHighLevelImpl::FuncNetworkHighLevelImpl(
+SampledFunctionCollectionImpl::SampledFunctionCollectionImpl(
 		const SamplingSettings& defSamplingSettings,
 		AudioCallback audioCallback 
 )
@@ -32,14 +32,14 @@ FuncNetworkHighLevelImpl::FuncNetworkHighLevelImpl(
 {}
 
 // Read entries:
-QString FuncNetworkHighLevelImpl::getFormula(
+QString SampledFunctionCollectionImpl::getFormula(
 		const size_t index
 ) const
 {
 	return LowLevel::getFunctionParameters(index).formula;
 }
 
-MaybeError FuncNetworkHighLevelImpl::getError(
+MaybeError SampledFunctionCollectionImpl::getError(
 		const Index index
 ) const
 {
@@ -52,7 +52,7 @@ MaybeError FuncNetworkHighLevelImpl::getError(
 
 // Set Entries:
 
-MaybeError FuncNetworkHighLevelImpl::set(
+MaybeError SampledFunctionCollectionImpl::set(
 		const Index index,
 		const QString& formula,
 		const ParameterBindings& parameters,
@@ -68,7 +68,7 @@ MaybeError FuncNetworkHighLevelImpl::set(
 		);
 }
 
-MaybeError FuncNetworkHighLevelImpl::setParameterValues(
+MaybeError SampledFunctionCollectionImpl::setParameterValues(
 		const Index index,
 		const ParameterBindings& parameters
 )
@@ -82,14 +82,14 @@ MaybeError FuncNetworkHighLevelImpl::setParameterValues(
  ***************/
 
 // general settings:
-SamplingSettings FuncNetworkHighLevelImpl::getSamplingSettings(
+SamplingSettings SampledFunctionCollectionImpl::getSamplingSettings(
 		const Index index
 )
 {
 	return no_optimization_settings;
 }
 
-void FuncNetworkHighLevelImpl::setSamplingSettings(
+void SampledFunctionCollectionImpl::setSamplingSettings(
 		const Index index,
 		const SamplingSettings& value
 )
@@ -97,7 +97,7 @@ void FuncNetworkHighLevelImpl::setSamplingSettings(
 }
 
 // sampling for visual representation:
-ErrorOrValue<std::vector<std::pair<C,C>>> FuncNetworkHighLevelImpl::getGraph(
+ErrorOrValue<std::vector<std::pair<C,C>>> SampledFunctionCollectionImpl::getGraph(
 		const Index index,
 		const std::pair<T,T>& range,
 		const unsigned int resolution
@@ -129,14 +129,14 @@ ErrorOrValue<std::vector<std::pair<C,C>>> FuncNetworkHighLevelImpl::getGraph(
 }
 
 // sampling for audio:
-bool FuncNetworkHighLevelImpl::getIsPlaybackEnabled(
+bool SampledFunctionCollectionImpl::getIsPlaybackEnabled(
 		const Index index
 ) const
 {
 	return getNodeInfoConst(index)->isPlaybackEnabled;
 }
 
-void FuncNetworkHighLevelImpl::setIsPlaybackEnabled(
+void SampledFunctionCollectionImpl::setIsPlaybackEnabled(
 		const Index index,
 		const bool value
 )
@@ -144,7 +144,7 @@ void FuncNetworkHighLevelImpl::setIsPlaybackEnabled(
 	getNodeInfo(index)->isPlaybackEnabled = value;
 }
 
-void FuncNetworkHighLevelImpl::valuesToBuffer(
+void SampledFunctionCollectionImpl::valuesToBuffer(
 		std::vector<float>* buffer,
 		const PlaybackPosition position,
 		const unsigned int samplerate
@@ -162,19 +162,19 @@ void FuncNetworkHighLevelImpl::valuesToBuffer(
 	}
 }
 
-double FuncNetworkHighLevelImpl::getMasterVolume() const 
+double SampledFunctionCollectionImpl::getMasterVolume() const 
 {
 	return masterVolume;
 }
 
-void FuncNetworkHighLevelImpl::setMasterVolume(const double value)
+void SampledFunctionCollectionImpl::setMasterVolume(const double value)
 {
 	masterVolume = value;
 }
 
 // private:
 
-float FuncNetworkHighLevelImpl::audioFunction(
+float SampledFunctionCollectionImpl::audioFunction(
 		const PlaybackPosition position,
 		const uint samplerate
 )
@@ -198,16 +198,16 @@ float FuncNetworkHighLevelImpl::audioFunction(
 }
 
 /************************
- * ScheduledNetworkImpl:
+ * ScheduledFunctionCollectionImpl:
 ************************/
 
 #define START_READ() \
 	std::lock_guard lock( networkLock );
 
-ScheduledNetworkImpl::ScheduledNetworkImpl(
+ScheduledFunctionCollectionImpl::ScheduledFunctionCollectionImpl(
 		const SamplingSettings& defSamplingSettings
 )
-	: network( new FuncNetworkHighLevelImpl(
+	: network( new SampledFunctionCollectionImpl(
 				defSamplingSettings,
 				[this](
 					const PlaybackPosition position,
@@ -219,13 +219,13 @@ ScheduledNetworkImpl::ScheduledNetworkImpl(
 {
 }
 
-ScheduledNetworkImpl::Index ScheduledNetworkImpl::size() const
+ScheduledFunctionCollectionImpl::Index ScheduledFunctionCollectionImpl::size() const
 {
 	START_READ()
 	return getNetwork()->size();
 }
 
-void ScheduledNetworkImpl::resize( const uint size )
+void ScheduledFunctionCollectionImpl::resize( const uint size )
 {
 	if( !audioSchedulingEnabled ) {
 		getNetwork()->resize( size );
@@ -265,7 +265,7 @@ void ScheduledNetworkImpl::resize( const uint size )
 }
 
 // Read entries:
-QString ScheduledNetworkImpl::getFormula(
+QString ScheduledFunctionCollectionImpl::getFormula(
 		const size_t index
 ) const
 {
@@ -273,7 +273,7 @@ QString ScheduledNetworkImpl::getFormula(
 	return getNetwork()->getFormula(index);
 }
 
-MaybeError ScheduledNetworkImpl::getError(
+MaybeError ScheduledFunctionCollectionImpl::getError(
 		const Index index
 ) const
 {
@@ -283,7 +283,7 @@ MaybeError ScheduledNetworkImpl::getError(
 
 // Set Entries:
 
-MaybeError ScheduledNetworkImpl::set(
+MaybeError ScheduledFunctionCollectionImpl::set(
 		const Index index,
 		const QString& formula,
 		const ParameterBindings& parameters,
@@ -327,7 +327,7 @@ MaybeError ScheduledNetworkImpl::set(
 	return ret;
 }
 
-MaybeError ScheduledNetworkImpl::setParameterValues(
+MaybeError ScheduledFunctionCollectionImpl::setParameterValues(
 		const Index index,
 		const ParameterBindings& parameters
 )
@@ -372,14 +372,14 @@ MaybeError ScheduledNetworkImpl::setParameterValues(
  ***************/
 
 // general settings:
-SamplingSettings ScheduledNetworkImpl::getSamplingSettings(
+SamplingSettings ScheduledFunctionCollectionImpl::getSamplingSettings(
 		const Index index
 )
 {
 	START_READ()
 	return getNetwork()->getSamplingSettings(index);
 }
-void ScheduledNetworkImpl::setSamplingSettings(
+void ScheduledFunctionCollectionImpl::setSamplingSettings(
 		const Index index,
 		const SamplingSettings& value
 )
@@ -387,7 +387,7 @@ void ScheduledNetworkImpl::setSamplingSettings(
 }
 
 // sampling for visual representation:
-ErrorOrValue<std::vector<std::pair<C,C>>> ScheduledNetworkImpl::getGraph(
+ErrorOrValue<std::vector<std::pair<C,C>>> ScheduledFunctionCollectionImpl::getGraph(
 		const Index index,
 		const std::pair<T,T>& range,
 		const unsigned int resolution
@@ -398,7 +398,7 @@ ErrorOrValue<std::vector<std::pair<C,C>>> ScheduledNetworkImpl::getGraph(
 }
 
 // sampling for audio:
-bool ScheduledNetworkImpl::getIsPlaybackEnabled(
+bool ScheduledFunctionCollectionImpl::getIsPlaybackEnabled(
 		const Index index
 ) const
 {
@@ -406,7 +406,7 @@ bool ScheduledNetworkImpl::getIsPlaybackEnabled(
 	return getNetwork()->getIsPlaybackEnabled(index);
 }
 
-void ScheduledNetworkImpl::setIsPlaybackEnabled(
+void ScheduledFunctionCollectionImpl::setIsPlaybackEnabled(
 		const Index index,
 		const bool value
 )
@@ -451,7 +451,7 @@ void ScheduledNetworkImpl::setIsPlaybackEnabled(
 	returnSignal.get();
 	return;
 }
-void ScheduledNetworkImpl::valuesToBuffer(
+void ScheduledFunctionCollectionImpl::valuesToBuffer(
 		std::vector<float>* buffer,
 		const PlaybackPosition position,
 		const unsigned int samplerate
@@ -463,7 +463,7 @@ void ScheduledNetworkImpl::valuesToBuffer(
 
 // Control Scheduling:
 
-void ScheduledNetworkImpl::setAudioSchedulingEnabled(
+void ScheduledFunctionCollectionImpl::setAudioSchedulingEnabled(
 		const bool value
 )
 {
@@ -500,7 +500,7 @@ void ScheduledNetworkImpl::setAudioSchedulingEnabled(
 	}
 }
 
-void ScheduledNetworkImpl::executeWriteOperations(
+void ScheduledFunctionCollectionImpl::executeWriteOperations(
 		const PlaybackPosition position,
 		const uint samplerate
 )
@@ -565,7 +565,7 @@ void ScheduledNetworkImpl::executeWriteOperations(
 	}
 }
 
-void ScheduledNetworkImpl::updateRamps(
+void ScheduledFunctionCollectionImpl::updateRamps(
 		const PlaybackPosition position,
 		const uint samplerate
 )

@@ -93,19 +93,19 @@ Symbols symbols()
 }
 
 /*********************
- * FuncNetworkImpl
+ * FunctionCollectionImpl
 *********************/
 
-FuncNetworkImpl::FuncNetworkImpl()
+FunctionCollectionImpl::FunctionCollectionImpl()
 	: constants( symbols() )
 {}
 
-uint FuncNetworkImpl::size() const
+uint FunctionCollectionImpl::size() const
 {
 	return entries.size();
 }
 
-FunctionOrError FuncNetworkImpl::get(const Index index) const
+FunctionOrError FunctionCollectionImpl::get(const Index index) const
 {
 	auto entry = entries.at( index );
 	return entry->functionOrError
@@ -114,7 +114,7 @@ FunctionOrError FuncNetworkImpl::get(const Index index) const
 	});
 }
 
-FunctionParameters FuncNetworkImpl::getFunctionParameters(const uint index) const
+FunctionParameters FunctionCollectionImpl::getFunctionParameters(const uint index) const
 {
 	auto entry = entries.at( index );
 	if( entry->functionOrError ) {
@@ -131,7 +131,7 @@ FunctionParameters FuncNetworkImpl::getFunctionParameters(const uint index) cons
 	}
 }
 
-void FuncNetworkImpl::resize( const uint size ) {
+void FunctionCollectionImpl::resize( const uint size ) {
 	const auto oldSize = entries.size();
 	if( size < oldSize ) {
 		entries.resize( size );
@@ -156,7 +156,7 @@ void FuncNetworkImpl::resize( const uint size ) {
 	assert( entries.size() == size );
 }
 
-MaybeError FuncNetworkImpl::set(
+MaybeError FunctionCollectionImpl::set(
 		const Index index,
 		const FunctionParameters& parameters
 ) {
@@ -183,7 +183,7 @@ MaybeError FuncNetworkImpl::set(
 	return {};
 }
 
-MaybeError FuncNetworkImpl::setParameterValues(
+MaybeError FunctionCollectionImpl::setParameterValues(
 		const Index index,
 		const ParameterBindings& parameters
 )
@@ -202,7 +202,7 @@ MaybeError FuncNetworkImpl::setParameterValues(
 	return {};
 }
 
-void FuncNetworkImpl::updateFormulas(
+void FunctionCollectionImpl::updateFormulas(
 		const size_t startIndex,
 		const std::optional<FunctionParameters>& parameters
 )
@@ -254,7 +254,7 @@ void FuncNetworkImpl::updateFormulas(
 	}
 }
 
-FuncNetworkImpl::NodeInfo* FuncNetworkImpl::getNodeInfo(
+FunctionCollectionImpl::NodeInfo* FunctionCollectionImpl::getNodeInfo(
 		const Index index
 ) const
 {

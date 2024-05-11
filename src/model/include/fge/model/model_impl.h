@@ -20,15 +20,14 @@ const double rampTime = 50.0 / 1000.0;
 	between the 2 threads.
 	Always give preference to the
 	audio thread if possible.
-	Prevent audio xruns at all costs.
-	READ access may happen concurrently.
+	Prevent audio xruns at all costs. READ access may happen concurrently.
 	WRITE access by the gui is deferred
 	and executed between the audio
 	sampling periods.
 */
 
 struct NodeInfo:
-	public FuncNetworkWithInfo::NodeInfo
+	public FunctionCollectionWithInfo::NodeInfo
 {
 	bool isPlaybackEnabled = false;
 	double volumeEnvelope = 1;
@@ -41,15 +40,15 @@ using AudioCallback = std::function<void(
 
 
 
-class FuncNetworkHighLevelImpl:
-	public FuncNetworkHighLevelInternal,
-	private FuncNetworkImpl
+class SampledFunctionCollectionImpl:
+	public SampledFunctionCollectionInternal,
+	private FunctionCollectionImpl
 {
 	public:
-		using LowLevel = FuncNetworkImpl;
-		using FuncNetworkHighLevelInternal::Index;
+		using LowLevel = FunctionCollectionImpl;
+		using SampledFunctionCollectionInternal::Index;
 	public:
-		FuncNetworkHighLevelImpl(
+		SampledFunctionCollectionImpl(
 				const SamplingSettings& defSamplingSettings,
 				AudioCallback audioCallback 
 		);
@@ -57,10 +56,6 @@ class FuncNetworkHighLevelImpl:
 		// Size:
 		uint size() const override { return LowLevel::size(); }
 		void resize(const uint size) override { LowLevel::resize(size); }
-		/*
-		using LowLevel::size;
-		using LowLevel::resize;
-		*/
 
 		// Read entries:
 		virtual QString getFormula(
@@ -146,11 +141,11 @@ class FuncNetworkHighLevelImpl:
 		double masterVolume = 1;
 };
 
-class ScheduledNetworkImpl:
+class ScheduledFunctionCollectionImpl:
 	public Model
 {
 	public:
-		ScheduledNetworkImpl(
+		ScheduledFunctionCollectionImpl(
 				const SamplingSettings& defSamplingSettings
 		);
 
@@ -231,7 +226,7 @@ class ScheduledNetworkImpl:
 		{
 			uint size;
 			using ReturnType =
-				decltype(std::declval<FuncNetworkHighLevelInternal>().resize(size));
+				decltype(std::declval<SampledFunctionCollectionInternal>().resize(size));
 			PlaybackPosition pos = 0;
 			std::promise<ReturnType> promise;
 		};
@@ -240,7 +235,7 @@ class ScheduledNetworkImpl:
 			Index index;
 			FunctionParameters parameters;
 			using ReturnType =
-				decltype(std::declval<FuncNetworkHighLevelInternal>().set(index,parameters.formula, parameters.parameters, parameters.stateDescriptions));
+				decltype(std::declval<SampledFunctionCollectionInternal>().set(index,parameters.formula, parameters.parameters, parameters.stateDescriptions));
 			PlaybackPosition pos = 0;
 			std::promise<ReturnType> promise;
 		};
@@ -249,7 +244,7 @@ class ScheduledNetworkImpl:
 			Index index;
 			ParameterBindings parameters;
 			using ReturnType =
-				decltype(std::declval<FuncNetworkHighLevelInternal>().setParameterValues(index,parameters));
+				decltype(std::declval<SampledFunctionCollectionInternal>().setParameterValues(index,parameters));
 			PlaybackPosition pos = 0;
 			std::promise<ReturnType> promise;
 		};
@@ -258,7 +253,7 @@ class ScheduledNetworkImpl:
 			Index index;
 			bool value;
 			using ReturnType =
-				decltype(std::declval<FuncNetworkHighLevelInternal>().setIsPlaybackEnabled(index,value));
+				decltype(std::declval<SampledFunctionCollectionInternal>().setIsPlaybackEnabled(index,value));
 			PlaybackPosition pos = 0;
 			std::promise<ReturnType> promise;
 		};
@@ -294,7 +289,7 @@ class ScheduledNetworkImpl:
 				const PlaybackPosition position,
 				const uint samplerate
 		);
-		std::shared_ptr<FuncNetworkHighLevelImpl> getNetwork() const {
+		std::shared_ptr<SampledFunctionCollectionImpl> getNetwork() const {
 			return this->network;
 		}
 
@@ -305,9 +300,9 @@ class ScheduledNetworkImpl:
 		// std::map<Index,double> volumeEnvelopes;
 		bool currentEnvTaskDone = false;
 		mutable std::mutex networkLock;
-		std::shared_ptr<FuncNetworkHighLevelImpl> network;
+		std::shared_ptr<SampledFunctionCollectionImpl> network;
 		mutable std::mutex tasksLock;
 		std::deque<WriteTask> writeTasks;
 };
 
-using ModelImpl = ScheduledNetworkImpl;
+using ModelImpl = ScheduledFunctionCollectionImpl;
