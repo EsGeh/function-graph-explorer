@@ -39,14 +39,18 @@ class FuncNetwork
 		) = 0;
 };
 
-template <class NodeInfo>
 class FuncNetworkWithInfo:
 	virtual public FuncNetwork
 {
 	public:
 		using Index = FuncNetwork::Index;
+		struct NodeInfo {};
 	public:
 		virtual NodeInfo* getNodeInfo(
 				const Index index
 		) const = 0;
+
+		virtual std::shared_ptr<NodeInfo> createNodeInfo() {
+			return std::shared_ptr<NodeInfo>(new NodeInfo{});
+		};
 };
