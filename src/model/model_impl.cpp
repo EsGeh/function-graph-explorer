@@ -348,7 +348,7 @@ void ScheduledFunctionCollectionImpl::setAudioSchedulingEnabled(
 	}
 }
 
-void ScheduledFunctionCollectionImpl::executeWriteOperations(
+void ScheduledFunctionCollectionImpl::betweenAudio(
 		const PlaybackPosition position,
 		const uint samplerate
 )

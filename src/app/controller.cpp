@@ -32,7 +32,7 @@ Controller::Controller(
 							},
 							// update:
 							.betweenAudioCallback = [model](auto position, auto samplerate) {
-								model->executeWriteOperations( position, samplerate );
+								model->betweenAudio( position, samplerate );
 							}
 						}
 				);

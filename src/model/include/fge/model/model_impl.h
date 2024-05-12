@@ -102,7 +102,7 @@ class ScheduledFunctionCollectionImpl:
 				const bool value
 		) override;
 
-		virtual void executeWriteOperations(
+		virtual void betweenAudio(
 				const PlaybackPosition position,
 				const uint samplerate
 		) override;

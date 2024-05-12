@@ -11,7 +11,7 @@ struct AudioScheduled
 			const bool value
 	) = 0;
 
-	virtual void executeWriteOperations(
+	virtual void betweenAudio(
 			const PlaybackPosition position,
 			const uint samplerate
 	) = 0;
