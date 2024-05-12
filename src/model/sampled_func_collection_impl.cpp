@@ -1,5 +1,4 @@
 #include "fge/model/sampled_func_collection_impl.h"
-#include "include/fge/model/model.h"
 #include <cstddef>
 #include <ctime>
 #include <memory>

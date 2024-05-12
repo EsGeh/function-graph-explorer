@@ -1,3 +1,4 @@
+#include "fge/model/model.h"
 #include "fge/model/model_impl.h"
 
 

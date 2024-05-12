@@ -1,5 +1,4 @@
 #include "fge/model/model_impl.h"
-#include "include/fge/model/model.h"
 #include <cstddef>
 #include <ctime>
 #include <memory>

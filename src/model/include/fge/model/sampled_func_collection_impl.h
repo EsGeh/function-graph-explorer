@@ -1,6 +1,6 @@
 #pragma once
 
-#include "fge/model/model.h"
+#include "fge/model/sampled_func_collection.h"
 #include "function_collection.h"
 #include "function_collection_impl.h"
 #include <future>
