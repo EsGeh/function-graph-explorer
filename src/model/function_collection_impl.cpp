@@ -1,6 +1,4 @@
-#include "fge/model/func_network_impl.h"
-#include "include/fge/model/func_network.h"
-#include <memory>
+#include "fge/model/function_collection_impl.h"
 
 
 #define DECL_FUNC_BEGIN(CLASS, ORD, ...) \

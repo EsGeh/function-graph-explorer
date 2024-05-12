@@ -1,6 +1,6 @@
 #pragma once
 
-#include "fge/model/func_network.h"
+#include "fge/model/function_collection.h"
 
 
 using PlaybackPosition = unsigned long int;
