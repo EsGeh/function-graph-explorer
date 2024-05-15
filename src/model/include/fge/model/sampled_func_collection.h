@@ -23,7 +23,7 @@ struct SampledFunctionCollection
 	virtual void resize( const uint size ) = 0;
 
 	// Read entries:
-	virtual QString getFormula(
+	virtual FunctionParameters get(
 			const size_t index
 	) const = 0;
 	virtual MaybeError getError(

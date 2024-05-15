@@ -20,6 +20,16 @@ class FunctionView : public QWidget
   Q_OBJECT
 
 public:
+
+		struct UpdateInfo {
+			std::optional<QString> formula = {};
+			std::optional<ParameterBindings> parameters = {};
+			std::optional<StateDescriptions> stateDescriptions = {};
+			std::optional<bool> playbackEnabled = {};
+			std::optional<SamplingSettings> samplingSettings= {};
+		};
+
+public:
 	explicit FunctionView(
 			const QString& title,
 			QWidget *parent = nullptr
@@ -42,10 +52,8 @@ public:
   void setFormulaError( const QString& str );
 
 signals:
-  void formulaChanged();
+	void changed( UpdateInfo updateInfo );
   void viewParamsChanged();
-  void parameterValuesChanged();
-	void playbackEnabledChanged(const bool value);
 
 private:
 	// UI:

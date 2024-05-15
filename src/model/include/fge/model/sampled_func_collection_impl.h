@@ -42,7 +42,7 @@ class SampledFunctionCollectionImpl:
 		void resize(const uint size) override { LowLevel::resize(size); }
 
 		// Read entries:
-		virtual QString getFormula(
+		virtual FunctionParameters get(
 				const size_t index
 		) const override;
 

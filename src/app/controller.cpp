@@ -52,6 +52,7 @@ Controller::Controller(
 void Controller::setFunctionCount(const size_t size) {
 	auto oldSize = model->size();
 	model->resize( size );
+	model->postSetAny();
 	view->resizeFunctionView( size );
 	for( size_t i=oldSize; i<model->size(); i++ ) {
 		updateFormula(i);
@@ -62,52 +63,29 @@ void Controller::setFunctionCount(const size_t size) {
 		);
 		connect(
 			functionView,
-			&FunctionView::formulaChanged,
-			[this,i]() {
-				/* all graphs from the current
-				 * starting from current index
-				 * need to be repainted:
-				 */
-				auto functionView = view->getFunctionView(i);
-				{
-					auto maybeError = model->set(
-							i,
-							functionView->getFormula(),
-							functionView->getParameters(),
-							functionView->getStateDescriptions()
-					);
-					maybeError.and_then([functionView](auto error) {
-						functionView->setFormulaError( error );
-						return MaybeError{};
-					} );
-				}
-				model->setSamplingSettings(
-						i,
-						view->getFunctionView(i)->getSamplingSettings()
-				);
-				for( auto j=i; j<model->size(); j++ ) {
-					updateGraph(j);
-				}
-			}
-		);
-		// View -> Model:
-		connect(
-			functionView,
-			&FunctionView::parameterValuesChanged,
-			[this,i]() {
-				auto functionView = view->getFunctionView(i);
-				{
-					MaybeError maybeError = model->setParameterValues(
-							i,
-							functionView->getParameters()
-					);
-					maybeError.and_then([functionView](auto error) {
-						functionView->setFormulaError( error );
-						return MaybeError{};
-					} );
-				}
-				for( auto j=i; j<model->size(); j++ ) {
-					updateGraph(j);
+			&FunctionView::changed,
+			[this,i,functionView](auto updateInfo) {
+				auto maybeError = model->bulkUpdate(i,Model::Update{
+						.formula = updateInfo.formula,
+						.parameters = updateInfo.parameters,
+						.stateDescriptions = updateInfo.stateDescriptions,
+						.playbackEnabled = updateInfo.playbackEnabled,
+						.samplingSettings = updateInfo.samplingSettings
+				});
+				maybeError.and_then([functionView](auto error) {
+					functionView->setFormulaError( error );
+					return MaybeError{};
+				} );
+				// update Graph:
+				if(
+						updateInfo.formula.has_value()
+						|| updateInfo.parameters.has_value()
+						|| updateInfo.stateDescriptions.has_value()
+						|| updateInfo.samplingSettings.has_value()
+				) {
+					for( auto j=i; j<model->size(); j++ ) {
+						updateGraph(j);
+					}
 				}
 			}
 		);
@@ -118,20 +96,13 @@ void Controller::setFunctionCount(const size_t size) {
 				updateGraph(i);
 			}
 		);
-		connect(
-			functionView,
-			&FunctionView::playbackEnabledChanged,
-			[this,i](bool value) {
-				model->setIsPlaybackEnabled(i,value);
-			}
-		);
 	}
 }
 
 void Controller::updateFormula(const size_t iFunction) {
 	const auto functionView = view->getFunctionView(iFunction);
 	functionView->setFormula(
-		model->getFormula(iFunction)
+		model->get(iFunction).formula
 	);
 
 	MaybeError maybeError = model->getError( iFunction );

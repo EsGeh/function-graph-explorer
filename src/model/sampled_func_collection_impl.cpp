@@ -1,4 +1,6 @@
 #include "fge/model/sampled_func_collection_impl.h"
+#include "include/fge/model/function.h"
+#include "include/fge/model/function_collection.h"
 #include <cstddef>
 #include <ctime>
 #include <memory>
@@ -11,15 +13,12 @@
 #include <source_location>
 #endif
 
-
 #ifdef LOG_MODEL
-
 #define LOG_FUNCTION() \
-{ \
-	const auto location = std::source_location::current(); \
-	qDebug() << location.file_name() << location.function_name(); \
-}
-
+	{ \
+		const auto location = std::source_location::current(); \
+		qDebug() << location.file_name() << location.function_name(); \
+	}
 #else
 #define LOG_FUNCTION()
 #endif
@@ -38,12 +37,12 @@ SampledFunctionCollectionImpl::SampledFunctionCollectionImpl(
 {}
 
 // Read entries:
-QString SampledFunctionCollectionImpl::getFormula(
+FunctionParameters SampledFunctionCollectionImpl::get(
 		const size_t index
 ) const
 {
 	LOG_FUNCTION()
-	return LowLevel::getFunctionParameters(index).formula;
+	return LowLevel::getFunctionParameters(index);
 }
 
 MaybeError SampledFunctionCollectionImpl::getError(
@@ -111,7 +110,7 @@ void SampledFunctionCollectionImpl::setSamplingSettings(
 	getNodeInfo(index)->samplingSettings = value;
 	if( value.caching ) {
 		std::shared_ptr<Function> maybeFunction = nullptr;
-		auto functionOrError = get(index);
+		auto functionOrError = LowLevel::get(index);
 		if( functionOrError ) {
 			maybeFunction = functionOrError.value();
 		}
@@ -249,7 +248,7 @@ void SampledFunctionCollectionImpl::updateCaches( const Index index )
 	for(uint i=index; i<size(); i++) {
 		if( getSamplingSettings(i).caching ) {
 			std::shared_ptr<Function> maybeFunction = nullptr;
-			auto functionOrError = get(i);
+			auto functionOrError = LowLevel::get(i);
 			if( functionOrError ) {
 				maybeFunction = functionOrError.value();
 			}

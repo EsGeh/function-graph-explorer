@@ -1,6 +1,7 @@
 #pragma once
 
 #include "fge/model/sampled_func_collection.h"
+#include <future>
 
 
 struct AudioScheduled
@@ -21,7 +22,30 @@ struct Model:
 	public SampledFunctionCollection,
 	public AudioScheduled
 {
+	struct Update {
+		std::optional<QString> formula = {};
+		std::optional<ParameterBindings> parameters = {};
+		std::optional<StateDescriptions> stateDescriptions = {};
+		std::optional<bool> playbackEnabled = false;
+		std::optional<SamplingSettings> samplingSettings = {};
+	};
+
 	virtual ~Model() {};
+
+	virtual MaybeError bulkUpdate(
+			const Index index,
+			const Update& update
+	) = 0;
+
+
+		virtual void prepareResize() = 0;
+		virtual void prepareSet(const Index index) = 0;
+		virtual void prepareSetParameterValues(const Index index) = 0;
+		virtual void prepareSetIsPlaybackEnabled(const Index index, const bool value) = 0;
+		virtual void prepareSetSamplingSettings(const Index index) = 0;
+
+		virtual void postSetAny() = 0;
+
 };
 
 const SamplingSettings no_optimization_settings{

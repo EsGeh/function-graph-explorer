@@ -2,7 +2,7 @@
 
 #include "fge/model/model.h"
 #include "sampled_func_collection_impl.h"
-#include <future>
+// #include <future>
 #include <memory>
 #include <optional>
 
@@ -35,11 +35,11 @@ class ScheduledFunctionCollectionImpl:
 				const SamplingSettings& defSamplingSettings
 		);
 
-		virtual Index size() const override;
-		virtual void resize( const uint size ) override;
+		// READ:
 
-		// Read entries:
-		virtual QString getFormula(
+		virtual Index size() const override;
+
+		virtual FunctionParameters get(
 				const size_t index
 		) const override;
 
@@ -47,7 +47,36 @@ class ScheduledFunctionCollectionImpl:
 				const Index index
 		) const override;
 
-		// Set Entries:
+		virtual SamplingSettings getSamplingSettings(
+				const Index index
+		) override;
+
+		virtual ErrorOrValue<std::vector<std::pair<C,C>>> getGraph(
+				const Index index,
+				const std::pair<T,T>& range,
+				const unsigned int resolution
+		) const override;
+
+		virtual bool getIsPlaybackEnabled(
+				const Index index
+		) const override;
+
+		// WRITE:
+
+		virtual void prepareResize() override;
+		virtual void prepareSet(const Index index);
+		virtual void prepareSetParameterValues(const Index index);
+		virtual void prepareSetIsPlaybackEnabled(const Index index, const bool value);
+		virtual void prepareSetSamplingSettings(const Index index);
+
+		virtual void postSetAny() override;
+
+		virtual MaybeError bulkUpdate(
+				const Index index,
+				const Update& update
+		) override;
+
+		virtual void resize( const uint size ) override;
 
 		virtual MaybeError set(
 				const Index index,
@@ -61,45 +90,26 @@ class ScheduledFunctionCollectionImpl:
 				const ParameterBindings& parameters
 		) override;
 
-
-		/***************
-		 * Sampling
-		 ***************/
-
-		// general settings:
-		virtual SamplingSettings getSamplingSettings(
-				const Index index
-		) override;
-		virtual void setSamplingSettings(
-				const Index index,
-				const SamplingSettings& value
-		) override;
-
-		// sampling for visual representation:
-		virtual ErrorOrValue<std::vector<std::pair<C,C>>> getGraph(
-				const Index index,
-				const std::pair<T,T>& range,
-				const unsigned int resolution
-		) const override;
-
-		// sampling for audio:
-		virtual bool getIsPlaybackEnabled(
-				const Index index
-		) const override;
 		virtual void setIsPlaybackEnabled(
 				const Index index,
 				const bool value
 		) override;
-		virtual void valuesToBuffer(
-				std::vector<float>* buffer,
-				const PlaybackPosition position,
-				const unsigned int samplerate
+
+		virtual void setSamplingSettings(
+				const Index index,
+				const SamplingSettings& value
 		) override;
 
 		// Control Scheduling:
 
 		virtual void setAudioSchedulingEnabled(
 				const bool value
+		) override;
+
+		virtual void valuesToBuffer(
+				std::vector<float>* buffer,
+				const PlaybackPosition position,
+				const unsigned int samplerate
 		) override;
 
 		virtual void betweenAudio(
@@ -158,12 +168,14 @@ class ScheduledFunctionCollectionImpl:
 			double src;
 			double dst;
 			std::optional<PlaybackPosition> pos = {};
+			bool done = false;
 		};
 		struct RampMasterTask
 		{
 			double src;
 			double dst;
 			std::optional<PlaybackPosition> pos = {};
+			bool done = false;
 		};
 		struct SignalReturnTask
 		{
@@ -181,6 +193,20 @@ class ScheduledFunctionCollectionImpl:
 		>;
 
 	private:
+
+		void prepareResizeImpl();
+		void prepareSetImpl(const Index index);
+		void prepareSetParameterValuesImpl(const Index index);
+		void prepareSetIsPlaybackEnabledImpl(const Index index, const bool value);
+		void prepareSetSamplingSettingsImpl(const Index index);
+
+		void postSetAnyImpl();
+
+		/** Called by the audio thread
+		from `valuesToBuffer` at samplerate.
+		Therefore implicitly run with
+		the same locks as `valuesToBuffer`
+		*/
 		void updateRamps(
 				const PlaybackPosition position,
 				const uint samplerate
@@ -192,7 +218,6 @@ class ScheduledFunctionCollectionImpl:
 	private:
 		bool audioSchedulingEnabled = false;
 		PlaybackPosition position = 0;
-		bool currentEnvTaskDone = false;
 		mutable std::mutex networkLock;
 		std::shared_ptr<SampledFunctionCollectionImpl> network;
 		mutable std::mutex tasksLock;

@@ -46,7 +46,9 @@ FunctionView::FunctionView(
 		&QLineEdit::textChanged,
 		[this](QString value) {
 			displayDialog->setFormula( value );
-			emit formulaChanged();
+			emit changed({
+					.formula = value
+			});
 		}
 	);
 	connect(
@@ -61,7 +63,9 @@ FunctionView::FunctionView(
 		parametersDialog,
 		&ParametersEdit::parametersChanged,
 		[this]() {
-			emit parameterValuesChanged();
+			emit changed({
+					.parameters = getParameters()
+			});
 		}
 	);
 	connect(
@@ -80,7 +84,9 @@ FunctionView::FunctionView(
 		ui->playbackEnabled,
 		&QCheckBox::stateChanged,
 		[this](auto value) {
-			emit playbackEnabledChanged(value != 0);
+			emit changed({
+					.playbackEnabled = (value != 0)
+			});
 		}
 	);
 	connect(
@@ -100,7 +106,12 @@ FunctionView::FunctionView(
 			samplingSettings = displayDialog->getSamplingSettings();
 			ui->formulaEdit->setText( displayDialog->getFormula() );
 			parametersDialog->updateView();
-			emit formulaChanged();
+			emit changed({
+					.formula = getFormula(),
+					.parameters = getParameters(),
+					.stateDescriptions = getStateDescriptions(),
+					.samplingSettings = getSamplingSettings()
+			});
 		}
 	);
 	connect(
