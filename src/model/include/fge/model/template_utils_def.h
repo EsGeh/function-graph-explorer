@@ -2,6 +2,7 @@
 
 #include "fge/model/template_utils.h"
 #include <type_traits>
+#include <QDebug>
 
 // utils:
 
@@ -15,7 +16,7 @@ struct tuple_contains<T, std::tuple<Us...>>
 
 template <auto function>
 struct IsSetterFunction : tuple_contains<
-		decltype(function),
+		std::pair<decltype(function), const char*>,
 		std::remove_cvref_t<decltype(setters)>
 >
 {};
@@ -28,6 +29,10 @@ struct IsSetter< SetterTask<function> >
 	: IsSetterFunction<function>
 {};
 
+template <auto function>
+const char* functionName() {
+	return std::get<std::pair<decltype(function),const char*>>( setters ).second;
+};
 
 // definitions:
 
@@ -94,6 +99,9 @@ void run(
 		setter->promise.set_value();
 	}
 	setter->obj->writeTasks.pop_front();
+	qDebug() << QString("executing '%1'").arg(
+			functionName<function>()
+	);
 }
 
 using ModelImpl = ScheduledFunctionCollectionImpl;

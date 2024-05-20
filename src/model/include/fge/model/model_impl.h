@@ -36,11 +36,11 @@ constexpr auto setIsPlaybackEnabled = &SampledFunctionCollectionImpl::setIsPlayb
 constexpr auto setSamplingSettings = &SampledFunctionCollectionImpl::setSamplingSettings;
 
 constexpr auto setters = std::make_tuple(
-		resize,
-		set,
-		setParameterValues,
-		setIsPlaybackEnabled,
-		setSamplingSettings
+		std::make_pair(resize,"resize"),
+		std::make_pair(set,"set"),
+		std::make_pair(setParameterValues,"setParameterValues"),
+		std::make_pair(setIsPlaybackEnabled,"setIsPlaybackEnabled"),
+		std::make_pair(setSamplingSettings, "setSamplingSettings")
 );
 
 using ResizeTask = SetterTask<resize>;
