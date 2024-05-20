@@ -6,9 +6,6 @@
 
 class SampledFunctionCollectionImpl;
 
-template <auto function>
-struct IsSetter : std::false_type {};
-
 template <
 	auto function
 >

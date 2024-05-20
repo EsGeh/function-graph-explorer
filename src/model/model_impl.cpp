@@ -1,5 +1,6 @@
 #include "fge/model/model_impl.h"
 #include "include/fge/model/sampled_func_collection.h"
+#include "include/fge/model/template_utils_def.h"
 #include <cstddef>
 #include <cstdlib>
 #include <ctime>
@@ -8,6 +9,7 @@
 #include <strings.h>
 #include <QDebug>
 #include <ranges>
+#include <type_traits>
 
 
 // #define LOG_MODEL
@@ -409,54 +411,35 @@ void ScheduledFunctionCollectionImpl::betweenAudio(
 		if( tasksLock.try_lock() ) {
 			if( !writeTasks.empty() ) {
 				auto& someTask = writeTasks.front();
-				// resize:
-				if( auto task = std::get_if<ResizeTask>(&someTask) ) {
-					run(task);
-					qDebug() << "executing 'resize'";
-				}
-				// set:
-				else if( auto task = std::get_if<SetTask>(&someTask) ) {
-					run(task);
-					qDebug() << "executing 'set'";
-				}
-				// setParameterValues:
-				else if( auto task = std::get_if<SetParameterValuesTask>(&someTask) ) {
-					run(task);
-					qDebug() << "executing 'setParameterValues'";
-				}
-				// setIsPlaybackEnabled:
-				else if( auto task = std::get_if<SetIsPlaybackEnabledTask>(&someTask) ) {
-					run(task);
-					qDebug() << "executing 'setIsPlaybackEnabled'";
-				}
-				// setSamplingSettings:
-				else if( auto task = std::get_if<SetSamplingSettingsTask>(&someTask) ) {
-					run(task);
-					qDebug() << "executing 'setSamplingSettings'";
-				}
-				else if( auto task = std::get_if<SignalReturnTask>(&someTask) ) {
-					task->promise.set_value();
-					writeTasks.pop_front();
-				}
-				else if( auto task = std::get_if<RampTask>(&someTask) ) {
-					if( task->done ) {
-						qDebug() << QString("ramp done %1: %2->%3, in %4 s")
-							.arg( task->index )
-							.arg( task->src )
-							.arg( task->dst )
-							.arg( double(position - task->pos.value_or(position)) / double(samplerate) );
-						writeTasks.pop_front();
-					}
-				}
-				else if( auto task = std::get_if<RampMasterTask>(&someTask) ) {
-					if( task->done ) {
-						qDebug() << QString("master ramp done: %1->%2, in %3 s")
-							.arg( task->src )
-							.arg( task->dst )
-							.arg( double(position - task->pos.value_or(position)) / double(samplerate) );
-						writeTasks.pop_front();
-					}
-				}
+				std::visit( [this, position, samplerate](auto&& task) {
+						using Task = std::decay_t<decltype(task)>;
+						if constexpr ( IsSetter<Task>::value ) {
+							run(&task);
+						}
+						else if constexpr ( std::is_same_v<Task,SignalReturnTask> ) {
+							task.promise.set_value();
+							writeTasks.pop_front();
+						}
+						else if constexpr ( std::is_same_v<Task,RampTask> ) {
+							if( task.done ) {
+								qDebug() << QString("ramp done %1: %2->%3, in %4 s")
+									.arg( task.index )
+									.arg( task.src )
+									.arg( task.dst )
+									.arg( double(position - task.pos.value_or(position)) / double(samplerate) );
+								writeTasks.pop_front();
+							}
+						}
+						else if constexpr ( std::is_same_v<Task,RampMasterTask> ) {
+							if( task.done ) {
+								qDebug() << QString("master ramp done: %1->%2, in %3 s")
+									.arg( task.src )
+									.arg( task.dst )
+									.arg( double(position - task.pos.value_or(position)) / double(samplerate) );
+								writeTasks.pop_front();
+							}
+						}
+				}, someTask );
 			}
 			tasksLock.unlock();
 		}

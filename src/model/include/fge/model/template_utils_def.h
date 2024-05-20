@@ -3,6 +3,32 @@
 #include "fge/model/template_utils.h"
 #include <type_traits>
 
+// utils:
+
+template <typename T, typename Tuple>
+struct tuple_contains;
+
+template <typename T, typename... Us>
+struct tuple_contains<T, std::tuple<Us...>>
+	: std::disjunction<std::is_same<T, Us>...>
+{};
+
+template <auto function>
+struct IsSetterFunction : tuple_contains<
+		decltype(function),
+		std::remove_cvref_t<decltype(setters)>
+>
+{};
+
+template <typename Setter>
+struct IsSetter : std::false_type {};
+
+template <auto function>
+struct IsSetter< SetterTask<function> >
+	: IsSetterFunction<function>
+{};
+
+
 // definitions:
 
 template <auto function>
@@ -27,7 +53,7 @@ auto makeSetter(
 )
 {
 	static_assert(
-			IsSetter<function>::value,
+			IsSetterFunction<function>::value,
 			"Not a valid setter function"
 	);
 	auto tuple = std::tuple( args... );

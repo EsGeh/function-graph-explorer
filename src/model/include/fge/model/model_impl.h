@@ -6,6 +6,7 @@
 // #include <future>
 #include <memory>
 #include <optional>
+#include <tuple>
 
 
 // 50ms
@@ -34,20 +35,13 @@ constexpr auto setParameterValues = &SampledFunctionCollectionImpl::setParameter
 constexpr auto setIsPlaybackEnabled = &SampledFunctionCollectionImpl::setIsPlaybackEnabled;
 constexpr auto setSamplingSettings = &SampledFunctionCollectionImpl::setSamplingSettings;
 
-template <> struct IsSetter<resize>
-	: std::true_type {};
-
-template <> struct IsSetter<set>
-	: std::true_type {};
-
-template <> struct IsSetter<setParameterValues>
-	: std::true_type {};
-
-template <> struct IsSetter<setIsPlaybackEnabled>
-	: std::true_type {};
-
-template <> struct IsSetter<setSamplingSettings>
-	: std::true_type {};
+constexpr auto setters = std::make_tuple(
+		resize,
+		set,
+		setParameterValues,
+		setIsPlaybackEnabled,
+		setSamplingSettings
+);
 
 using ResizeTask = SetterTask<resize>;
 using SetTask = SetterTask<set>;
