@@ -2,6 +2,7 @@
 
 #include "fge/model/model.h"
 #include "sampled_func_collection_impl.h"
+#include "template_utils.h"
 // #include <future>
 #include <memory>
 #include <optional>
@@ -26,6 +27,34 @@ const double rampTime = 50.0 / 1000.0;
 	and executed between the audio
 	sampling periods.
 */
+
+constexpr auto resize = &SampledFunctionCollectionImpl::resize;
+constexpr auto set = &SampledFunctionCollectionImpl::set;
+constexpr auto setParameterValues = &SampledFunctionCollectionImpl::setParameterValues;
+constexpr auto setIsPlaybackEnabled = &SampledFunctionCollectionImpl::setIsPlaybackEnabled;
+constexpr auto setSamplingSettings = &SampledFunctionCollectionImpl::setSamplingSettings;
+
+template <> struct IsSetter<resize>
+	: std::true_type {};
+
+template <> struct IsSetter<set>
+	: std::true_type {};
+
+template <> struct IsSetter<setParameterValues>
+	: std::true_type {};
+
+template <> struct IsSetter<setIsPlaybackEnabled>
+	: std::true_type {};
+
+template <> struct IsSetter<setSamplingSettings>
+	: std::true_type {};
+
+using ResizeTask = SetterTask<resize>;
+using SetTask = SetterTask<set>;
+using SetParameterValuesTask = SetterTask<setParameterValues>;
+using SetIsPlaybackEnabledTask = SetterTask<setIsPlaybackEnabled>;
+using SetSamplingSettingsTask = SetterTask<setSamplingSettings>;
+
 
 class ScheduledFunctionCollectionImpl:
 	public Model
@@ -118,50 +147,6 @@ class ScheduledFunctionCollectionImpl:
 		) override;
 
 	private:
-		struct ResizeTask
-		{
-			uint size;
-			using ReturnType =
-				decltype(std::declval<SampledFunctionCollectionInternal>().resize(size));
-			PlaybackPosition pos = 0;
-			std::promise<ReturnType> promise;
-		};
-		struct SetTask
-		{
-			Index index;
-			FunctionParameters parameters;
-			using ReturnType =
-				decltype(std::declval<SampledFunctionCollectionInternal>().set(index,parameters.formula, parameters.parameters, parameters.stateDescriptions));
-			PlaybackPosition pos = 0;
-			std::promise<ReturnType> promise;
-		};
-		struct SetParameterValuesTask
-		{
-			Index index;
-			ParameterBindings parameters;
-			using ReturnType =
-				decltype(std::declval<SampledFunctionCollectionInternal>().setParameterValues(index,parameters));
-			PlaybackPosition pos = 0;
-			std::promise<ReturnType> promise;
-		};
-		struct SetIsPlaybackEnabledTask
-		{
-			Index index;
-			bool value;
-			using ReturnType =
-				decltype(std::declval<SampledFunctionCollectionInternal>().setIsPlaybackEnabled(index,value));
-			PlaybackPosition pos = 0;
-			std::promise<ReturnType> promise;
-		};
-		struct SetSamplingSettingsTask
-		{
-			Index index;
-			SamplingSettings value;
-			using ReturnType =
-				decltype(std::declval<SampledFunctionCollectionInternal>().setSamplingSettings(index,value));
-			PlaybackPosition pos = 0;
-			std::promise<ReturnType> promise;
-		};
 		struct RampTask
 		{
 			Index index;
@@ -222,6 +207,23 @@ class ScheduledFunctionCollectionImpl:
 		std::shared_ptr<SampledFunctionCollectionImpl> network;
 		mutable std::mutex tasksLock;
 		std::deque<WriteTask> writeTasks;
+		
+	template <auto function>
+	friend struct SetterTask;
+
+	template <
+		auto function,
+		typename... Args
+	>
+	friend auto makeSetter(
+		ScheduledFunctionCollectionImpl* obj,
+		Args... args
+	);
+
+	template <auto function>
+	friend void run(
+		SetterTask<function>* setter
+	);
 };
 
-using ModelImpl = ScheduledFunctionCollectionImpl;
+#include "fge/model/template_utils_def.h"

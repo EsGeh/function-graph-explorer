@@ -1,5 +1,5 @@
 #include "fge/model/model_impl.h"
-#include <algorithm>
+#include "include/fge/model/sampled_func_collection.h"
 #include <cstddef>
 #include <cstdlib>
 #include <ctime>
@@ -8,8 +8,6 @@
 #include <strings.h>
 #include <QDebug>
 #include <ranges>
-#include <type_traits>
-#include <variant>
 
 
 // #define LOG_MODEL
@@ -194,15 +192,10 @@ void ScheduledFunctionCollectionImpl::resize( const uint size )
 	// ramp down first:
 	prepareResizeImpl();
 	// set value:
-	auto future = [this,size](){
-		auto task = ResizeTask{
+	auto future = makeSetter<::resize>(
+			this,
 			size
-		};
-		task.pos = this->position;
-		auto future = task.promise.get_future();
-		writeTasks.push_back(std::move(task));
-		return future;
-	}();
+	);
 	tasksLock.unlock();
 	future.get();
 	return;
@@ -276,15 +269,10 @@ MaybeError ScheduledFunctionCollectionImpl::set(
 	// ramp down first:
 	prepareSetImpl(index);
 	// set value:
-	auto future = [this,index,functionParameters](){
-		auto task = SetTask{
-			index, functionParameters
-		};
-		task.pos = this->position;
-		auto future = task.promise.get_future();
-		writeTasks.push_back(std::move(task));
-		return future;
-	}();
+	auto future = makeSetter<::set>(
+				this,
+				index, formula, parameters, stateDescriptions
+	);
 	tasksLock.unlock();
 	auto ret = future.get();
 	return ret;
@@ -303,13 +291,10 @@ MaybeError ScheduledFunctionCollectionImpl::setParameterValues(
 	// ramp down first:
 	prepareSetParameterValuesImpl(index);
 	// set value:
-	auto future = [this,index,parameters](){
-		auto task = SetParameterValuesTask{ index,parameters };
-		task.pos = this->position;
-		auto future = task.promise.get_future();
-		writeTasks.push_back(std::move(task));
-		return future;
-	}();
+	auto future = makeSetter<::setParameterValues>(
+				this,
+				index, parameters
+	);
 	tasksLock.unlock();
 	auto ret = future.get();
 	return ret;
@@ -329,15 +314,10 @@ void ScheduledFunctionCollectionImpl::setIsPlaybackEnabled(
 	// ramp down first:
 	prepareSetIsPlaybackEnabledImpl(index, value);
 	// set value:
-	auto future = [this,index,value](){
-		auto task = SetIsPlaybackEnabledTask{
-			index, value
-		};
-		task.pos = this->position;
-		auto future = task.promise.get_future();
-		writeTasks.push_back(std::move(task));
-		return future;
-	}();
+	auto future = makeSetter<::setIsPlaybackEnabled>(
+			this,
+			index,value
+	);
 	tasksLock.unlock();
 	future.get();
 	return;
@@ -357,15 +337,10 @@ void ScheduledFunctionCollectionImpl::setSamplingSettings(
 	// ramp down first:
 	prepareSetSamplingSettingsImpl(index);
 	// set value:
-	auto future = [this,index,value](){
-		auto task = SetSamplingSettingsTask{
+	auto future = makeSetter<::setSamplingSettings>(
+			this,
 			index, value
-		};
-		task.pos = this->position;
-		auto future = task.promise.get_future();
-		writeTasks.push_back(std::move(task));
-		return future;
-	}();
+	);
 	tasksLock.unlock();
 	future.get();
 	return;
@@ -436,45 +411,27 @@ void ScheduledFunctionCollectionImpl::betweenAudio(
 				auto& someTask = writeTasks.front();
 				// resize:
 				if( auto task = std::get_if<ResizeTask>(&someTask) ) {
-					getNetwork()->resize( task->size );
-					task->promise.set_value();
-					writeTasks.pop_front();
+					run(task);
 					qDebug() << "executing 'resize'";
 				}
 				// set:
 				else if( auto task = std::get_if<SetTask>(&someTask) ) {
-					auto taskRet = getNetwork()->set(
-							task->index,
-							task->parameters.formula,
-							task->parameters.parameters,
-							task->parameters.stateDescriptions
-					);
-					task->promise.set_value( taskRet );
-					writeTasks.pop_front();
+					run(task);
 					qDebug() << "executing 'set'";
 				}
 				// setParameterValues:
 				else if( auto task = std::get_if<SetParameterValuesTask>(&someTask) ) {
-					auto taskRet = getNetwork()->setParameterValues(
-							task->index,
-							task->parameters
-					);
-					task->promise.set_value( taskRet );
-					writeTasks.pop_front();
+					run(task);
 					qDebug() << "executing 'setParameterValues'";
 				}
 				// setIsPlaybackEnabled:
 				else if( auto task = std::get_if<SetIsPlaybackEnabledTask>(&someTask) ) {
-					getNetwork()->getNodeInfo(task->index)->isPlaybackEnabled = task->value;
-					task->promise.set_value();
-					writeTasks.pop_front();
+					run(task);
 					qDebug() << "executing 'setIsPlaybackEnabled'";
 				}
 				// setSamplingSettings:
 				else if( auto task = std::get_if<SetSamplingSettingsTask>(&someTask) ) {
-					getNetwork()->setSamplingSettings( task->index, task->value );
-					task->promise.set_value();
-					writeTasks.pop_front();
+					run(task);
 					qDebug() << "executing 'setSamplingSettings'";
 				}
 				else if( auto task = std::get_if<SignalReturnTask>(&someTask) ) {
