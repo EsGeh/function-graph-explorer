@@ -87,10 +87,10 @@ class ScheduledFunctionCollectionImpl:
 		// WRITE:
 
 		virtual void prepareResize() override;
-		virtual void prepareSet(const Index index);
-		virtual void prepareSetParameterValues(const Index index);
-		virtual void prepareSetIsPlaybackEnabled(const Index index, const bool value);
-		virtual void prepareSetSamplingSettings(const Index index);
+		virtual void prepareSet(const Index index) override;
+		virtual void prepareSetParameterValues(const Index index) override;
+		virtual void prepareSetIsPlaybackEnabled(const Index index, const bool value) override;
+		virtual void prepareSetSamplingSettings(const Index index) override;
 
 		virtual void postSetAny() override;
 
@@ -159,6 +159,7 @@ class ScheduledFunctionCollectionImpl:
 		struct SignalReturnTask
 		{
 			std::promise<void> promise;
+			bool done = false;
 		};
 		using WriteTask = std::variant<
 			ResizeTask,

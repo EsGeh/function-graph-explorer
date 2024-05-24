@@ -1,4 +1,7 @@
 #include "controller.h"
+#include <mutex>
+#include <scoped_allocator>
+#include <QtConcurrent>
 
 
 Controller::Controller(
@@ -12,11 +15,30 @@ Controller::Controller(
 	, jack(jack)
 	, viewResolution(viewResolution)
 {
+	// modelWorker:
+	workerThread = new QThread(this);
+	modelWorker = new ModelWorker( model );
+	modelWorker->moveToThread( workerThread );
+	workerThread->start();
+	connect(workerThread, &QThread::finished, modelWorker, &QObject::deleteLater);
+
+	// resize: view -> modelWorker
 	connect(
 		view,
 		&MainWindow::functionCountChanged,
-		[this]( size_t value ) {
-			setFunctionCount( value );
+		modelWorker,
+		[this]( uint value ) {
+			modelWorker->resize( value );
+			// resizeView( value );
+		}
+	);
+	// resize: view <- modelWorker
+	connect(
+		modelWorker,
+		&ModelWorker::resizeDone,
+		this,
+		[this]( const uint size, const uint oldSize ) {
+			resizeView( size, oldSize );
 		}
 	);
 	connect(
@@ -46,60 +68,84 @@ Controller::Controller(
 			}
 		}
 	);
-	setFunctionCount( view->getFunctionViewCount() );
+	// set initial model size:
+	modelWorker->resize(
+			view->getFunctionViewCount()
+	);
 }
 
-void Controller::setFunctionCount(const size_t size) {
-	auto oldSize = model->size();
-	model->resize( size );
-	model->postSetAny();
+Controller::~Controller()
+{
+	workerThread->quit();
+	workerThread->wait();
+}
+
+void Controller::resizeView(
+		const uint size,
+		const uint oldSize
+) {
 	view->resizeFunctionView( size );
-	for( size_t i=oldSize; i<model->size(); i++ ) {
-		updateFormula(i);
-		updateGraph(i);
-		auto functionView = view->getFunctionView(i);
+	for( uint index=oldSize; index<model->size(); index++ ) {
+		setViewFormula(index);
+		setViewGraph(index);
+		auto functionView = view->getFunctionView(index);
 		functionView->setSamplingSettings(
-				model->getSamplingSettings(i)
+				model->getSamplingSettings(index)
 		);
+		// view -> modelWorker
+		//           |
 		connect(
-			functionView,
-			&FunctionView::changed,
-			[this,i,functionView](auto updateInfo) {
-				auto maybeError = model->bulkUpdate(i,Model::Update{
-						.formula = updateInfo.formula,
-						.parameters = updateInfo.parameters,
-						.stateDescriptions = updateInfo.stateDescriptions,
-						.playbackEnabled = updateInfo.playbackEnabled,
-						.samplingSettings = updateInfo.samplingSettings
-				});
-				maybeError.and_then([functionView](auto error) {
-					functionView->setFormulaError( error );
-					return MaybeError{};
-				} );
-				// update Graph:
-				if(
-						updateInfo.formula.has_value()
-						|| updateInfo.parameters.has_value()
-						|| updateInfo.stateDescriptions.has_value()
-						|| updateInfo.samplingSettings.has_value()
-				) {
-					for( auto j=i; j<model->size(); j++ ) {
-						updateGraph(j);
+				functionView,
+				&FunctionView::changed,
+				modelWorker,
+				[this,index](auto updateInfo) {
+					return modelWorker->updateFunction(
+							index,
+							Model::Update{
+								.formula = updateInfo.formula,
+								.parameters = updateInfo.parameters,
+								.stateDescriptions = updateInfo.stateDescriptions,
+								.playbackEnabled = updateInfo.playbackEnabled,
+								.samplingSettings = updateInfo.samplingSettings
+							}
+					);
+				}
+		);
+		//           |
+		// view <- modelWorker:
+		connect(
+				modelWorker,
+				&ModelWorker::updateDone,
+				this,
+				[this,functionView](auto index, auto updateInfo, auto maybeError) {
+					maybeError.and_then([functionView](auto error) {
+						functionView->setFormulaError( error );
+						return MaybeError{};
+					} );
+					// update Graph:
+					if(
+							updateInfo.formula.has_value()
+							|| updateInfo.parameters.has_value()
+							|| updateInfo.stateDescriptions.has_value()
+							|| updateInfo.samplingSettings.has_value()
+					) {
+						for( auto j=index; j<model->size(); j++ ) {
+							setViewGraph(j);
+						}
 					}
 				}
-			}
 		);
 		connect(
 			functionView,
 			&FunctionView::viewParamsChanged,
-			[this,i]() {
-				updateGraph(i);
+			[this,index]() {
+				setViewGraph(index);
 			}
 		);
 	}
 }
 
-void Controller::updateFormula(const size_t iFunction) {
+void Controller::setViewFormula(const uint iFunction) {
 	const auto functionView = view->getFunctionView(iFunction);
 	functionView->setFormula(
 		model->get(iFunction).formula
@@ -112,7 +158,7 @@ void Controller::updateFormula(const size_t iFunction) {
 	} );
 }
 
-void Controller::updateGraph(const size_t iFunction) {
+void Controller::setViewGraph(const uint iFunction) {
 	const auto functionView = view->getFunctionView(iFunction);
 	auto errorOrPoints = model->getGraph(
 			iFunction,

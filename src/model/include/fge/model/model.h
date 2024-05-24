@@ -37,14 +37,13 @@ struct Model:
 			const Update& update
 	) = 0;
 
-
-		virtual void prepareResize() = 0;
-		virtual void prepareSet(const Index index) = 0;
-		virtual void prepareSetParameterValues(const Index index) = 0;
-		virtual void prepareSetIsPlaybackEnabled(const Index index, const bool value) = 0;
-		virtual void prepareSetSamplingSettings(const Index index) = 0;
-
-		virtual void postSetAny() = 0;
+	virtual void prepareResize() = 0;
+	virtual void prepareSet(const Index index) = 0;
+	virtual void prepareSetParameterValues(const Index index) = 0;
+	virtual void prepareSetIsPlaybackEnabled(const Index index, const bool value) = 0;
+	virtual void prepareSetSamplingSettings(const Index index) = 0;
+	
+	virtual void postSetAny() = 0;
 
 };
 

@@ -29,9 +29,26 @@ struct IsSetter< SetterTask<function> >
 	: IsSetterFunction<function>
 {};
 
+template <typename T>
+struct SetterTraits;
+
 template <auto function>
+struct SetterTraits
+<SetterTask<function>>
+{
+	using type = decltype(function);
+	static constexpr decltype(function) value = function;
+};
+
+template <typename Function>
 const char* functionName() {
-	return std::get<std::pair<decltype(function),const char*>>( setters ).second;
+	return std::get<std::pair<Function,const char*>>( setters ).second;
+};
+
+template <auto function>
+const char* functionName(const SetterTask<function>& setterTask) {
+	using Function = typename SetterTraits<SetterTask<function>>::type;
+	return functionName<Function>();
 };
 
 // definitions:
@@ -46,6 +63,7 @@ struct SetterTask
 			std::apply(function,std::tuple_cat(std::make_tuple(obj->getNetwork()),args))
 	);
 	std::promise<ReturnType> promise;
+	bool done = false;
 };
 
 template <
@@ -98,10 +116,7 @@ void run(
 		);
 		setter->promise.set_value();
 	}
-	setter->obj->writeTasks.pop_front();
-	qDebug() << QString("executing '%1'").arg(
-			functionName<function>()
-	);
+	setter->done = true;
 }
 
 using ModelImpl = ScheduledFunctionCollectionImpl;
