@@ -96,7 +96,7 @@ MaybeError SampledFunctionCollectionImpl::setParameterValues(
 // general settings:
 SamplingSettings SampledFunctionCollectionImpl::getSamplingSettings(
 		const Index index
-)
+) const
 {
 	return getNodeInfo(index)->samplingSettings;
 }

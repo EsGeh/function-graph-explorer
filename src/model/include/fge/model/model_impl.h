@@ -72,7 +72,7 @@ class ScheduledFunctionCollectionImpl:
 
 		virtual SamplingSettings getSamplingSettings(
 				const Index index
-		) override;
+		) const override;
 
 		virtual ErrorOrValue<std::vector<std::pair<C,C>>> getGraph(
 				const Index index,

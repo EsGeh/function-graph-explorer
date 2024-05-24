@@ -39,34 +39,58 @@ public:
 
 signals:
 	void resizeDone(
-			const uint size,
+			const Model* model,
 			const uint oldSize
 	);
 	void updateDone(
+			const Model* model,
 			const uint index,
 			const Model::Update& update,
 			const MaybeError maybeError
 	);
+	void readAccessGranted( const Model* model, const uint index);
 
 public slots:
+	// queue model->resize
+	// implicitly locks the model:
   void resize(
 			const uint size
 	) {
+		modelLock.lock();
 		auto oldSize = model->size();
 		model->resize( size );
 		model->postSetAny();
-		emit resizeDone( size, oldSize );
+		emit resizeDone( model, oldSize );
 	};
 
+	// queue model->update
+	// implicitly locks the model:
   void updateFunction(
 			const uint index,
 			const Model::Update& update
 	) {
+		modelLock.lock();
+		if( index >= model->size() ) {
+			qDebug() << "Skipping update. Entry no longer exists.";
+			return;
+		}
 		auto ret = model->bulkUpdate(index, update );
-		emit updateDone( index, update, ret );
+		emit updateDone( model, index, update, ret );
 	};
 
+	// request read access to model:
+	// implicitly locks the model:
+	void requestRead(const uint index) {
+		modelLock.lock();
+		emit readAccessGranted( model, index );
+	}
+
+  void unlockModel() {
+		modelLock.unlock();
+	}
+
 private:
+	std::mutex modelLock;
 	Model* model;
 
 };
@@ -88,20 +112,20 @@ public:
 
 private:
 	void resizeView(
-			const uint size,
+			const Model* model,
 			const uint oldSize
 	);
 
-	void setViewFormula(const uint iFunction);
-	void setViewGraph( const uint iFunction);
+	void setViewFormula( const Model* model, const uint iFunction);
+	void setViewGraph( const Model* model, const uint iFunction);
 
 private:
-	Model* model;
 	MainWindow* view;
 	JackClient* jack;
 	const uint viewResolution;
 	QThread* workerThread;
 	ModelWorker* modelWorker;
+
 };
 
 #endif // CONTROLLER_H

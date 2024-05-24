@@ -10,17 +10,21 @@ Controller::Controller(
 	JackClient* jack,
 	const uint viewResolution
 )
-	: model(model)
-	, view(view)
+	: view(view)
 	, jack(jack)
 	, viewResolution(viewResolution)
 {
+
+	// INITIALIZE:
+
 	// modelWorker:
 	workerThread = new QThread(this);
 	modelWorker = new ModelWorker( model );
 	modelWorker->moveToThread( workerThread );
 	workerThread->start();
 	connect(workerThread, &QThread::finished, modelWorker, &QObject::deleteLater);
+
+	// CONNECTIONS:
 
 	// resize: view -> modelWorker
 	connect(
@@ -37,8 +41,43 @@ Controller::Controller(
 		modelWorker,
 		&ModelWorker::resizeDone,
 		this,
-		[this]( const uint size, const uint oldSize ) {
-			resizeView( size, oldSize );
+		[this]( const Model* model, const uint oldSize ) {
+			resizeView( model, oldSize );
+			modelWorker->unlockModel();
+		}
+	);
+	// view <- modelWorker:
+	connect(
+			modelWorker,
+			&ModelWorker::updateDone,
+			this,
+			[this,view](auto model, auto index, auto updateInfo, auto maybeError) {
+				auto functionView = view->getFunctionView(index);
+				maybeError.and_then([functionView](auto error) {
+					functionView->setFormulaError( error );
+					return MaybeError{};
+				} );
+				// update Graph:
+				if(
+						updateInfo.formula.has_value()
+						|| updateInfo.parameters.has_value()
+						|| updateInfo.stateDescriptions.has_value()
+						|| updateInfo.samplingSettings.has_value()
+				) {
+					for( auto j=index; j<model->size(); j++ ) {
+						setViewGraph(model, j);
+					}
+				}
+				modelWorker->unlockModel();
+			}
+	);
+	connect(
+		modelWorker,
+		&ModelWorker::readAccessGranted,
+		this,
+		[this](auto model, auto index) {
+			setViewGraph(model, index);
+			modelWorker->unlockModel();
 		}
 	);
 	connect(
@@ -68,10 +107,14 @@ Controller::Controller(
 			}
 		}
 	);
-	// set initial model size:
+
+	// SET INITIAL model size:
+
 	modelWorker->resize(
 			view->getFunctionViewCount()
 	);
+	modelWorker->unlockModel();
+
 }
 
 Controller::~Controller()
@@ -81,19 +124,21 @@ Controller::~Controller()
 }
 
 void Controller::resizeView(
-		const uint size,
+		const Model* model,
 		const uint oldSize
 ) {
-	view->resizeFunctionView( size );
+	view->resizeFunctionView( model->size() );
+	// initialize and connect new entries:
 	for( uint index=oldSize; index<model->size(); index++ ) {
-		setViewFormula(index);
-		setViewGraph(index);
+		// INITIALIZE:
+		setViewFormula(model, index);
+		setViewGraph(model, index);
 		auto functionView = view->getFunctionView(index);
 		functionView->setSamplingSettings(
 				model->getSamplingSettings(index)
 		);
+		// CONNECT:
 		// view -> modelWorker
-		//           |
 		connect(
 				functionView,
 				&FunctionView::changed,
@@ -111,41 +156,22 @@ void Controller::resizeView(
 					);
 				}
 		);
-		//           |
-		// view <- modelWorker:
-		connect(
-				modelWorker,
-				&ModelWorker::updateDone,
-				this,
-				[this,functionView](auto index, auto updateInfo, auto maybeError) {
-					maybeError.and_then([functionView](auto error) {
-						functionView->setFormulaError( error );
-						return MaybeError{};
-					} );
-					// update Graph:
-					if(
-							updateInfo.formula.has_value()
-							|| updateInfo.parameters.has_value()
-							|| updateInfo.stateDescriptions.has_value()
-							|| updateInfo.samplingSettings.has_value()
-					) {
-						for( auto j=index; j<model->size(); j++ ) {
-							setViewGraph(j);
-						}
-					}
-				}
-		);
+		// view -> modelWorker
 		connect(
 			functionView,
 			&FunctionView::viewParamsChanged,
+			modelWorker,
 			[this,index]() {
-				setViewGraph(index);
+				modelWorker->requestRead( index );
 			}
 		);
 	}
 }
 
-void Controller::setViewFormula(const uint iFunction) {
+void Controller::setViewFormula(
+		const Model* model,
+		const uint iFunction
+) {
 	const auto functionView = view->getFunctionView(iFunction);
 	functionView->setFormula(
 		model->get(iFunction).formula
@@ -158,7 +184,7 @@ void Controller::setViewFormula(const uint iFunction) {
 	} );
 }
 
-void Controller::setViewGraph(const uint iFunction) {
+void Controller::setViewGraph(const Model* model, const uint iFunction) {
 	const auto functionView = view->getFunctionView(iFunction);
 	auto errorOrPoints = model->getGraph(
 			iFunction,

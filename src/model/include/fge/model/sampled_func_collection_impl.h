@@ -72,7 +72,7 @@ class SampledFunctionCollectionImpl:
 		// general settings:
 		virtual SamplingSettings getSamplingSettings(
 				const Index index
-		) override;
+		) const override;
 		virtual void setSamplingSettings(
 				const Index index,
 				const SamplingSettings& value
@@ -103,7 +103,7 @@ class SampledFunctionCollectionImpl:
 		virtual void setMasterVolume(const double value) override;
 
 	public:
-		::NodeInfo* getNodeInfo( const Index index ) {
+		::NodeInfo* getNodeInfo( const Index index ) const {
 			return static_cast<::NodeInfo*>(LowLevel::getNodeInfo(index));
 		}
 

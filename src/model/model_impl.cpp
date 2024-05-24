@@ -77,7 +77,7 @@ MaybeError ScheduledFunctionCollectionImpl::getError(
 
 SamplingSettings ScheduledFunctionCollectionImpl::getSamplingSettings(
 		const Index index
-)
+) const
 {
 	START_READ()
 	return getNetwork()->getSamplingSettings(index);

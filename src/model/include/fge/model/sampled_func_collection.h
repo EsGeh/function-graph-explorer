@@ -49,7 +49,7 @@ struct SampledFunctionCollection
 	// general settings:
 	virtual SamplingSettings getSamplingSettings(
 			const Index index
-	) = 0;
+	) const = 0;
 	virtual void setSamplingSettings(
 			const Index index,
 			const SamplingSettings& value
