@@ -3,6 +3,7 @@
 
 #include "fge/shared/utils.h"
 #include <jack/jack.h>
+#include <semaphore>
 #include <thread>
 #include <QDebug>
 
@@ -72,7 +73,9 @@ class AudioWorker
 		void fillBuffer(const uint index);
 	private:
 		// worker thread:
-		std::mutex lock;
+		std::counting_semaphore<2> buffersNotFull{2};
+		std::counting_semaphore<2> hasData{0};
+		// std::mutex lock;
 		std::thread worker;
 		bool stopWorker = true;
 		// buffers:

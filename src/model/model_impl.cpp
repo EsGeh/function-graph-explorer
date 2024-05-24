@@ -10,7 +10,9 @@
 #include <ranges>
 
 
+#ifndef NDEBUG
 #define LOG_MODEL
+#endif
 
 #ifdef LOG_MODEL
 #include <source_location>

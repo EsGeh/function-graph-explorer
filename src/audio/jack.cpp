@@ -34,6 +34,9 @@ void AudioWorker::init(
 }
 
 SampleTable* AudioWorker::getSamplesInit() {
+	if( !hasData.try_acquire() ) {
+		qDebug() << "INTERNAL XRUN!";
+	}
 	return &buffer[readIndex];
 }
 
@@ -41,7 +44,7 @@ void AudioWorker::getSamplesExit() {
 	readIndex = (readIndex + 1) % count;
 	// signal the worker
 	// thread, we are done
-	lock.unlock();
+	buffersNotFull.release();
 }
 
 void AudioWorker::run() {
@@ -49,14 +52,28 @@ void AudioWorker::run() {
 	writeIndex = 0;
 	position = 0;
 	stopWorker = false;
+	// init buffersNotFull = 2:
+	{
+		while( buffersNotFull.try_acquire() ) {};
+		for( uint i=0; i<count; i++) {
+			buffersNotFull.release();
+		}
+	}
+	// init hasData = 0:
+	{
+		while( buffersNotFull.try_acquire() ) {};
+	}
+	buffersNotFull.acquire();
 	fillBuffer(writeIndex);
 	writeIndex = (writeIndex + 1) % count;
+	hasData.release();
 	// fill next buffer
 	worker = std::thread([this]{
 		while(!stopWorker) {
-			lock.lock();
+			buffersNotFull.acquire();
 			fillBuffer(writeIndex);
 			writeIndex = (writeIndex + 1) % count;
+			hasData.release();
 			callbacks.betweenAudioCallback(position, samplerate);
 		}
 		qDebug().nospace() << "AUDIO THREAD done: ";
@@ -66,7 +83,7 @@ void AudioWorker::run() {
 
 void AudioWorker::stop() {
 	stopWorker = true;
-	lock.unlock();
+	buffersNotFull.release();
 	worker.join();
 }
 
