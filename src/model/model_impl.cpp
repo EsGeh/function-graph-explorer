@@ -6,11 +6,11 @@
 #include <mutex>
 #include <strings.h>
 #include <QDebug>
-#include <ranges>
 #include <type_traits>
+#include <ranges>
 
 
-// #define LOG_MODEL
+#define LOG_MODEL
 
 #ifdef LOG_MODEL
 #include <source_location>
@@ -371,7 +371,7 @@ void ScheduledFunctionCollectionImpl::setAudioSchedulingEnabled(
 		audioSchedulingEnabled = value;
 		tasksLock.lock();
 		{
-			auto task = RampMasterTask{ .dst = 1 };
+			auto task = RampMasterEnvTask{ .dst = 1 };
 			writeTasks.push_back(task);
 		}
 		tasksLock.unlock();
@@ -382,7 +382,7 @@ void ScheduledFunctionCollectionImpl::setAudioSchedulingEnabled(
 		// assert( masterVolumeEnv >= 0.99 );
 		tasksLock.lock();
 		{
-			auto task = RampMasterTask{ .dst = 0 };
+			auto task = RampMasterEnvTask{ .dst = 0 };
 			writeTasks.push_back(task);
 		}
 		auto task = SignalReturnTask{};
@@ -439,8 +439,15 @@ void ScheduledFunctionCollectionImpl::betweenAudio(
 						.arg( task->dst )
 						.arg( double(position - task->pos.value_or(position)) / double(samplerate) );
 				}
-				else if( auto task = std::get_if<RampMasterTask>( &someTask ); task && task->done) {
-					qDebug() << QString("%1: master ramp done: %2->%3, in %4 s")
+				else if( auto task = std::get_if<RampMasterEnvTask>( &someTask ); task && task->done) {
+					qDebug() << QString("%1: master env ramp done: %2->%3, in %4 s")
+						.arg( double(position) / double(samplerate) )
+						.arg( task->src )
+						.arg( task->dst )
+						.arg( double(position - task->pos.value_or(position)) / double(samplerate) );
+				}
+				else if( auto task = std::get_if<RampMasterVolumeTask>( &someTask ); task && task->done) {
+					qDebug() << QString("%1: master volume ramp done: %2->%3, in %4 s")
 						.arg( double(position) / double(samplerate) )
 						.arg( task->src )
 						.arg( task->dst )
@@ -462,7 +469,10 @@ void ScheduledFunctionCollectionImpl::betweenAudio(
 						else if constexpr ( std::is_same_v<Task,RampTask> ) {
 							return task.done;
 						}
-						else if constexpr ( std::is_same_v<Task,RampMasterTask> ) {
+						else if constexpr ( std::is_same_v<Task,RampMasterEnvTask> ) {
+							return task.done;
+						}
+						else if constexpr ( std::is_same_v<Task,RampMasterVolumeTask> ) {
 							return task.done;
 						}
 						return false;
@@ -480,7 +490,7 @@ void ScheduledFunctionCollectionImpl::betweenAudio(
 
 void ScheduledFunctionCollectionImpl::prepareResizeImpl()
 {
-	auto task = RampMasterTask{ .dst = 0 };
+	auto task = RampMasterEnvTask{ .dst = 0 };
 	writeTasks.push_back(std::move(task));
 }
 
@@ -495,7 +505,7 @@ void ScheduledFunctionCollectionImpl::prepareSetImpl(const Index index)
 
 void ScheduledFunctionCollectionImpl::prepareSetParameterValuesImpl(const Index index)
 {
-	return prepareSet(index);
+	prepareSetImpl(index);
 }
 
 void ScheduledFunctionCollectionImpl::prepareSetIsPlaybackEnabledImpl(const Index index, const bool value)
@@ -503,8 +513,11 @@ void ScheduledFunctionCollectionImpl::prepareSetIsPlaybackEnabledImpl(const Inde
 	if( value == getNetwork()->getIsPlaybackEnabled(index) ) {
 		return;
 	}
+	if( value ) {
+		updateMasterVolumeImpl();
+	}
 	{
-		// ramp down before switching off:
+		// ramp down before switching on or off:
 		auto task = RampTask{ .index = index, .dst = 0 };
 		writeTasks.push_back(std::move(task));
 	}
@@ -527,7 +540,25 @@ void ScheduledFunctionCollectionImpl::postSetAnyImpl()
 		}
 	}
 	{
-		auto task = RampMasterTask{ .dst = 1 };
+		auto task = RampMasterEnvTask{ .dst = 1 };
+		writeTasks.push_back(std::move(task));
+	}
+	updateMasterVolumeImpl();
+}
+
+void ScheduledFunctionCollectionImpl::updateMasterVolumeImpl()
+{
+	uint count = 0;
+	{
+		for(uint i=0; i<getNetwork()->size(); i++ ) {
+			if( getNetwork()->getIsPlaybackEnabled(i) ){
+				count++; 
+			}
+		}
+	}
+	{
+		// ramp to scale master volume
+		auto task = RampMasterVolumeTask{ .dst = 1.0/std::max(1.0,double(count)) };
 		writeTasks.push_back(std::move(task));
 	}
 }
@@ -542,54 +573,49 @@ void ScheduledFunctionCollectionImpl::updateRamps(
 		| std::views::take_while([](auto& someTask) {
 				return
 					std::holds_alternative<RampTask>(someTask)
-					|| std::holds_alternative<RampMasterTask>(someTask)
+					|| std::holds_alternative<RampMasterEnvTask>(someTask)
+					|| std::holds_alternative<RampMasterVolumeTask>(someTask)
 				;
 		})
 		| std::views::reverse
 	;
-	// Master:
+	// RampMasterEnvTask:
 	{
 		auto view = rampView
 			| std::views::filter([](auto& someTask){
-				auto task = std::get_if<RampMasterTask>(&someTask);
+				auto task = std::get_if<RampMasterEnvTask>(&someTask);
 				return task && !task->done;
 			})
 			| std::views::transform([](auto& task){
-				return &std::get<RampMasterTask>( task );
+				return &std::get<RampMasterEnvTask>( task );
 			})
 		;
-		if( !view.empty() )
-		{
-			RampMasterTask* task = view.front();
-			if( !task->pos) {
-				task->pos = position;
-				task->src = getNetwork()->getMasterVolume();
-			}
-			double time = double(position - task->pos.value()) / double(samplerate);
-			double fixedRampTime = fabs(task->src - task->dst) * rampTime;
-			if( time < fixedRampTime )
-			{
-				getNetwork()->setMasterVolume(
-					task->src + (task->dst - task->src)
-					* (time / fixedRampTime)
-				);
-			}
-			else {
-				task->done = true;
-			}
-		}
-		// ignore all previous tasks:
-		for( auto* task : view | std::ranges::views::drop(1) ) {
-			// initialize tasks if necessary
-			// for correct debug output:
-			if( !task->pos) {
-				task->pos = position;
-				task->src = getNetwork()->getMasterVolume();
-			}
-			task->done = true;
-		}
+		updateRamp<RampMasterEnvTask>(
+				view,
+				[this]() { return getNetwork()->getMasterEnvelope(); },
+				[this](const double value) { return getNetwork()->setMasterEnvelope(value); },
+				position, samplerate
+		);
 	}
-	// ramps by function:
+	// RampMasterVolumeTask:
+	{
+		auto view = rampView
+			| std::views::filter([](auto& someTask){
+				auto task = std::get_if<RampMasterVolumeTask>(&someTask);
+				return task && !task->done;
+			})
+			| std::views::transform([](auto& task){
+				return &std::get<RampMasterVolumeTask>( task );
+			})
+		;
+		updateRamp<RampMasterVolumeTask>(
+				view,
+				[this]() { return getNetwork()->getMasterVolume(); },
+				[this](const double value) { return getNetwork()->setMasterVolume(value); },
+				position, samplerate
+		);
+	}
+	// RampTask:
 	for( uint index=0; index<getNetwork()->size(); index++ )
 	{
 		auto view = rampView
@@ -601,36 +627,51 @@ void ScheduledFunctionCollectionImpl::updateRamps(
 				return &std::get<RampTask>( task );
 			})
 		;
-		if( !view.empty() )
-		{
-			RampTask* task = view.front();
-			// initialize ramp task,
-			// if seen for the first time:
-			if( !task->pos) {
-				task->pos = position;
-				task->src = getNetwork()->getNodeInfo(task->index)->volumeEnvelope;
-			}
-			double time = double(position - task->pos.value()) / double(samplerate);
-			double fixedRampTime = fabs(task->src - task->dst) * rampTime;
-			if( time < fixedRampTime ) {
-				getNetwork()->getNodeInfo(task->index)->volumeEnvelope = 
-					task->src + (task->dst - task->src)
-					* (time / fixedRampTime)
-				;
-			}
-			else {
-				task->done = true;
-			}
+		updateRamp<RampTask>(
+				view,
+				[this,index]() { return getNetwork()->getNodeInfo(index)->volumeEnvelope; },
+				[this,index](const double value) { getNetwork()->getNodeInfo(index)->volumeEnvelope = value; },
+				position, samplerate
+		);
+	}
+}
+
+template <typename Task, typename View>
+void ScheduledFunctionCollectionImpl::updateRamp(
+		View view,
+		std::function<double()> getValue,
+		std::function<void(const double)> setValue,
+		const PlaybackPosition position,
+		const uint samplerate
+) {
+	if( !view.empty() )
+	{
+		Task* task = view.front();
+		if( !task->pos) {
+			task->pos = position;
+			task->src = getValue();
 		}
-		// ignore all previous tasks:
-		for( auto* task : view | std::ranges::views::drop(1) ) {
-			// initialize tasks if necessary
-			// for correct debug output:
-			if( !task->pos) {
-				task->pos = position;
-				task->src = getNetwork()->getNodeInfo(task->index)->volumeEnvelope;
-			}
+		double time = double(position - task->pos.value()) / double(samplerate);
+		double fixedRampTime = fabs(task->src - task->dst) * rampTime;
+		if( time < fixedRampTime )
+		{
+			setValue(
+				task->src + (task->dst - task->src)
+				* (time / fixedRampTime)
+			);
+		}
+		else {
 			task->done = true;
 		}
+	}
+	// ignore all previous tasks:
+	for( auto* task : view | std::ranges::views::drop(1) ) {
+		// initialize tasks if necessary
+		// for correct debug output:
+		if( !task->pos) {
+			task->pos = position;
+			task->src = getValue();
+		}
+		task->done = true;
 	}
 }

@@ -195,6 +195,16 @@ void SampledFunctionCollectionImpl::valuesToBuffer(
 	}
 }
 
+double SampledFunctionCollectionImpl::getMasterEnvelope() const 
+{
+	return masterEnvelope;
+}
+
+void SampledFunctionCollectionImpl::setMasterEnvelope(const double value)
+{
+	masterEnvelope = value;
+}
+
 double SampledFunctionCollectionImpl::getMasterVolume() const 
 {
 	return masterVolume;
@@ -226,7 +236,7 @@ float SampledFunctionCollectionImpl::audioFunction(
 				* volEnv
 		);
 	}
-	ret *= masterVolume;
+	ret *= (masterEnvelope * masterVolume);
 	return std::clamp( ret, -1.0, +1.0 );
 }
 

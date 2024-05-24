@@ -149,7 +149,14 @@ class ScheduledFunctionCollectionImpl:
 			std::optional<PlaybackPosition> pos = {};
 			bool done = false;
 		};
-		struct RampMasterTask
+		struct RampMasterEnvTask
+		{
+			double src;
+			double dst;
+			std::optional<PlaybackPosition> pos = {};
+			bool done = false;
+		};
+		struct RampMasterVolumeTask
 		{
 			double src;
 			double dst;
@@ -168,7 +175,8 @@ class ScheduledFunctionCollectionImpl:
 			SetIsPlaybackEnabledTask,
 			SetSamplingSettingsTask,
 			RampTask,
-			RampMasterTask,
+			RampMasterEnvTask,
+			RampMasterVolumeTask,
 			SignalReturnTask
 		>;
 
@@ -182,12 +190,22 @@ class ScheduledFunctionCollectionImpl:
 
 		void postSetAnyImpl();
 
+		void updateMasterVolumeImpl();
+
 		/** Called by the audio thread
 		from `valuesToBuffer` at samplerate.
 		Therefore implicitly run with
 		the same locks as `valuesToBuffer`
 		*/
 		void updateRamps(
+				const PlaybackPosition position,
+				const uint samplerate
+		);
+		template <typename Task, typename View>
+		void updateRamp(
+				View view,
+				std::function<double()> getValue,
+				std::function<void(const double)> setValue,
 				const PlaybackPosition position,
 				const uint samplerate
 		);

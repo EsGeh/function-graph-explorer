@@ -81,6 +81,9 @@ struct SampledFunctionCollection
 struct SampledFunctionCollectionInternal:
 	public SampledFunctionCollection
 {
+	virtual double getMasterEnvelope() const = 0;
+	virtual void setMasterEnvelope(const double value) = 0;
+
 	virtual double getMasterVolume() const = 0;
 	virtual void setMasterVolume(const double value) = 0;
 };

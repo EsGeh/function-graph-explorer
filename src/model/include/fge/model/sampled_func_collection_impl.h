@@ -99,6 +99,9 @@ class SampledFunctionCollectionImpl:
 				const unsigned int samplerate
 		) override;
 
+		virtual double getMasterEnvelope() const override;
+		virtual void setMasterEnvelope(const double value) override;
+
 		virtual double getMasterVolume() const override;
 		virtual void setMasterVolume(const double value) override;
 
@@ -128,6 +131,7 @@ class SampledFunctionCollectionImpl:
 	private:
 		SamplingSettings defSamplingSettings;
 		AudioCallback audioCallback;
+		double masterEnvelope = 1;
 		double masterVolume = 1;
 };
 
