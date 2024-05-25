@@ -50,7 +50,8 @@ struct Model:
 const SamplingSettings no_optimization_settings{
 	.resolution = 0,
 	.interpolation = 0,
-	.caching = false
+	.periodic = 0,
+	.buffered = false
 };
 
 std::shared_ptr<Model> modelFactory(

@@ -14,7 +14,7 @@ struct NodeInfo:
 	bool isPlaybackEnabled = false;
 	double volumeEnvelope = 1;
 	SamplingSettings samplingSettings;
-	mutable std::shared_ptr<Cache> cache;
+	FunctionBuffer functionBuffer;
 };
 
 using AudioCallback = std::function<void(
@@ -39,7 +39,7 @@ class SampledFunctionCollectionImpl:
 	
 		// Size:
 		uint size() const override { return LowLevel::size(); }
-		void resize(const uint size) override { LowLevel::resize(size); }
+		void resize(const uint size) override;
 
 		// Read entries:
 		virtual FunctionParameters get(
@@ -121,8 +121,8 @@ class SampledFunctionCollectionImpl:
 				std::shared_ptr<Function> maybeFunction
 		) override;
 
-		void updateCaches( const Index index );
-		std::shared_ptr<Cache> updateCache( std::shared_ptr<Function> maybeFunction );
+		void updateBuffers( const Index startIndex );
+		void updateBuffer( const Index index, std::shared_ptr<Function> maybeFunction );
 
 		const ::NodeInfo* getNodeInfoConst( const Index index ) const {
 			return static_cast<::NodeInfo*>(LowLevel::getNodeInfo(index));
@@ -138,11 +138,16 @@ class SampledFunctionCollectionImpl:
 
 /* Utilities */
 
+bool isBufferable(
+		std::shared_ptr<Function> function,
+		const SamplingSettings& samplingSettings
+);
+
 C getWithResolution(
 		std::shared_ptr<Function> function,
 		const C& x,
 		const SamplingSettings& samplingSettings,
-		std::shared_ptr<Cache> cache
+		const FunctionBuffer* buffer
 );
 
 C interpolate(
@@ -154,7 +159,7 @@ C interpolate(
 );
 
 int xToRasterIndex(
-		const C& x,
+		const T x,
 		const uint resolution
 );
 

@@ -12,7 +12,8 @@ typedef double T;
 struct SamplingSettings {
 	uint resolution = 0;
 	uint interpolation = 1;
-	bool caching = false;
+	T periodic = 1; // 0 means: not periodic
+	bool buffered = false;
 };
 
 struct VariableDescription {

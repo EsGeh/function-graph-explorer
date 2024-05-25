@@ -5,6 +5,7 @@
 #include <QAction>
 #include <qcheckbox.h>
 #include <qnamespace.h>
+#include <qspinbox.h>
 #include <variant>
 
 
@@ -201,8 +202,12 @@ FunctionDisplayOptions::FunctionDisplayOptions(
 			[this](int value){ this->samplingSettings.interpolation = value; }
 	);
 	connect(
-			ui->caching, &QCheckBox::stateChanged,
-			[this](int value){ this->samplingSettings.caching = value; }
+			ui->periodic, &QDoubleSpinBox::valueChanged,
+			[this](int value){ this->samplingSettings.periodic = value; }
+	);
+	connect(
+			ui->buffered, &QCheckBox::stateChanged,
+			[this](int value){ this->samplingSettings.buffered = value; }
 	);
 }
 
@@ -273,5 +278,6 @@ void FunctionDisplayOptions::updateView() {
 	// samplingSettings:
 	ui->resolution->setValue( samplingSettings.resolution );
 	ui->interpolation->setValue( samplingSettings.interpolation );
-	ui->caching->setChecked( samplingSettings.caching );
+	ui->periodic->setValue( samplingSettings.periodic );
+	ui->buffered->setChecked( samplingSettings.buffered );
 }

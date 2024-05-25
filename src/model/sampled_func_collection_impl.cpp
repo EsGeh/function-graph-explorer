@@ -1,4 +1,5 @@
 #include "fge/model/sampled_func_collection_impl.h"
+#include "include/fge/model/cache.h"
 #include "include/fge/model/function.h"
 #include "include/fge/model/function_collection.h"
 #include <cstddef>
@@ -35,6 +36,13 @@ SampledFunctionCollectionImpl::SampledFunctionCollectionImpl(
 	: defSamplingSettings( defSamplingSettings )
 	, audioCallback( audioCallback )
 {}
+
+void SampledFunctionCollectionImpl::resize(const uint size)
+{
+	auto oldSize = this->size();
+	LowLevel::resize( size );
+	updateBuffers( oldSize );
+}
 
 // Read entries:
 FunctionParameters SampledFunctionCollectionImpl::get(
@@ -74,7 +82,7 @@ MaybeError SampledFunctionCollectionImpl::set(
 			.stateDescriptions = stateDescriptions
 		}
 	);
-	updateCaches(index);
+	updateBuffers(index);
 	return ret;
 }
 
@@ -84,8 +92,9 @@ MaybeError SampledFunctionCollectionImpl::setParameterValues(
 )
 {
 	LOG_FUNCTION()
-	updateCaches(index);
-	return LowLevel::setParameterValues( index,parameters );
+	auto ret = LowLevel::setParameterValues( index,parameters );
+	updateBuffers(index);
+	return ret;
 }
 
 
@@ -108,16 +117,16 @@ void SampledFunctionCollectionImpl::setSamplingSettings(
 {
 	LOG_FUNCTION()
 	getNodeInfo(index)->samplingSettings = value;
-	if( value.caching ) {
+	if( value.buffered ) {
 		std::shared_ptr<Function> maybeFunction = nullptr;
 		auto functionOrError = LowLevel::get(index);
 		if( functionOrError ) {
 			maybeFunction = functionOrError.value();
 		}
-		getNodeInfo(index)->cache = updateCache(maybeFunction);
-	}
-	else {
-		getNodeInfo(index)->cache = nullptr;
+		updateBuffer(
+				index,
+				maybeFunction
+		);
 	}
 }
 
@@ -141,7 +150,7 @@ ErrorOrValue<std::vector<std::pair<C,C>>> SampledFunctionCollectionImpl::getGrap
 			return getWithResolution(
 					func, x,
 					nodeInfo->samplingSettings,
-					nodeInfo->cache
+					&nodeInfo->functionBuffer
 			);
 		};
 		auto
@@ -230,9 +239,16 @@ float SampledFunctionCollectionImpl::audioFunction(
 		if( !functionOrError || !isPlaybackEnabled )
 			continue;
 		auto function = functionOrError.value();
-		double volEnv = getNodeInfo(i)->volumeEnvelope;
+		double volEnv = getNodeInfoConst(i)->volumeEnvelope;
+		const auto& samplingSettings = getNodeInfoConst(i)->samplingSettings;
+		const auto& buffer = getNodeInfoConst(i)->functionBuffer;
 		ret += (
-				function->get( time ).c_.real()
+				getWithResolution(
+					function,
+					time,
+					samplingSettings,
+					&buffer
+				).c_.real()
 				* volEnv
 		);
 	}
@@ -246,51 +262,83 @@ std::shared_ptr<SampledFunctionCollectionImpl::LowLevel::NodeInfo> SampledFuncti
 )
 {
 	LOG_FUNCTION()
-	std::shared_ptr<Cache> cache = updateCache(maybeFunction);
-	return std::shared_ptr<NodeInfo>(new ::NodeInfo{
+	auto ret = std::shared_ptr<NodeInfo>(new ::NodeInfo{
 			.samplingSettings = defSamplingSettings,
-			.cache = cache
 	});
+	return ret;
 };
 
-void SampledFunctionCollectionImpl::updateCaches( const Index index )
+void SampledFunctionCollectionImpl::updateBuffers( const Index startIndex )
 {
-	for(uint i=index; i<size(); i++) {
-		if( getSamplingSettings(i).caching ) {
-			std::shared_ptr<Function> maybeFunction = nullptr;
-			auto functionOrError = LowLevel::get(i);
-			if( functionOrError ) {
-				maybeFunction = functionOrError.value();
-			}
-			getNodeInfo(i)->cache = updateCache(maybeFunction);
+	for(uint index=startIndex; index<size(); index++) {
+		std::shared_ptr<Function> maybeFunction = nullptr;
+		auto functionOrError = LowLevel::get(index);
+		if( functionOrError ) {
+			maybeFunction = functionOrError.value();
 		}
+		updateBuffer( index, maybeFunction );
 	}
 }
 
-std::shared_ptr<Cache> SampledFunctionCollectionImpl::updateCache(
+void SampledFunctionCollectionImpl::updateBuffer(
+		const Index index,
 		std::shared_ptr<Function> maybeFunction
 )
 {
-	if( maybeFunction ) {
-		return std::make_shared<Cache>( [this,maybeFunction](int x) {
-			return rasterIndexToY(maybeFunction, x, defSamplingSettings.resolution);
-		} );
+	auto& buffer = getNodeInfo(index)->functionBuffer;
+	const auto& samplingSettings = getNodeInfoConst(index)->samplingSettings;
+	if( isBufferable(maybeFunction, samplingSettings) ) {
+		buffer.fill(
+				0, samplingSettings.resolution * samplingSettings.periodic,
+				[maybeFunction,samplingSettings](const int x) {
+					return rasterIndexToY(maybeFunction, x, samplingSettings.resolution);
+				}
+		);
 	}
-	return nullptr;
+}
+
+bool isBufferable(
+		std::shared_ptr<Function> function,
+		const SamplingSettings& samplingSettings
+)
+{
+	return 
+		function
+		&& samplingSettings.buffered
+		&& samplingSettings.resolution != 0
+		&& samplingSettings.periodic
+	;
 }
 
 C getWithResolution(
 		std::shared_ptr<Function> function,
 		const C& x,
 		const SamplingSettings& samplingSettings,
-		std::shared_ptr<Cache> cache
+		const FunctionBuffer* buffer
 )
 {
+	std::function<C(const C)> periodicLookup = [function](const C x){ return function->get(x); };
+	if( samplingSettings.periodic != 0 && x.c_.imag() == 0 ) {
+		periodicLookup = [function,samplingSettings,buffer](const C x) {
+			const auto mod = fmod(x.c_.real(), samplingSettings.periodic);
+			T lookupPos =
+					x.c_.real() >= 0
+					? mod
+					: samplingSettings.periodic + mod
+			;
+			if( isBufferable( function, samplingSettings ) ) {
+				const int xpos = xToRasterIndex(lookupPos, samplingSettings.resolution);
+				assert( buffer->inRange( xpos ) );
+				return buffer->lookup( xpos );
+			}
+			return function->get( C(lookupPos,0) );
+		};
+	};
 	if(
 			samplingSettings.resolution == 0
 			|| x.c_.imag() != 0
 	) {
-		return function->get(x);
+		return periodicLookup(x);
 	}
 	/* consider `interpolation+1` points,
 	 * 	centered around `x`
@@ -310,19 +358,13 @@ C getWithResolution(
 		: 0;
 	std::vector<C> ys;
 	for( int i{0}; i<int(samplingSettings.interpolation+1); i++ ) {
-		const int xpos = xToRasterIndex(x, samplingSettings.resolution) + i - shift;
-		if( samplingSettings.caching ) {
-			assert( cache );
-			ys.push_back(cache->lookup( xpos ).first);
-		}
-		else {
-			ys.push_back(function->get(
-					C(
-						T(xpos) / samplingSettings.resolution,
-						0
-					)
-			));
-		}
+		const int xpos = xToRasterIndex(x.c_.real(), samplingSettings.resolution) + i - shift;
+		ys.push_back(periodicLookup(
+				C(
+					T(xpos) / samplingSettings.resolution,
+					0
+				)
+		));
 	};
 	return interpolate( x, ys, shift, samplingSettings.resolution);
 }
@@ -358,11 +400,11 @@ C interpolate(
 }
 
 int xToRasterIndex(
-		const C& x,
+		const T x,
 		const uint resolution
 )
 {
-		return std::floor(x.c_.real() * resolution + epsilon);
+		return std::floor(x * resolution + epsilon);
 }
 
 C rasterIndexToY(

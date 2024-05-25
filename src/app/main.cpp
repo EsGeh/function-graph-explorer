@@ -12,7 +12,8 @@
 const auto defSamplingSettings = SamplingSettings{
 	.resolution = 44100,
 	.interpolation = 1,
-	.caching = true
+	.periodic = 1,
+	.buffered = true
 };
 const unsigned int viewResolution = 4410;
 
