@@ -1,6 +1,7 @@
 #include "fge/model/model_impl.h"
 #include "include/fge/model/sampled_func_collection.h"
 #include "include/fge/model/template_utils_def.h"
+#include <cstring>
 #include <ctime>
 #include <memory>
 #include <mutex>
@@ -8,6 +9,7 @@
 #include <QDebug>
 #include <type_traits>
 #include <ranges>
+#include <algorithm>
 
 
 #ifndef NDEBUG
@@ -47,7 +49,15 @@ ScheduledFunctionCollectionImpl::ScheduledFunctionCollectionImpl(
 					updateRamps(position, samplerate);
 				}
 	))
+	, modelWorkerThread([this](){ modelWorkerLoop(); } )
 {
+}
+
+ScheduledFunctionCollectionImpl::~ScheduledFunctionCollectionImpl()
+{
+	stopModelWorker = true;
+	modelTasks.release();
+	modelWorkerThread.join();
 }
 
 /************************
@@ -356,6 +366,11 @@ void ScheduledFunctionCollectionImpl::valuesToBuffer(
 		const unsigned int samplerate
 )
 {
+	if( expensiveTaskRunning ) {
+		std::ranges::fill(buffer->begin(),buffer->end(), 0);
+		return;
+	}
+		
 	START_READ()
 	return getNetwork()->valuesToBuffer(buffer,position,samplerate);
 }
@@ -404,87 +419,81 @@ void ScheduledFunctionCollectionImpl::betweenAudio(
 )
 {
 	this->position = position;
-	if( networkLock.try_lock() ) {
-		if( tasksLock.try_lock() ) {
-			// 1. 
-			if( !writeTasks.empty() ) {
-				auto& someTask = writeTasks.front();
-				std::visit( [position,samplerate](auto& task) {
-						using Task = std::decay_t<decltype(task)>;
-						if constexpr ( IsSetter<Task>::value ) {
-							if( !task.done ) {
-								run(&task);
-								#ifdef LOG_MODEL
-								qDebug() << QString("%1: executing '%2")
-									.arg( double(position) / double(samplerate) )
-									.arg( functionName(task) )
-								;
-								#endif
-							}
+	if( tasksLock.try_lock() ) {
+		// 1. 
+		if( !writeTasks.empty() ) {
+			auto& someTask = writeTasks.front();
+			std::visit( [this,position,samplerate](auto& task) {
+					using Task = std::decay_t<decltype(task)>;
+					if constexpr ( IsSetter<Task>::value ) {
+						if( !task.done ) {
+							// delegate to the
+							// model worker thread:
+							this->samplerate = samplerate;
+							modelTasks.release();
 						}
-						else if constexpr ( std::is_same_v<Task,SignalReturnTask> ) {
-							if( !task.done ) {
-								task.promise.set_value();
-							}
-							task.done = true;
+					}
+					else if constexpr ( std::is_same_v<Task,SignalReturnTask> ) {
+						if( !task.done ) {
+							task.promise.set_value();
 						}
-				}, someTask );
-			}
-			#ifdef LOG_MODEL
-			// Debug print ramps:
-			for( auto& someTask : writeTasks ) {
-				if( auto task = std::get_if<RampTask>( &someTask ); task && task->done) {
-					qDebug() << QString("%1: ramp done %2: %3->%4, in %5 s")
-						.arg( double(position) / double(samplerate) )
-						.arg( task->index )
-						.arg( task->src )
-						.arg( task->dst )
-						.arg( double(position - task->pos.value_or(position)) / double(samplerate) );
-				}
-				else if( auto task = std::get_if<RampMasterEnvTask>( &someTask ); task && task->done) {
-					qDebug() << QString("%1: master env ramp done: %2->%3, in %4 s")
-						.arg( double(position) / double(samplerate) )
-						.arg( task->src )
-						.arg( task->dst )
-						.arg( double(position - task->pos.value_or(position)) / double(samplerate) );
-				}
-				else if( auto task = std::get_if<RampMasterVolumeTask>( &someTask ); task && task->done) {
-					qDebug() << QString("%1: master volume ramp done: %2->%3, in %4 s")
-						.arg( double(position) / double(samplerate) )
-						.arg( task->src )
-						.arg( task->dst )
-						.arg( double(position - task->pos.value_or(position)) / double(samplerate) );
-				}
-			}
-			#endif
-			// cleanup ramps:
-			{
-				auto [rem_begin, rem_end] = std::ranges::remove_if(writeTasks, [](auto& someTask) -> bool {
-					return std::visit( [](auto&& task) {
-						using Task = std::decay_t<decltype(task)>;
-						if constexpr ( IsSetter<Task>::value ) {
-							return task.done;
-						}
-						else if constexpr ( std::is_same_v<Task,SignalReturnTask> ) {
-							return task.done;
-						}
-						else if constexpr ( std::is_same_v<Task,RampTask> ) {
-							return task.done;
-						}
-						else if constexpr ( std::is_same_v<Task,RampMasterEnvTask> ) {
-							return task.done;
-						}
-						else if constexpr ( std::is_same_v<Task,RampMasterVolumeTask> ) {
-							return task.done;
-						}
-						return false;
-					}, someTask );
-				});
-				writeTasks.erase( rem_begin, rem_end );
-			}
-			tasksLock.unlock();
+						task.done = true;
+					}
+			}, someTask );
 		}
-		networkLock.unlock();
+		#ifdef LOG_MODEL
+		// Debug print ramps:
+		for( auto& someTask : writeTasks ) {
+			if( auto task = std::get_if<RampTask>( &someTask ); task && task->done) {
+				qDebug() << QString("%1: ramp done %2: %3->%4, in %5 s")
+					.arg( double(position) / double(samplerate) )
+					.arg( task->index )
+					.arg( task->src )
+					.arg( task->dst )
+					.arg( double(position - task->pos.value_or(position)) / double(samplerate) );
+			}
+			else if( auto task = std::get_if<RampMasterEnvTask>( &someTask ); task && task->done) {
+				qDebug() << QString("%1: master env ramp done: %2->%3, in %4 s")
+					.arg( double(position) / double(samplerate) )
+					.arg( task->src )
+					.arg( task->dst )
+					.arg( double(position - task->pos.value_or(position)) / double(samplerate) );
+			}
+			else if( auto task = std::get_if<RampMasterVolumeTask>( &someTask ); task && task->done) {
+				qDebug() << QString("%1: master volume ramp done: %2->%3, in %4 s")
+					.arg( double(position) / double(samplerate) )
+					.arg( task->src )
+					.arg( task->dst )
+					.arg( double(position - task->pos.value_or(position)) / double(samplerate) );
+			}
+		}
+		#endif
+		// cleanup ramps:
+		{
+			auto [rem_begin, rem_end] = std::ranges::remove_if(writeTasks, [](auto& someTask) -> bool {
+				return std::visit( [](auto&& task) {
+					using Task = std::decay_t<decltype(task)>;
+					if constexpr ( IsSetter<Task>::value ) {
+						return task.done;
+					}
+					else if constexpr ( std::is_same_v<Task,SignalReturnTask> ) {
+						return task.done;
+					}
+					else if constexpr ( std::is_same_v<Task,RampTask> ) {
+						return task.done;
+					}
+					else if constexpr ( std::is_same_v<Task,RampMasterEnvTask> ) {
+						return task.done;
+					}
+					else if constexpr ( std::is_same_v<Task,RampMasterVolumeTask> ) {
+						return task.done;
+					}
+					return false;
+				}, someTask );
+			});
+			writeTasks.erase( rem_begin, rem_end );
+		}
+		tasksLock.unlock();
 	}
 }
 
@@ -498,16 +507,21 @@ void ScheduledFunctionCollectionImpl::prepareResizeImpl()
 
 void ScheduledFunctionCollectionImpl::prepareSetImpl(const Index index)
 {
-	// ramp down first:
+	auto task = RampMasterEnvTask{ .dst = 0 };
+	writeTasks.push_back(std::move(task));
+	/*
 	for(uint i=index; i<getNetwork()->size(); i++) {
 		auto task = RampTask{ .index = i, .dst = 0 };
 		writeTasks.push_back(std::move(task));
 	}
+	*/
 }
 
 void ScheduledFunctionCollectionImpl::prepareSetParameterValuesImpl(const Index index)
 {
-	prepareSetImpl(index);
+	auto task = RampMasterEnvTask{ .dst = 0 };
+	writeTasks.push_back(std::move(task));
+	// prepareSetImpl(index);
 }
 
 void ScheduledFunctionCollectionImpl::prepareSetIsPlaybackEnabledImpl(const Index index, const bool value)
@@ -518,17 +532,24 @@ void ScheduledFunctionCollectionImpl::prepareSetIsPlaybackEnabledImpl(const Inde
 	if( value ) {
 		updateMasterVolumeImpl();
 	}
+	auto task = RampMasterEnvTask{ .dst = 0 };
+	writeTasks.push_back(std::move(task));
+	/*
 	{
-		// ramp down before switching on or off:
 		auto task = RampTask{ .index = index, .dst = 0 };
 		writeTasks.push_back(std::move(task));
 	}
+	*/
 }
 
 void ScheduledFunctionCollectionImpl::prepareSetSamplingSettingsImpl(const Index index)
 {
+	auto task = RampMasterEnvTask{ .dst = 0 };
+	writeTasks.push_back(std::move(task));
+	/*
 	auto task = RampTask{ .index = index, .dst = 0 };
 	writeTasks.push_back(std::move(task));
+	*/
 }
 
 // post set impl:
@@ -565,6 +586,9 @@ void ScheduledFunctionCollectionImpl::updateMasterVolumeImpl()
 	}
 }
 
+/* implicitly runs with the same locks 
+ * as `valuesToBuffer`, that is:
+ */
 void ScheduledFunctionCollectionImpl::updateRamps(
 		const PlaybackPosition position,
 		const uint samplerate
@@ -676,4 +700,47 @@ void ScheduledFunctionCollectionImpl::updateRamp(
 		}
 		task->done = true;
 	}
+}
+
+void ScheduledFunctionCollectionImpl::modelWorkerLoop()
+{
+	while(true) {
+		modelTasks.acquire();
+		if( stopModelWorker ) {
+			break;
+		}
+		{
+			std::scoped_lock lock(tasksLock);
+			assert( !writeTasks.empty() );
+			auto& someTask = writeTasks.front();
+			std::visit([
+					this
+					/*
+					networkLock = this->networkLock,
+					position = this->position,
+					samplerate = this->samplerate
+					*/
+				](auto& task) {
+					using Task = std::decay_t<decltype(task)>;
+					if constexpr ( IsSetter<Task>::value ) {
+						assert( !task.done );
+						{
+							expensiveTaskRunning = true;
+							std::scoped_lock lock(networkLock);
+							run(&task);
+							expensiveTaskRunning = false;
+						}
+						#ifdef LOG_MODEL
+						qDebug() << QString("%1: executing '%2")
+							.arg( double(position) / double(samplerate) )
+							.arg( functionName(task) )
+						;
+						#endif
+					}
+					else {
+						assert( IsSetter<Task>::value );
+					}
+			}, someTask );
+		}
+	};
 }

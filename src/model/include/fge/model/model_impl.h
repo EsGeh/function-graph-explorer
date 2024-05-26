@@ -7,6 +7,7 @@
 #include <memory>
 #include <optional>
 #include <tuple>
+#include <semaphore>
 
 
 // 50ms
@@ -57,6 +58,7 @@ class ScheduledFunctionCollectionImpl:
 		ScheduledFunctionCollectionImpl(
 				const SamplingSettings& defSamplingSettings
 		);
+		~ScheduledFunctionCollectionImpl();
 
 		// READ:
 
@@ -212,15 +214,22 @@ class ScheduledFunctionCollectionImpl:
 		std::shared_ptr<SampledFunctionCollectionImpl> getNetwork() const {
 			return this->network;
 		}
+		void modelWorkerLoop();
 
 	private:
 		bool audioSchedulingEnabled = false;
 		PlaybackPosition position = 0;
+		std::atomic<uint> samplerate = 0;
 		mutable std::mutex networkLock;
 		std::shared_ptr<SampledFunctionCollectionImpl> network;
 		mutable std::mutex tasksLock;
 		std::deque<WriteTask> writeTasks;
-		
+
+		std::atomic<bool> stopModelWorker;
+		std::thread modelWorkerThread;
+		std::counting_semaphore<1> modelTasks{0};
+		std::atomic<bool> expensiveTaskRunning = false;
+
 	template <auto function>
 	friend struct SetterTask;
 
