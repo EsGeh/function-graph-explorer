@@ -19,18 +19,18 @@ struct tuple_contains<T, std::tuple<Us...>>
 {};
 
 template <auto function>
-struct IsSetterFunction : tuple_contains<
+struct IsSetter : tuple_contains<
 		std::pair<decltype(function), const char*>,
 		std::remove_cvref_t<decltype(setters)>
 >
 {};
 
 template <typename Setter>
-struct IsSetter : std::false_type {};
+struct IsSetterTask : std::false_type {};
 
 template <auto function>
-struct IsSetter< SetterTask<function> >
-	: IsSetterFunction<function>
+struct IsSetterTask< SetterTask<function> >
+	: IsSetter<function>
 {};
 
 template <typename T>
@@ -88,7 +88,7 @@ auto makeSetter(
 )
 {
 	static_assert(
-			IsSetterFunction<function>::value,
+			IsSetter<function>::value,
 			"Not a valid setter function"
 	);
 	auto tuple = std::tuple( args... );

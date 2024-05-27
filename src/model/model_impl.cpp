@@ -5,10 +5,8 @@
 #include <cstring>
 #include <ctime>
 #include <memory>
-#include <mutex>
 #include <strings.h>
 #include <QDebug>
-#include <type_traits>
 #include <ranges>
 #include <algorithm>
 
@@ -30,6 +28,58 @@
 #else
 #define LOG_FUNCTION()
 #endif
+
+
+/************************
+ * Utils:
+************************/
+
+template <auto function, typename... Args>
+struct WritePrepare;
+
+template <auto function>
+struct WritePrepare<function>
+{
+	// static_assert( IsSetter<function>::value );
+	template <typename TaskQueue>
+	static void prepare(
+			TaskQueue& tasksQueue
+	)
+	{
+		Ramping::rampMasterEnv( tasksQueue, 0 );
+	}
+};
+
+template <>
+struct WritePrepare<&ScheduledFunctionCollectionImpl::setIsPlaybackEnabled>
+{
+	template <typename TaskQueue>
+	static void prepare(
+			TaskQueue& tasksQueue,
+			const std::shared_ptr<SampledFunctionCollectionImpl> network,
+			const uint index, const bool value
+	)
+	{
+		if( value ) {
+			Ramping::adjustMasterVolume(tasksQueue, network);
+		}
+		Ramping::rampMasterEnv( tasksQueue, 0 );
+	}
+};
+
+template <typename TaskQueue>
+static void postWrite(
+		TaskQueue& tasksQueue,
+		const std::shared_ptr<SampledFunctionCollectionImpl> network
+) {
+	for(uint index=0; index<network->size(); index++) {
+		if( network->getIsPlaybackEnabled(index) ) {
+			Ramping::rampEntry(tasksQueue, index, 1);
+		}
+	}
+	Ramping::rampMasterEnv( tasksQueue, 1 );
+	Ramping::adjustMasterVolume(tasksQueue, network);
+};
 
 /************************
  * ScheduledFunctionCollectionImpl:
@@ -121,8 +171,8 @@ void ScheduledFunctionCollectionImpl::prepareResize()
 	if( !audioSchedulingEnabled ) {
 		return;
 	}
-	writeTasks.write([this](auto& tasksQueue) {
-			prepareResizeImpl(tasksQueue);
+	writeTasks.write([](auto& tasksQueue) {
+			WritePrepare<&ScheduledFunctionCollectionImpl::resize>::prepare(tasksQueue);
 	});
 }
 
@@ -133,10 +183,8 @@ void ScheduledFunctionCollectionImpl::prepareSet(const Index index)
 		return;
 	}
 	// ramp down first:
-	writeTasks.write([this,index](auto& tasksQueue) {
-	getNetwork()->read([this,&tasksQueue,index](auto& network) {
-			prepareSetImpl(network,tasksQueue,index);
-	});
+	writeTasks.write([](auto& tasksQueue) {
+			WritePrepare<&ScheduledFunctionCollectionImpl::set>::prepare(tasksQueue);
 	});
 }
 
@@ -146,10 +194,8 @@ void ScheduledFunctionCollectionImpl::prepareSetParameterValues(const Index inde
 	if( !audioSchedulingEnabled ) {
 		return;
 	}
-	writeTasks.write([this,index](auto& tasksQueue) {
-	getNetwork()->read([this,&tasksQueue,index](auto& network) {
-			prepareSetParameterValuesImpl(network,tasksQueue,index);
-	});
+	writeTasks.write([](auto& tasksQueue) {
+			WritePrepare<&ScheduledFunctionCollectionImpl::setParameterValues>::prepare(tasksQueue);
 	});
 }
 
@@ -160,8 +206,12 @@ void ScheduledFunctionCollectionImpl::prepareSetIsPlaybackEnabled(const Index in
 		return;
 	}
 	writeTasks.write([this,index,value](auto& tasksQueue) {
-	getNetwork()->read([this,&tasksQueue,index,value](auto& network) {
-			prepareSetIsPlaybackEnabledImpl(network, tasksQueue, index, value);
+	getNetwork()->read([&tasksQueue,index,value](auto& network) {
+			WritePrepare<&ScheduledFunctionCollectionImpl::setIsPlaybackEnabled>::prepare(
+					tasksQueue,
+					network,
+					index, value
+			);
 	});
 	});
 }
@@ -172,10 +222,10 @@ void ScheduledFunctionCollectionImpl::prepareSetSamplingSettings(const Index ind
 	if( !audioSchedulingEnabled ) {
 		return;
 	}
-	writeTasks.write([this,index](auto& tasksQueue) {
-	getNetwork()->read([this,&tasksQueue,index](auto& network) {
-			prepareSetSamplingSettingsImpl(network, tasksQueue, index);
-	});
+	writeTasks.write([](auto& tasksQueue) {
+			WritePrepare<&ScheduledFunctionCollectionImpl::setSamplingSettings>::prepare(
+					tasksQueue
+			);
 	});
 }
 
@@ -188,8 +238,11 @@ void ScheduledFunctionCollectionImpl::postSetAny()
 		return;
 	}
 	writeTasks.write([this](auto& tasksQueue) {
-	getNetwork()->read([this,&tasksQueue](auto& network) {
-			postSetAnyImpl(network,tasksQueue);
+	getNetwork()->read([&tasksQueue](auto& network) {
+			postWrite(
+					tasksQueue,
+					network
+			);
 	});
 	});
 }
@@ -204,7 +257,7 @@ void ScheduledFunctionCollectionImpl::resize( const uint size )
 		return;
 	}
 	auto future = writeTasks.write([&](auto& tasksQueue) {
-		prepareResizeImpl(tasksQueue);
+		WritePrepare<&ScheduledFunctionCollectionImpl::resize>::prepare(tasksQueue);
 		// schedule model change:
 		return makeSetter<::resize>(
 				tasksQueue,
@@ -284,9 +337,7 @@ MaybeError ScheduledFunctionCollectionImpl::set(
 	auto functionParameters = FunctionParameters{ formula, parameters, stateDescriptions };
 	auto future = writeTasks.write([&](auto& tasksQueue) {
 		// ramp down first:
-		getNetwork()->read([&](auto& network) {
-			prepareSetImpl(network, tasksQueue, index);
-		});
+		WritePrepare<&ScheduledFunctionCollectionImpl::set>::prepare(tasksQueue);
 		// schedule model change:
 		return makeSetter<::set>(
 					tasksQueue,
@@ -311,9 +362,7 @@ MaybeError ScheduledFunctionCollectionImpl::setParameterValues(
 	}
 	auto future = writeTasks.write([&](auto& tasksQueue) {
 		// ramp down first:
-		getNetwork()->read([&](auto& network) {
-			prepareSetParameterValuesImpl(network, tasksQueue,index);
-		});
+		WritePrepare<&ScheduledFunctionCollectionImpl::setParameterValues>::prepare(tasksQueue);
 		// schedule model change:
 		return makeSetter<::setParameterValues>(
 				tasksQueue,
@@ -340,7 +389,11 @@ void ScheduledFunctionCollectionImpl::setIsPlaybackEnabled(
 	auto future = writeTasks.write([&](auto& tasksQueue) {
 		// ramp down first:
 		getNetwork()->read([&](auto& network) {
-			prepareSetIsPlaybackEnabledImpl(network, tasksQueue, index, value);
+			WritePrepare<&ScheduledFunctionCollectionImpl::setIsPlaybackEnabled>::prepare(
+					tasksQueue,
+					network,
+					index, value
+			);
 		});
 		// schedule model change:
 		return makeSetter<::setIsPlaybackEnabled>(
@@ -366,9 +419,9 @@ void ScheduledFunctionCollectionImpl::setSamplingSettings(
 	}
 	auto future = writeTasks.write([&](auto& tasksQueue) {
 		// ramp down first:
-		getNetwork()->read([&](auto& network) {
-			prepareSetSamplingSettingsImpl(network, tasksQueue, index);
-		});
+		WritePrepare<&ScheduledFunctionCollectionImpl::setSamplingSettings>::prepare(
+				tasksQueue
+		);
 		// schedule model change:
 		return makeSetter<::setSamplingSettings>(
 				tasksQueue,
@@ -397,7 +450,15 @@ void ScheduledFunctionCollectionImpl::valuesToBuffer(
 					buffer,
 					position, samplerate,
 					[this, network](auto position, auto samplerate) {
-						this->updateRamps(network, position, samplerate);
+						this->position = position;
+						writeTasks.write([&](auto& tasksQueue) {
+							Ramping::updateRamps(
+									tasksQueue,
+									network,
+									position,
+									samplerate
+							);
+						});
 					}
 			);
 	});
@@ -415,8 +476,7 @@ void ScheduledFunctionCollectionImpl::setAudioSchedulingEnabled(
 	if( value == true ) {
 		audioSchedulingEnabled = value;
 		writeTasks.write([](auto& tasksQueue) {
-				auto task = RampMasterEnvTask{ .dst = 1 };
-				tasksQueue.push_back(std::move(task));
+				Ramping::rampMasterEnv( tasksQueue, 1 );
 		});
 		return;
 	}
@@ -424,10 +484,7 @@ void ScheduledFunctionCollectionImpl::setAudioSchedulingEnabled(
 	else {
 		// assert( masterVolumeEnv >= 0.99 );
 		auto returnSignal = writeTasks.write([](auto &tasksQueue) {
-			{
-				auto task = RampMasterEnvTask{ .dst = 0 };
-				tasksQueue.push_back(std::move(task));
-			}
+			Ramping::rampMasterEnv( tasksQueue, 0 );
 			return [&](){
 				auto task = SignalReturnTask{};
 				auto returnSignal = task.promise.get_future();
@@ -454,7 +511,7 @@ void ScheduledFunctionCollectionImpl::betweenAudio(
 			auto& someTask = tasksQueue.front();
 			std::visit( [this,position,samplerate](auto& task) {
 					using Task = std::decay_t<decltype(task)>;
-					if constexpr ( IsSetter<Task>::value ) {
+					if constexpr ( IsSetterTask<Task>::value ) {
 						if( !task.done ) {
 							// delegate to the
 							// model worker thread:
@@ -502,7 +559,7 @@ void ScheduledFunctionCollectionImpl::betweenAudio(
 			auto [rem_begin, rem_end] = std::ranges::remove_if(tasksQueue, [](auto& someTask) -> bool {
 				return std::visit( [](auto&& task) {
 					using Task = std::decay_t<decltype(task)>;
-					if constexpr ( IsSetter<Task>::value ) {
+					if constexpr ( IsSetterTask<Task>::value ) {
 						return task.done;
 					}
 					else if constexpr ( std::is_same_v<Task,SignalReturnTask> ) {
@@ -525,98 +582,146 @@ void ScheduledFunctionCollectionImpl::betweenAudio(
 	});
 }
 
-// prepare impl:
-
-void ScheduledFunctionCollectionImpl::prepareResizeImpl(
-		std::deque<WriteTask>& tasksQueue
-)
+void ScheduledFunctionCollectionImpl::modelWorkerLoop()
 {
-	auto task = RampMasterEnvTask{ .dst = 0 };
-	tasksQueue.push_back(std::move(task));
-}
-
-void ScheduledFunctionCollectionImpl::prepareSetImpl(
-		const std::shared_ptr<SampledFunctionCollectionImpl> network,
-		std::deque<WriteTask>& tasksQueue,
-		const Index index
-)
-{
-	auto task = RampMasterEnvTask{ .dst = 0 };
-	tasksQueue.push_back(std::move(task));
-	// for(uint i=index; i<getNetwork()->size(); i++) {
-	// 	auto task = RampTask{ .index = i, .dst = 0 };
-	// 	writeTasks.push_back(std::move(task));
-	// }
-}
-
-void ScheduledFunctionCollectionImpl::prepareSetParameterValuesImpl(
-		const std::shared_ptr<SampledFunctionCollectionImpl> network,
-		std::deque<WriteTask>& tasksQueue,
-		const Index index
-)
-{
-	auto task = RampMasterEnvTask{ .dst = 0 };
-	tasksQueue.push_back(std::move(task));
-	// prepareSetImpl(index);
-}
-
-void ScheduledFunctionCollectionImpl::prepareSetIsPlaybackEnabledImpl(
-		const std::shared_ptr<SampledFunctionCollectionImpl> network,
-		std::deque<WriteTask>& tasksQueue,
-		const Index index, const bool value
-)
-{
-	// if( value == getNetwork()->getIsPlaybackEnabled(index) ) {
-	// 	return;
-	// }
-	if( value ) {
-		updateMasterVolumeImpl(network,tasksQueue);
-	}
-	auto task = RampMasterEnvTask{ .dst = 0 };
-	tasksQueue.push_back(std::move(task));
-	// {
-	// 	auto task = RampTask{ .index = index, .dst = 0 };
-	// 	writeTasks.push_back(std::move(task));
-	// }
-}
-
-void ScheduledFunctionCollectionImpl::prepareSetSamplingSettingsImpl(
-		const std::shared_ptr<SampledFunctionCollectionImpl> network,
-		std::deque<WriteTask>& tasksQueue,
-		const Index index
-)
-{
-	auto task = RampMasterEnvTask{ .dst = 0 };
-	tasksQueue.push_back(std::move(task));
-	// auto task = RampTask{ .index = index, .dst = 0 };
-	// writeTasks.push_back(std::move(task));
-}
-
-// post set impl:
-
-void ScheduledFunctionCollectionImpl::postSetAnyImpl(
-		const std::shared_ptr<SampledFunctionCollectionImpl> network,
-		std::deque<WriteTask>& tasksQueue
-)
-{
-	for(uint i=0; i<network->size(); i++) {
-		if( network->getIsPlaybackEnabled(i) ) {
-			auto task = RampTask{ .index = i, .dst = 1 };
-			tasksQueue.push_back(std::move(task));
+	while(true) {
+		modelTasks.acquire();
+		if( stopModelWorker ) {
+			break;
 		}
-	}
-	{
-		auto task = RampMasterEnvTask{ .dst = 1 };
-		tasksQueue.push_back(std::move(task));
-	}
-	updateMasterVolumeImpl(network,tasksQueue);
+		writeTasks.write([&](auto& tasksQueue) {
+			assert( !tasksQueue.empty() );
+			auto& someTask = tasksQueue.front();
+			std::visit([&](auto& task) {
+					using Task = std::decay_t<decltype(task)>;
+					if constexpr ( IsSetterTask<Task>::value ) {
+						assert( !task.done );
+						{
+							expensiveTaskRunning = true;
+							getNetwork()->write([&task](auto network) {
+								return run(network.get(), &task);
+							});
+							expensiveTaskRunning = false;
+						}
+						#ifdef LOG_MODEL
+						qDebug() << QString("%1: executing '%2")
+							.arg( double(position) / double(samplerate) )
+							.arg( functionName(task) )
+						;
+						#endif
+					}
+					else {
+						assert( IsSetterTask<Task>::value );
+					}
+			}, someTask );
+		});
+	};
 }
 
-void ScheduledFunctionCollectionImpl::updateMasterVolumeImpl(
-		const std::shared_ptr<SampledFunctionCollectionImpl> network,
-		std::deque<WriteTask>& tasksQueue
+/************************
+ * Ramping
+************************/
+
+template <typename TaskQueue>
+void Ramping::rampMasterEnv(
+		TaskQueue& tasksQueue,
+		double value
+) {
+	auto task = RampMasterEnvTask{ .dst = value };
+	tasksQueue.push_back(std::move(task));
+}
+
+template <typename TaskQueue>
+void Ramping::rampEntry(
+		TaskQueue& tasksQueue,
+		const uint index,
+		double value
 )
 {
+	auto task = RampTask{ .index = index, .dst = 1 };
+	tasksQueue.push_back(std::move(task));
+}
+
+template <typename TaskQueue>
+void Ramping::updateRamps(
+		TaskQueue& tasksQueue,
+		const std::shared_ptr<SampledFunctionCollectionImpl> network,
+		const PlaybackPosition position,
+		const uint samplerate
+) {
+	auto rampView  = (
+		tasksQueue
+		| std::views::take_while([](auto& someTask) {
+				return
+					std::holds_alternative<RampTask>(someTask)
+					|| std::holds_alternative<RampMasterEnvTask>(someTask)
+					|| std::holds_alternative<RampMasterVolumeTask>(someTask)
+				;
+		})
+		| std::views::reverse
+	);
+	// RampMasterEnvTask:
+	{
+		auto view = rampView
+			| std::views::filter([](auto& someTask){
+				auto task = std::get_if<RampMasterEnvTask>(&someTask);
+				return task && !task->done;
+			})
+			| std::views::transform([](auto& task){
+				return &std::get<RampMasterEnvTask>( task );
+			})
+		;
+		updateRamp<RampMasterEnvTask>(
+				view,
+				[network]() { return network->getMasterEnvelope(); },
+				[network](const double value) { return network->setMasterEnvelope(value); },
+				position, samplerate
+		);
+	}
+	// RampMasterVolumeTask:
+	{
+		auto view = rampView
+			| std::views::filter([](auto& someTask){
+				auto task = std::get_if<RampMasterVolumeTask>(&someTask);
+				return task && !task->done;
+			})
+			| std::views::transform([](auto& task){
+				return &std::get<RampMasterVolumeTask>( task );
+			})
+		;
+		updateRamp<RampMasterVolumeTask>(
+				view,
+				[network]() { return network->getMasterVolume(); },
+				[network](const double value) { return network->setMasterVolume(value); },
+				position, samplerate
+		);
+	}
+	// RampTask:
+	for( uint index=0; index<network->size(); index++ )
+	{
+		auto view = rampView
+			| std::views::filter([index](auto& someTask){
+				auto task = std::get_if<RampTask>(&someTask);
+				return task && (task->index == index) && !task->done;
+			})
+			| std::views::transform([](auto& task){
+				return &std::get<RampTask>( task );
+			})
+		;
+		updateRamp<RampTask>(
+				view,
+				[network,index]() { return network->getNodeInfo(index)->volumeEnvelope; },
+				[network,index](const double value) { network->getNodeInfo(index)->volumeEnvelope = value; },
+				position, samplerate
+		);
+	}
+}
+
+template <typename TaskQueue>
+void Ramping::adjustMasterVolume(
+		TaskQueue& tasksQueue,
+		const std::shared_ptr<SampledFunctionCollectionImpl> network
+) {
 	uint count = 0;
 	{
 		for(uint i=0; i<network->size(); i++ ) {
@@ -632,88 +737,8 @@ void ScheduledFunctionCollectionImpl::updateMasterVolumeImpl(
 	}
 }
 
-/* implicitly runs with the same locks 
- * as `valuesToBuffer`, that is:
- */
-void ScheduledFunctionCollectionImpl::updateRamps(
-		const std::shared_ptr<SampledFunctionCollectionImpl> network,
-		const PlaybackPosition position,
-		const uint samplerate
-)
-{
-	this->position = position;
-	writeTasks.write([&](auto& tasksQueue) {
-			auto rampView  = (
-				tasksQueue
-				| std::views::take_while([](auto& someTask) {
-						return
-							std::holds_alternative<RampTask>(someTask)
-							|| std::holds_alternative<RampMasterEnvTask>(someTask)
-							|| std::holds_alternative<RampMasterVolumeTask>(someTask)
-						;
-				})
-				| std::views::reverse
-			);
-			// RampMasterEnvTask:
-			{
-				auto view = rampView
-					| std::views::filter([](auto& someTask){
-						auto task = std::get_if<RampMasterEnvTask>(&someTask);
-						return task && !task->done;
-					})
-					| std::views::transform([](auto& task){
-						return &std::get<RampMasterEnvTask>( task );
-					})
-				;
-				updateRamp<RampMasterEnvTask>(
-						view,
-						[network]() { return network->getMasterEnvelope(); },
-						[network](const double value) { return network->setMasterEnvelope(value); },
-						position, samplerate
-				);
-			}
-			// RampMasterVolumeTask:
-			{
-				auto view = rampView
-					| std::views::filter([](auto& someTask){
-						auto task = std::get_if<RampMasterVolumeTask>(&someTask);
-						return task && !task->done;
-					})
-					| std::views::transform([](auto& task){
-						return &std::get<RampMasterVolumeTask>( task );
-					})
-				;
-				updateRamp<RampMasterVolumeTask>(
-						view,
-						[network]() { return network->getMasterVolume(); },
-						[network](const double value) { return network->setMasterVolume(value); },
-						position, samplerate
-				);
-			}
-			// RampTask:
-			for( uint index=0; index<network->size(); index++ )
-			{
-				auto view = rampView
-					| std::views::filter([index](auto& someTask){
-						auto task = std::get_if<RampTask>(&someTask);
-						return task && (task->index == index) && !task->done;
-					})
-					| std::views::transform([](auto& task){
-						return &std::get<RampTask>( task );
-					})
-				;
-				updateRamp<RampTask>(
-						view,
-						[network,index]() { return network->getNodeInfo(index)->volumeEnvelope; },
-						[network,index](const double value) { network->getNodeInfo(index)->volumeEnvelope = value; },
-						position, samplerate
-				);
-			}
-	});
-}
-
 template <typename Task, typename View>
-void ScheduledFunctionCollectionImpl::updateRamp(
+void Ramping::updateRamp(
 		View view,
 		std::function<double()> getValue,
 		std::function<void(const double)> setValue,
@@ -750,40 +775,4 @@ void ScheduledFunctionCollectionImpl::updateRamp(
 		}
 		task->done = true;
 	}
-}
-
-void ScheduledFunctionCollectionImpl::modelWorkerLoop()
-{
-	while(true) {
-		modelTasks.acquire();
-		if( stopModelWorker ) {
-			break;
-		}
-		writeTasks.write([&](auto& tasksQueue) {
-			assert( !tasksQueue.empty() );
-			auto& someTask = tasksQueue.front();
-			std::visit([&](auto& task) {
-					using Task = std::decay_t<decltype(task)>;
-					if constexpr ( IsSetter<Task>::value ) {
-						assert( !task.done );
-						{
-							expensiveTaskRunning = true;
-							getNetwork()->write([&task](auto network) {
-								return run(network.get(), &task);
-							});
-							expensiveTaskRunning = false;
-						}
-						#ifdef LOG_MODEL
-						qDebug() << QString("%1: executing '%2")
-							.arg( double(position) / double(samplerate) )
-							.arg( functionName(task) )
-						;
-						#endif
-					}
-					else {
-						assert( IsSetter<Task>::value );
-					}
-			}, someTask );
-		});
-	};
 }

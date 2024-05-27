@@ -52,6 +52,65 @@ using SetIsPlaybackEnabledTask = SetterTask<setIsPlaybackEnabled>;
 using SetSamplingSettingsTask = SetterTask<setSamplingSettings>;
 
 
+struct Ramping {
+	using Index = typename Model::Index;
+	struct RampTask
+	{
+		Index index;
+		double src;
+		double dst;
+		std::optional<PlaybackPosition> pos = {};
+		bool done = false;
+	};
+	struct RampMasterEnvTask
+	{
+		double src;
+		double dst;
+		std::optional<PlaybackPosition> pos = {};
+		bool done = false;
+	};
+	struct RampMasterVolumeTask
+	{
+		double src;
+		double dst;
+		std::optional<PlaybackPosition> pos = {};
+		bool done = false;
+	};
+	public:
+		template <typename TaskQueue>
+		static void rampMasterEnv(
+				TaskQueue& tasksQueue,
+				double value
+		);
+		template <typename TaskQueue>
+		static void rampEntry(
+				TaskQueue& tasksQueue,
+				const uint index,
+				double value
+		);
+		template <typename TaskQueue>
+		static void adjustMasterVolume(
+				TaskQueue& tasksQueue,
+				const std::shared_ptr<SampledFunctionCollectionImpl> network
+		);
+		template <typename TaskQueue>
+		static void updateRamps(
+				TaskQueue& tasksQueue,
+				const std::shared_ptr<SampledFunctionCollectionImpl> network,
+				const PlaybackPosition position,
+				const uint samplerate
+		);
+	private:
+		template <typename Task, typename View>
+		static void updateRamp(
+				View view,
+				std::function<double()> getValue,
+				std::function<void(const double)> setValue,
+				const PlaybackPosition position,
+				const uint samplerate
+		);
+};
+
 class ScheduledFunctionCollectionImpl:
 	public Model
 {
@@ -143,34 +202,16 @@ class ScheduledFunctionCollectionImpl:
 				const uint samplerate
 		) override;
 
-	private:
-		struct RampTask
-		{
-			Index index;
-			double src;
-			double dst;
-			std::optional<PlaybackPosition> pos = {};
-			bool done = false;
-		};
-		struct RampMasterEnvTask
-		{
-			double src;
-			double dst;
-			std::optional<PlaybackPosition> pos = {};
-			bool done = false;
-		};
-		struct RampMasterVolumeTask
-		{
-			double src;
-			double dst;
-			std::optional<PlaybackPosition> pos = {};
-			bool done = false;
-		};
+	public:
+		using RampTask = Ramping::RampTask;
+		using RampMasterEnvTask = Ramping::RampMasterEnvTask;
+		using RampMasterVolumeTask = Ramping::RampMasterVolumeTask;
 		struct SignalReturnTask
 		{
 			std::promise<void> promise;
 			bool done = false;
 		};
+	private:
 		using WriteTask = std::variant<
 			ResizeTask,
 			SetTask,
@@ -185,58 +226,6 @@ class ScheduledFunctionCollectionImpl:
 
 	private:
 
-		void prepareResizeImpl(
-				std::deque<WriteTask>& tasksQueue
-		);
-		void prepareSetImpl(
-				const std::shared_ptr<SampledFunctionCollectionImpl> network,
-				std::deque<WriteTask>& tasksQueue,
-				const Index index
-		);
-		void prepareSetParameterValuesImpl(
-				const std::shared_ptr<SampledFunctionCollectionImpl> network,
-				std::deque<WriteTask>& tasksQueue,
-				const Index index
-		);
-		void prepareSetIsPlaybackEnabledImpl(
-				const std::shared_ptr<SampledFunctionCollectionImpl> network,
-				std::deque<WriteTask>& tasksQueue,
-				const Index index, const bool value
-		);
-		void prepareSetSamplingSettingsImpl(
-				const std::shared_ptr<SampledFunctionCollectionImpl> network,
-				std::deque<WriteTask>& tasksQueue,
-				const Index index
-		);
-
-		void postSetAnyImpl(
-				const std::shared_ptr<SampledFunctionCollectionImpl> network,
-				std::deque<WriteTask>& tasksQueue
-		);
-
-		void updateMasterVolumeImpl(
-				const std::shared_ptr<SampledFunctionCollectionImpl> network,
-				std::deque<WriteTask>& tasksQueue
-		);
-
-		/** Called by the audio thread
-		from `valuesToBuffer` at samplerate.
-		Therefore implicitly run with
-		the same locks as `valuesToBuffer`
-		*/
-		void updateRamps(
-				const std::shared_ptr<SampledFunctionCollectionImpl> network,
-				const PlaybackPosition position,
-				const uint samplerate
-		);
-		template <typename Task, typename View>
-		void updateRamp(
-				View view,
-				std::function<double()> getValue,
-				std::function<void(const double)> setValue,
-				const PlaybackPosition position,
-				const uint samplerate
-		);
 		const mutex_guarded<std::shared_ptr<SampledFunctionCollectionImpl>>* getNetworkConst() const {
 			return &(this->guardedNetwork);
 		}
