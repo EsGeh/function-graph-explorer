@@ -5,6 +5,7 @@
 
 using PlaybackPosition = unsigned long int;
 
+
 /**
 Represents the following concepts:
 
@@ -68,6 +69,7 @@ struct SampledFunctionCollection
 			const PlaybackPosition position,
 			const unsigned int samplerate
 	) = 0;
+
 	virtual bool getIsPlaybackEnabled(
 			const Index index
 	) const = 0;
@@ -81,9 +83,26 @@ struct SampledFunctionCollection
 struct SampledFunctionCollectionInternal:
 	public SampledFunctionCollection
 {
+
+	using AudioCallback = std::function<void(
+			const PlaybackPosition position,
+			const uint samplerate
+	)>;
+
 	virtual double getMasterEnvelope() const = 0;
 	virtual void setMasterEnvelope(const double value) = 0;
 
 	virtual double getMasterVolume() const = 0;
 	virtual void setMasterVolume(const double value) = 0;
+
+	using SampledFunctionCollection::valuesToBuffer;
+	// sampling for audio
+	// with an additional
+	// audio-rate callback:
+	virtual void valuesToBuffer(
+			std::vector<float>* buffer,
+			const PlaybackPosition position,
+			const unsigned int samplerate,
+			AudioCallback callback
+	) = 0;
 };

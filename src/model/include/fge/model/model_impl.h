@@ -1,6 +1,7 @@
 #pragma once
 
 #include "fge/model/model.h"
+#include "sampled_func_collection.h"
 #include "sampled_func_collection_impl.h"
 #include "template_utils.h"
 // #include <future>
@@ -184,15 +185,39 @@ class ScheduledFunctionCollectionImpl:
 
 	private:
 
-		void prepareResizeImpl();
-		void prepareSetImpl(const Index index);
-		void prepareSetParameterValuesImpl(const Index index);
-		void prepareSetIsPlaybackEnabledImpl(const Index index, const bool value);
-		void prepareSetSamplingSettingsImpl(const Index index);
+		void prepareResizeImpl(
+				std::deque<WriteTask>& tasksQueue
+		);
+		void prepareSetImpl(
+				const std::shared_ptr<SampledFunctionCollectionImpl> network,
+				std::deque<WriteTask>& tasksQueue,
+				const Index index
+		);
+		void prepareSetParameterValuesImpl(
+				const std::shared_ptr<SampledFunctionCollectionImpl> network,
+				std::deque<WriteTask>& tasksQueue,
+				const Index index
+		);
+		void prepareSetIsPlaybackEnabledImpl(
+				const std::shared_ptr<SampledFunctionCollectionImpl> network,
+				std::deque<WriteTask>& tasksQueue,
+				const Index index, const bool value
+		);
+		void prepareSetSamplingSettingsImpl(
+				const std::shared_ptr<SampledFunctionCollectionImpl> network,
+				std::deque<WriteTask>& tasksQueue,
+				const Index index
+		);
 
-		void postSetAnyImpl();
+		void postSetAnyImpl(
+				const std::shared_ptr<SampledFunctionCollectionImpl> network,
+				std::deque<WriteTask>& tasksQueue
+		);
 
-		void updateMasterVolumeImpl();
+		void updateMasterVolumeImpl(
+				const std::shared_ptr<SampledFunctionCollectionImpl> network,
+				std::deque<WriteTask>& tasksQueue
+		);
 
 		/** Called by the audio thread
 		from `valuesToBuffer` at samplerate.
@@ -200,6 +225,7 @@ class ScheduledFunctionCollectionImpl:
 		the same locks as `valuesToBuffer`
 		*/
 		void updateRamps(
+				const std::shared_ptr<SampledFunctionCollectionImpl> network,
 				const PlaybackPosition position,
 				const uint samplerate
 		);
@@ -211,8 +237,11 @@ class ScheduledFunctionCollectionImpl:
 				const PlaybackPosition position,
 				const uint samplerate
 		);
-		std::shared_ptr<SampledFunctionCollectionImpl> getNetwork() const {
-			return this->network;
+		const mutex_guarded<std::shared_ptr<SampledFunctionCollectionImpl>>* getNetworkConst() const {
+			return &(this->guardedNetwork);
+		}
+		mutex_guarded<std::shared_ptr<SampledFunctionCollectionImpl>>* getNetwork() {
+			return &(this->guardedNetwork);
 		}
 		void modelWorkerLoop();
 
@@ -220,10 +249,9 @@ class ScheduledFunctionCollectionImpl:
 		bool audioSchedulingEnabled = false;
 		PlaybackPosition position = 0;
 		std::atomic<uint> samplerate = 0;
-		mutable std::mutex networkLock;
-		std::shared_ptr<SampledFunctionCollectionImpl> network;
-		mutable std::mutex tasksLock;
-		std::deque<WriteTask> writeTasks;
+
+		mutex_guarded<std::shared_ptr<SampledFunctionCollectionImpl>> guardedNetwork;
+		mutex_guarded<std::deque<WriteTask>> writeTasks;
 
 		std::atomic<bool> stopModelWorker;
 		std::thread modelWorkerThread;
@@ -235,15 +263,18 @@ class ScheduledFunctionCollectionImpl:
 
 	template <
 		auto function,
+		typename TaskQueue,
 		typename... Args
 	>
 	friend auto makeSetter(
-		ScheduledFunctionCollectionImpl* obj,
+		TaskQueue& taskQueue,
+		const PlaybackPosition position,
 		Args... args
 	);
 
 	template <auto function>
 	friend void run(
+		SampledFunctionCollectionImpl* network,
 		SetterTask<function>* setter
 	);
 };

@@ -1,8 +1,12 @@
 #pragma once
 
 #include "fge/model/template_utils.h"
+#include "sampled_func_collection.h"
+#include "sampled_func_collection_impl.h"
+#include <memory>
 #include <type_traits>
 #include <QDebug>
+#include <unistd.h>
 
 // utils:
 
@@ -56,11 +60,17 @@ const char* functionName(const SetterTask<function>& setterTask) {
 template <auto function>
 struct SetterTask
 {
-	ScheduledFunctionCollectionImpl* obj;
 	typename FunctionTraits<decltype(function)>::args_tuple_t args;
 	PlaybackPosition pos = 0;
+	constexpr static SampledFunctionCollectionImpl* temp = nullptr;
 	using ReturnType = decltype(
-			std::apply(function,std::tuple_cat(std::make_tuple(obj->getNetwork()),args))
+		std::apply(
+			function,
+			std::tuple_cat(
+				std::make_tuple(temp),
+				args
+			)
+		)
 	);
 	std::promise<ReturnType> promise;
 	bool done = false;
@@ -68,10 +78,12 @@ struct SetterTask
 
 template <
 	auto function,
+	typename TaskQueue,
 	typename... Args
 >
 auto makeSetter(
-		ScheduledFunctionCollectionImpl* obj,
+		TaskQueue& taskQueue,
+		const PlaybackPosition position,
 		Args... args
 )
 {
@@ -81,17 +93,17 @@ auto makeSetter(
 	);
 	auto tuple = std::tuple( args... );
 	auto task = SetterTask<function>{
-		.obj = obj,
 		.args = tuple,
-		.pos = obj->position
+		.pos = position
 	};
 	auto future = task.promise.get_future();
-	obj->writeTasks.push_back(std::move(task));
+	taskQueue.push_back(std::move(task));
 	return future;
 }
 
 template <auto function>
 void run(
+		SampledFunctionCollectionImpl* network,
 		SetterTask<function>* setter
 )
 {
@@ -100,7 +112,7 @@ void run(
 		auto ret = std::apply(
 				function,
 				std::tuple_cat(
-					std::make_tuple(setter->obj->getNetwork()),
+					std::make_tuple(network),
 					setter->args
 				)
 		);
@@ -110,7 +122,7 @@ void run(
 		std::apply(
 				function,
 				std::tuple_cat(
-					std::make_tuple(setter->obj->getNetwork()),
+					std::make_tuple(network),
 					setter->args
 				)
 		);

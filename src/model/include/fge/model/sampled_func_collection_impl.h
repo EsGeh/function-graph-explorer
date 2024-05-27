@@ -17,12 +17,6 @@ struct NodeInfo:
 	FunctionBuffer functionBuffer;
 };
 
-using AudioCallback = std::function<void(
-		const PlaybackPosition position,
-		const uint samplerate
-)>;
-
-
 
 class SampledFunctionCollectionImpl:
 	public SampledFunctionCollectionInternal,
@@ -33,8 +27,7 @@ class SampledFunctionCollectionImpl:
 		using SampledFunctionCollectionInternal::Index;
 	public:
 		SampledFunctionCollectionImpl(
-				const SamplingSettings& defSamplingSettings,
-				AudioCallback audioCallback 
+				const SamplingSettings& defSamplingSettings
 		);
 	
 		// Size:
@@ -96,8 +89,22 @@ class SampledFunctionCollectionImpl:
 		virtual void valuesToBuffer(
 				std::vector<float>* buffer,
 				const PlaybackPosition position,
-				const unsigned int samplerate
+				const unsigned int samplerate,
+				AudioCallback callback
 		) override;
+
+		virtual void valuesToBuffer(
+				std::vector<float>* buffer,
+				const PlaybackPosition position,
+				const unsigned int samplerate
+		) override {
+			this->valuesToBuffer(
+					buffer,
+					position,
+					samplerate,
+					[](const PlaybackPosition position, const uint samplerate){}
+			);
+		}
 
 		virtual double getMasterEnvelope() const override;
 		virtual void setMasterEnvelope(const double value) override;
@@ -130,7 +137,7 @@ class SampledFunctionCollectionImpl:
 
 	private:
 		SamplingSettings defSamplingSettings;
-		AudioCallback audioCallback;
+		// AudioCallback audioCallback;
 		double masterEnvelope = 1;
 		double masterVolume = 1;
 };

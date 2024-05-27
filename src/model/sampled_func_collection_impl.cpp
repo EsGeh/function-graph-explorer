@@ -30,11 +30,9 @@
 ************************/
 
 SampledFunctionCollectionImpl::SampledFunctionCollectionImpl(
-		const SamplingSettings& defSamplingSettings,
-		AudioCallback audioCallback 
+		const SamplingSettings& defSamplingSettings
 )
 	: defSamplingSettings( defSamplingSettings )
-	, audioCallback( audioCallback )
 {}
 
 void SampledFunctionCollectionImpl::resize(const uint size)
@@ -190,7 +188,8 @@ void SampledFunctionCollectionImpl::setIsPlaybackEnabled(
 void SampledFunctionCollectionImpl::valuesToBuffer(
 		std::vector<float>* buffer,
 		const PlaybackPosition position,
-		const unsigned int samplerate
+		const unsigned int samplerate,
+		AudioCallback callback
 )
 {
 	for(
@@ -200,7 +199,7 @@ void SampledFunctionCollectionImpl::valuesToBuffer(
 	) {
 		buffer->data()[pos] =
 			audioFunction(position+pos, samplerate);
-		audioCallback( position+pos, samplerate );
+		callback( position+pos, samplerate );
 	}
 }
 

@@ -26,14 +26,17 @@ template <
 
 template <
 	auto function,
+	typename TaskQueue,
 	typename... Args
 >
 auto makeSetter(
-		SampledFunctionCollectionImpl* obj,
+		TaskQueue& taskQueue,
+		const PlaybackPosition position,
 		Args... args
 );
 
 template <auto function>
 void run(
+		SampledFunctionCollectionImpl* network,
 		SetterTask<function>* setter
 );
