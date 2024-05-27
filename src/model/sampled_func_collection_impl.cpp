@@ -319,14 +319,18 @@ C getWithResolution(
 	std::function<C(const C)> periodicLookup = [function](const C x){ return function->get(x); };
 	if( samplingSettings.periodic != 0 && x.c_.imag() == 0 ) {
 		periodicLookup = [function,samplingSettings,buffer](const C x) {
-			const auto mod = fmod(x.c_.real(), samplingSettings.periodic);
-			T lookupPos =
-					x.c_.real() >= 0
-					? mod
-					: samplingSettings.periodic + mod
-			;
+			T lookupPos = [&](){
+				const auto mod = fmod(x.c_.real(), samplingSettings.periodic);
+				if( x.c_.real() >= 0 )
+					return mod;
+				return samplingSettings.periodic + mod;
+			}();
+			/*
+			assert( lookupPos >= 0 );
+			assert( lookupPos < samplingSettings.periodic );
+			*/
 			if( isBufferable( function, samplingSettings ) ) {
-				const int xpos = xToRasterIndex(lookupPos, samplingSettings.resolution);
+				const int xpos = xToRasterIndex(lookupPos, samplingSettings.resolution) % samplingSettings.resolution;
 				assert( buffer->inRange( xpos ) );
 				return buffer->lookup( xpos );
 			}
