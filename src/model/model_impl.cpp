@@ -445,22 +445,22 @@ void ScheduledFunctionCollectionImpl::valuesToBuffer(
 		std::ranges::fill(buffer->begin(),buffer->end(), 0);
 		return;
 	}
-	return getNetworkConst()->read([this,buffer,position,samplerate](auto& network) {
-			network->valuesToBuffer(
-					buffer,
-					position, samplerate,
-					[this, network](auto position, auto samplerate) {
-						this->position = position;
-						writeTasks.write([&](auto& tasksQueue) {
-							Ramping::updateRamps(
-									tasksQueue,
-									network,
-									position,
-									samplerate
-							);
-						});
-					}
-			);
+	writeTasks.write([&](auto& tasksQueue) {
+	getNetworkConst()->read([&](auto& network) {
+		network->valuesToBuffer(
+				buffer,
+				position, samplerate,
+				[&](auto position, auto samplerate) {
+					this->position = position;
+					Ramping::updateRamps(
+							tasksQueue,
+							network,
+							position,
+							samplerate
+					);
+				}
+		);
+	});
 	});
 }
 
