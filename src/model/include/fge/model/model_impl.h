@@ -3,6 +3,7 @@
 #include "fge/model/model.h"
 #include "sampled_func_collection.h"
 #include "sampled_func_collection_impl.h"
+#include "fge/shared/concurrency_utils.h"
 #include "template_utils.h"
 // #include <future>
 #include <memory>

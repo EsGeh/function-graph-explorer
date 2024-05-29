@@ -505,7 +505,7 @@ void ScheduledFunctionCollectionImpl::betweenAudio(
 )
 {
 	this->position = position;
-	writeTasks.write([&](auto& tasksQueue) {
+	writeTasks.try_write([&](auto& tasksQueue) -> void {
 		// 1. 
 		if( !tasksQueue.empty() ) {
 			auto& someTask = tasksQueue.front();
@@ -589,7 +589,7 @@ void ScheduledFunctionCollectionImpl::modelWorkerLoop()
 		if( stopModelWorker ) {
 			break;
 		}
-		writeTasks.write([&](auto& tasksQueue) {
+		writeTasks.try_write([&](auto& tasksQueue) {
 			assert( !tasksQueue.empty() );
 			auto& someTask = tasksQueue.front();
 			std::visit([&](auto& task) {
@@ -598,7 +598,7 @@ void ScheduledFunctionCollectionImpl::modelWorkerLoop()
 						assert( !task.done );
 						{
 							expensiveTaskRunning = true;
-							getNetwork()->write([&task](auto network) {
+							getNetwork()->try_write([&task](auto network) {
 								return run(network.get(), &task);
 							});
 							expensiveTaskRunning = false;
