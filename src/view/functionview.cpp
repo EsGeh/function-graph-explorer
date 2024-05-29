@@ -30,6 +30,7 @@ FunctionView::FunctionView(
 	ui->verticalLayout->addWidget( graphView, 1 );
 
 	parametersDialog = new ParametersEdit(
+			"Function Parameters for " + title,
 			&parameters,
 			&dataDescription.parameterDescriptions,
 			this

@@ -18,6 +18,7 @@ class ParametersEdit : public QDialog
 
 public:
     explicit ParametersEdit(
+				const QString& functionName,
 				ParameterBindings* parameters,
 				std::map<QString,ParameterDescription>* parameterDescriptions,
 				QWidget *parent = nullptr

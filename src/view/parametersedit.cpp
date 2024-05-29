@@ -4,6 +4,7 @@
 #include <memory>
 
 ParametersEdit::ParametersEdit(
+		const QString& functionName,
 		ParameterBindings* parameters,
 		std::map<QString,ParameterDescription>* parameterDescriptions,
 		QWidget *parent
@@ -14,6 +15,7 @@ ParametersEdit::ParametersEdit(
 		, parameterDescriptions(parameterDescriptions)
 {
 	ui->setupUi(this);
+	this->setWindowTitle( functionName );
 }
 
 ParametersEdit::~ParametersEdit()
