@@ -46,8 +46,8 @@ void ParametersEdit::updateView()
 				paramWidget.get(),
 				&ParameterValueEntry::valueChanged,
 				[this,&param](auto value) {
-					param.second = { value };
-					emit parametersChanged();
+					param.second = { C(value, 0) };
+					emit parameterChanged(param.first, { C(value,0) } );
 				}
 		);
 	}

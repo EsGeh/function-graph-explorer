@@ -62,11 +62,11 @@ FunctionView::FunctionView(
 	);
 	connect(
 		parametersDialog,
-		&ParametersEdit::parametersChanged,
-		[this]() {
-			emit changed({
-					.parameters = getParameters()
-			});
+		&ParametersEdit::parameterChanged,
+		[this](auto parameterName, auto value) {
+			emit parameterChanged(
+					parameterName, value
+			);
 		}
 	);
 	connect(

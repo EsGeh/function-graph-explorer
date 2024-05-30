@@ -27,7 +27,10 @@ public:
 
 		void updateView();
 signals:
-	void parametersChanged();
+	void parameterChanged(
+			const QString& parameterName,
+			const std::vector<C>& value
+	);
 
 private:
     Ui::ParametersEdit *ui;

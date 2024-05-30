@@ -3,6 +3,8 @@
 #include <qslider.h>
 #include <qspinbox.h>
 
+const int sliderDiv = 10;
+
 ParameterValueEntry::ParameterValueEntry(
 		const QString& name,
 		const C& param,
@@ -18,16 +20,19 @@ ParameterValueEntry::ParameterValueEntry(
 	ui->value->setSingleStep(
 			description.step>0 ? description.step : 0.1
 	);
-	ui->slider->setRange( description.min, description.max );
-	ui->slider->setSingleStep(
-			description.step>0 ? description.step : 0.1
-	);
+	ui->slider->setRange( description.min*sliderDiv, description.max*sliderDiv);
+	// ui->slider->setSingleStep( description.step );
 	connect(
 		ui->value,
 		&QDoubleSpinBox::valueChanged,
 		[this]() {
 			const auto value = ui->value->value();
-			ui->slider->setValue( value );
+			// update slider
+			{
+				auto blockedOld = ui->slider->blockSignals(true);
+				ui->slider->setValue( value*sliderDiv );
+				ui->slider->blockSignals(blockedOld);
+			}
 			emit valueChanged(C(value,0));
 		}
 	);
@@ -35,14 +40,23 @@ ParameterValueEntry::ParameterValueEntry(
 		ui->slider,
 		&QSlider::valueChanged,
 		[this]() {
-			const auto value = ui->slider->value();
-			ui->value->setValue( value );
+			const auto value = double(ui->slider->value()) / sliderDiv;
+			// update spinbox:
+			{
+				auto blockedOld = ui->value->blockSignals(true);
+				ui->value->setValue( value );
+				ui->value->blockSignals(blockedOld);
+			}
 			emit valueChanged(C(value,0));
 		}
 	);
 
 	ui->value->setValue( param.c_.real() );
-	ui->slider->setValue( param.c_.real() );
+	{
+		auto blockedOld = ui->slider->blockSignals(true);
+		ui->slider->setValue( param.c_.real()*sliderDiv );
+		ui->slider->blockSignals(blockedOld);
+	}
 }
 
 ParameterValueEntry::~ParameterValueEntry()

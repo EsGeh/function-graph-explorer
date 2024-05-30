@@ -51,6 +51,7 @@ signals:
 	void readAccessGranted( const Model* model, const uint index);
 
 public slots:
+
 	// queue model->resize
 	// implicitly locks the model:
   void resize(
@@ -78,6 +79,44 @@ public slots:
 		emit updateDone( model, index, update, ret );
 	};
 
+	// queue model->setParameterValues
+	// implicitly locks the model:
+  void updateParameters(
+			const uint index,
+			const ParameterBindings parameters
+	) {
+		if( model->getAudioSchedulingEnabled() ) {
+			modelLock.lock();
+			model->scheduleSetParameterValues(
+					index, parameters,
+					[this](auto index, auto parameters) {
+						modelLock.lock();
+						emit updateDone(
+								model, index,
+								Model::Update{
+									.parameters = parameters
+								},
+								{}
+						);
+					}
+			);
+			modelLock.unlock();
+		}
+		else {
+			modelLock.lock();
+			model->setParameterValues(
+					index, parameters
+			);
+			emit updateDone(
+					model, index,
+					Model::Update{
+						.parameters = parameters
+					},
+					{}
+			);
+		}
+	};
+
 	// request read access to model:
 	// implicitly locks the model:
 	void requestRead(const uint index) {
@@ -92,6 +131,7 @@ public slots:
 private:
 	std::mutex modelLock;
 	Model* model;
+	bool audioEnabled = 0;
 
 };
 

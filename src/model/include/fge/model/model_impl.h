@@ -15,6 +15,8 @@
 // 50ms
 const double rampTime = 50.0 / 1000.0;
 
+const double parameterRampTime = 100.0 / 1000.0;
+
 /**
 	The model is accessed by 2 threads:
 
@@ -55,6 +57,7 @@ using SetSamplingSettingsTask = SetterTask<setSamplingSettings>;
 
 struct Ramping {
 	using Index = typename Model::Index;
+	using ParameterSignalDone = Model::ParameterSignalDone;
 	struct RampTask
 	{
 		Index index;
@@ -77,6 +80,17 @@ struct Ramping {
 		std::optional<PlaybackPosition> pos = {};
 		bool done = false;
 	};
+	struct RampParameterTask
+	{
+		Index index;
+		QString parameterName;
+		double src;
+		double dst;
+		std::optional<PlaybackPosition> pos = {};
+		bool done = false;
+		bool succeeded = false;
+		ParameterSignalDone signalizeDone;
+	};
 	public:
 		template <typename TaskQueue>
 		static void rampMasterEnv(
@@ -88,6 +102,14 @@ struct Ramping {
 				TaskQueue& tasksQueue,
 				const uint index,
 				double value
+		);
+		template <typename TaskQueue>
+		static void rampParameter(
+				TaskQueue& tasksQueue,
+				const uint index,
+				const QString& parameterName,
+				double value,
+				ParameterSignalDone signalizeDone
 		);
 		template <typename TaskQueue>
 		static void adjustMasterVolume(
@@ -105,8 +127,8 @@ struct Ramping {
 		template <typename Task, typename View>
 		static void updateRamp(
 				View view,
-				std::function<double()> getValue,
-				std::function<void(const double)> setValue,
+				std::function<double(const Task* task)> getValue,
+				std::function<void(const Task* task,const double)> setValue,
 				const PlaybackPosition position,
 				const uint samplerate
 		);
@@ -176,6 +198,12 @@ class ScheduledFunctionCollectionImpl:
 				const ParameterBindings& parameters
 		) override;
 
+		virtual void scheduleSetParameterValues(
+				const Index index,
+				const ParameterBindings& parameters,
+				ParameterSignalDone signalizeDone
+		) override;
+
 		virtual void setIsPlaybackEnabled(
 				const Index index,
 				const bool value
@@ -188,6 +216,7 @@ class ScheduledFunctionCollectionImpl:
 
 		// Control Scheduling:
 
+		virtual bool getAudioSchedulingEnabled() const override;
 		virtual void setAudioSchedulingEnabled(
 				const bool value
 		) override;
@@ -207,6 +236,7 @@ class ScheduledFunctionCollectionImpl:
 		using RampTask = Ramping::RampTask;
 		using RampMasterEnvTask = Ramping::RampMasterEnvTask;
 		using RampMasterVolumeTask = Ramping::RampMasterVolumeTask;
+		using RampParameterTask = Ramping::RampParameterTask;
 		struct SignalReturnTask
 		{
 			std::promise<void> promise;
@@ -222,6 +252,7 @@ class ScheduledFunctionCollectionImpl:
 			RampTask,
 			RampMasterEnvTask,
 			RampMasterVolumeTask,
+			RampParameterTask,
 			SignalReturnTask
 		>;
 

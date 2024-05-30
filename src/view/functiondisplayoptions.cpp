@@ -19,10 +19,11 @@ const std::vector<Template> templates = {
 	{
 		.name = "Oscillation",
 		.formula = (QStringList {
-			"cos( freq * 2pi*x )"
+			"amp * cos( freq * 2pi*x )"
 		}).join("\n"),
 		.data = (QStringList {
-			"parameter 1 freq 1 0 44100",
+			"parameter 1 freq 1 0 1000",
+			"parameter 1 amp 1 0 1",
 		}).join("\n")
 	},
 	{
@@ -31,7 +32,7 @@ const std::vector<Template> templates = {
 			"sgn(cos( freq * 2pi*x ))"
 		}).join("\n"),
 		.data = (QStringList {
-			"parameter 1 freq 1 0 44100",
+			"parameter 1 freq 1 0 1000",
 		}).join("\n")
 	},
 	{
@@ -40,7 +41,7 @@ const std::vector<Template> templates = {
 			"2*frac(freq * x)-1"
 		}).join("\n"),
 		.data = (QStringList {
-			"parameter 1 freq 1 0 44100",
+			"parameter 1 freq 1 0 1000",
 		}).join("\n")
 	},
 	{
@@ -54,7 +55,7 @@ const std::vector<Template> templates = {
 			"1/N*acc;"
 		}).join("\n"),
 		.data = (QStringList {
-			"parameter 1 freq 1 0 44100",
+			"parameter 1 freq 1 0 1000",
 		}).join("\n")
 	},
 	{
@@ -63,7 +64,7 @@ const std::vector<Template> templates = {
 			"exp( freq*i*2pi*x )"
 		}).join("\n"),
 		.data = (QStringList {
-			"parameter 1 freq 1 0 44100",
+			"parameter 1 freq 1 0 1000",
 		}).join("\n")
 	},
 	{

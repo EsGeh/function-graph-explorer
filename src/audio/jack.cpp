@@ -28,6 +28,7 @@ void AudioWorker::init(
 {
 	this->callbacks = callbacks;
 	this->samplerate = samplerate;
+	qDebug() << "buffer size:" << size;
 	for( uint i=0; i<count; i++ ) {
 		buffer[i].resize(size);
 	}

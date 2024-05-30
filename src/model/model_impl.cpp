@@ -357,7 +357,7 @@ MaybeError ScheduledFunctionCollectionImpl::setParameterValues(
 	LOG_FUNCTION()
 	if( !audioSchedulingEnabled ) {
 		return getNetwork()->write([index,&parameters](auto& network) {
-				return network->setParameterValues( index,parameters );
+				return network->setParameterValues( index, parameters );
 		});
 	}
 	auto future = writeTasks.write([&](auto& tasksQueue) {
@@ -372,6 +372,35 @@ MaybeError ScheduledFunctionCollectionImpl::setParameterValues(
 	});
 	auto ret = future.get();
 	return ret;
+}
+
+void ScheduledFunctionCollectionImpl::scheduleSetParameterValues(
+		const Index index,
+		const ParameterBindings& parameters,
+		ParameterSignalDone signalizeDone
+)
+{
+	LOG_FUNCTION()
+	if( !audioSchedulingEnabled ) {
+		auto ret = getNetwork()->write([index,&parameters](auto& network) {
+				return network->setParameterValues( index, parameters );
+		});
+		signalizeDone(
+				index,
+				parameters
+		);
+	}
+	writeTasks.write([&](auto& tasksQueue) {
+		for( auto [parameterName, value] : parameters ) {
+			Ramping::rampParameter(
+				tasksQueue,
+				index,
+				parameterName,
+				value.at(0).c_.real(),
+				signalizeDone
+			);
+		}
+	});
 }
 
 void ScheduledFunctionCollectionImpl::setIsPlaybackEnabled(
@@ -445,23 +474,28 @@ void ScheduledFunctionCollectionImpl::valuesToBuffer(
 		std::ranges::fill(buffer->begin(),buffer->end(), 0);
 		return;
 	}
-	writeTasks.write([&](auto& tasksQueue) {
-	getNetworkConst()->read([&](auto& network) {
+	writeTasks.write([this,buffer,position,samplerate](auto& tasksQueue) {
+	getNetworkConst()->read([this,buffer,position,samplerate,&tasksQueue](const auto& network) {
 		network->valuesToBuffer(
 				buffer,
 				position, samplerate,
-				[&](auto position, auto samplerate) {
-					this->position = position;
+				[&tasksQueue,&network](auto position_sr, auto samplerate_sr) {
 					Ramping::updateRamps(
 							tasksQueue,
 							network,
-							position,
-							samplerate
+							position_sr,
+							samplerate_sr
 					);
 				}
 		);
 	});
 	});
+}
+
+bool ScheduledFunctionCollectionImpl::getAudioSchedulingEnabled() const
+{
+	LOG_FUNCTION()
+	return audioSchedulingEnabled;
 }
 
 void ScheduledFunctionCollectionImpl::setAudioSchedulingEnabled(
@@ -505,6 +539,8 @@ void ScheduledFunctionCollectionImpl::betweenAudio(
 )
 {
 	this->position = position;
+	this->samplerate = samplerate;
+	std::vector<std::function<void()>> parameteterSignals;
 	writeTasks.try_write([&](auto& tasksQueue) -> void {
 		// 1. 
 		if( !tasksQueue.empty() ) {
@@ -515,7 +551,6 @@ void ScheduledFunctionCollectionImpl::betweenAudio(
 						if( !task.done ) {
 							// delegate to the
 							// model worker thread:
-							this->samplerate = samplerate;
 							modelTasks.release();
 						}
 					}
@@ -552,12 +587,40 @@ void ScheduledFunctionCollectionImpl::betweenAudio(
 					.arg( task->dst )
 					.arg( double(position - task->pos.value_or(position)) / double(samplerate) );
 			}
+			else if( auto task = std::get_if<RampParameterTask>( &someTask ); task && task->done) {
+				qDebug() << QString("%1: RampParameterTask done %2, %6: %3->%4, in %5 s")
+					.arg( double(position) / double(samplerate) )
+					.arg( task->index )
+					.arg( task->src )
+					.arg( task->dst )
+					.arg( double(position - task->pos.value_or(position)) / double(samplerate) )
+					.arg( task->parameterName )
+				;
+			}
 		}
 		#endif
+		for( auto& someTask : tasksQueue ) {
+			if( auto task = std::get_if<RampParameterTask>( &someTask ); task && task->done && task->succeeded ) {
+				parameteterSignals.push_back( [
+						signalizeDone = task->signalizeDone,
+						index = task->index,
+						name = task->parameterName,
+						value = task->dst
+				]() {
+					signalizeDone(
+						index,
+						{ {
+							name,
+							{ C(value,0) }
+						} }
+					);
+				});
+			}
+		}
 		// cleanup ramps:
 		{
 			auto [rem_begin, rem_end] = std::ranges::remove_if(tasksQueue, [](auto& someTask) -> bool {
-				return std::visit( [](auto&& task) {
+				return std::visit( [](auto& task) {
 					using Task = std::decay_t<decltype(task)>;
 					if constexpr ( IsSetterTask<Task>::value ) {
 						return task.done;
@@ -574,12 +637,18 @@ void ScheduledFunctionCollectionImpl::betweenAudio(
 					else if constexpr ( std::is_same_v<Task,RampMasterVolumeTask> ) {
 						return task.done;
 					}
+					else if constexpr ( std::is_same_v<Task,RampParameterTask> ) {
+						return task.done;
+					}
 					return false;
 				}, someTask );
 			});
 			tasksQueue.erase( rem_begin, rem_end );
 		}
 	});
+	for( auto signal: parameteterSignals ) {
+		signal();
+	}
 }
 
 void ScheduledFunctionCollectionImpl::modelWorkerLoop()
@@ -638,83 +707,26 @@ void Ramping::rampEntry(
 		double value
 )
 {
-	auto task = RampTask{ .index = index, .dst = 1 };
+	auto task = RampTask{ .index = index, .dst = value };
 	tasksQueue.push_back(std::move(task));
 }
 
 template <typename TaskQueue>
-void Ramping::updateRamps(
+void Ramping::rampParameter(
 		TaskQueue& tasksQueue,
-		const std::shared_ptr<SampledFunctionCollectionImpl> network,
-		const PlaybackPosition position,
-		const uint samplerate
-) {
-	auto rampView  = (
-		tasksQueue
-		| std::views::take_while([](auto& someTask) {
-				return
-					std::holds_alternative<RampTask>(someTask)
-					|| std::holds_alternative<RampMasterEnvTask>(someTask)
-					|| std::holds_alternative<RampMasterVolumeTask>(someTask)
-				;
-		})
-		| std::views::reverse
-	);
-	// RampMasterEnvTask:
-	{
-		auto view = rampView
-			| std::views::filter([](auto& someTask){
-				auto task = std::get_if<RampMasterEnvTask>(&someTask);
-				return task && !task->done;
-			})
-			| std::views::transform([](auto& task){
-				return &std::get<RampMasterEnvTask>( task );
-			})
-		;
-		updateRamp<RampMasterEnvTask>(
-				view,
-				[network]() { return network->getMasterEnvelope(); },
-				[network](const double value) { return network->setMasterEnvelope(value); },
-				position, samplerate
-		);
-	}
-	// RampMasterVolumeTask:
-	{
-		auto view = rampView
-			| std::views::filter([](auto& someTask){
-				auto task = std::get_if<RampMasterVolumeTask>(&someTask);
-				return task && !task->done;
-			})
-			| std::views::transform([](auto& task){
-				return &std::get<RampMasterVolumeTask>( task );
-			})
-		;
-		updateRamp<RampMasterVolumeTask>(
-				view,
-				[network]() { return network->getMasterVolume(); },
-				[network](const double value) { return network->setMasterVolume(value); },
-				position, samplerate
-		);
-	}
-	// RampTask:
-	for( uint index=0; index<network->size(); index++ )
-	{
-		auto view = rampView
-			| std::views::filter([index](auto& someTask){
-				auto task = std::get_if<RampTask>(&someTask);
-				return task && (task->index == index) && !task->done;
-			})
-			| std::views::transform([](auto& task){
-				return &std::get<RampTask>( task );
-			})
-		;
-		updateRamp<RampTask>(
-				view,
-				[network,index]() { return network->getNodeInfo(index)->volumeEnvelope; },
-				[network,index](const double value) { network->getNodeInfo(index)->volumeEnvelope = value; },
-				position, samplerate
-		);
-	}
+		const uint index,
+		const QString& parameterName,
+		double value,
+		ParameterSignalDone signalizeDone
+)
+{
+	auto task = RampParameterTask{
+		.index = index,
+		.parameterName = parameterName,
+		.dst = value,
+		.signalizeDone = signalizeDone
+	};
+	tasksQueue.push_back(std::move(task));
 }
 
 template <typename TaskQueue>
@@ -737,11 +749,122 @@ void Ramping::adjustMasterVolume(
 	}
 }
 
+template <typename TaskQueue>
+void Ramping::updateRamps(
+		TaskQueue& tasksQueue,
+		const std::shared_ptr<SampledFunctionCollectionImpl> network,
+		const PlaybackPosition position,
+		const uint samplerate
+) {
+	// all recent entries which are ramps:
+	auto rampView  = (
+		tasksQueue
+		| std::views::take_while([](auto& someTask) {
+				return
+					std::holds_alternative<RampTask>(someTask)
+					|| std::holds_alternative<RampMasterEnvTask>(someTask)
+					|| std::holds_alternative<RampMasterVolumeTask>(someTask)
+					|| std::holds_alternative<RampParameterTask>(someTask)
+				;
+		})
+		| std::views::reverse
+	);
+	// RampMasterEnvTask:
+	{
+		auto view = rampView
+			| std::views::filter([](auto& someTask){
+				auto task = std::get_if<RampMasterEnvTask>(&someTask);
+				return task && !task->done;
+			})
+			| std::views::transform([](auto& task){
+				return &std::get<RampMasterEnvTask>( task );
+			})
+		;
+		updateRamp<RampMasterEnvTask>(
+				view,
+				[network](auto task) { return network->getMasterEnvelope(); },
+				[network](auto task, const double value) { return network->setMasterEnvelope(value); },
+				position, samplerate
+		);
+	}
+	// RampMasterVolumeTask:
+	{
+		auto view = rampView
+			| std::views::filter([](auto& someTask){
+				auto task = std::get_if<RampMasterVolumeTask>(&someTask);
+				return task && !task->done;
+			})
+			| std::views::transform([](auto& task){
+				return &std::get<RampMasterVolumeTask>( task );
+			})
+		;
+		updateRamp<RampMasterVolumeTask>(
+				view,
+				[network](auto task) { return network->getMasterVolume(); },
+				[network](auto task, const double value) { return network->setMasterVolume(value); },
+				position, samplerate
+		);
+	}
+	// RampTask:
+	for( uint index=0; index<network->size(); index++ )
+	{
+		auto view = rampView
+			| std::views::filter([index](auto& someTask){
+				auto task = std::get_if<RampTask>(&someTask);
+				return task && (task->index == index) && !task->done;
+			})
+			| std::views::transform([](auto& task){
+				return &std::get<RampTask>( task );
+			})
+		;
+		updateRamp<RampTask>(
+				view,
+				[network,index](auto task) { return network->getNodeInfo(index)->volumeEnvelope; },
+				[network,index](auto task, const double value) { network->getNodeInfo(index)->volumeEnvelope = value; },
+				position, samplerate
+		);
+	}
+	// RampParameterTask:
+	for( uint index=0; index<network->size(); index++ )
+	{
+		for( auto [parameterName,_] : network->get(index).parameters ) {
+			auto view = rampView
+				| std::views::filter([index,parameterName](auto& someTask){
+					auto task = std::get_if<RampParameterTask>(&someTask);
+					return
+						task
+						&& (task->index == index)
+						&& (task->parameterName == parameterName)
+						&& !task->done;
+				})
+				| std::views::transform([](auto& task){
+					return &std::get<RampParameterTask>( task );
+				})
+			;
+			updateRamp<RampParameterTask>(
+					view,
+					[network](auto task) -> double {
+						return network->get(task->index).parameters.at(
+								task->parameterName
+						).at(0).c_.real();
+					},
+					[network,index](auto task, const double value) {
+						network->setParameterValues(
+								task->index,
+								{ { task->parameterName, { C(value,0) } } }
+						);
+					},
+					position, samplerate
+			);
+		}
+	}
+}
+
 template <typename Task, typename View>
 void Ramping::updateRamp(
 		View view,
-		std::function<double()> getValue,
-		std::function<void(const double)> setValue,
+		std::function<double(const Task* task)> getValue,
+		std::function<void(const Task* task,const double)> setValue,
 		const PlaybackPosition position,
 		const uint samplerate
 ) {
@@ -750,19 +873,38 @@ void Ramping::updateRamp(
 		Task* task = view.front();
 		if( !task->pos) {
 			task->pos = position;
-			task->src = getValue();
+			task->src = getValue(task);
 		}
 		double time = double(position - task->pos.value()) / double(samplerate);
-		double fixedRampTime = fabs(task->src - task->dst) * rampTime;
-		if( time < fixedRampTime )
-		{
-			setValue(
-				task->src + (task->dst - task->src)
-				* (time / fixedRampTime)
-			);
+		if constexpr ( std::is_same_v<Task,RampParameterTask> ) {
+			double adjustedRampTime = parameterRampTime;
+			if( time < adjustedRampTime )
+			{
+				setValue(
+						task,
+						task->src + (task->dst - task->src)
+						* (time / adjustedRampTime)
+				);
+			}
+			else {
+				task->done = true;
+				task->succeeded = true;
+			}
 		}
 		else {
-			task->done = true;
+			double adjustedRampTime = rampTime;
+			// double adjustedRampTime = fabs(task->src - task->dst) * rampTime;
+			if( time < adjustedRampTime )
+			{
+				setValue(
+						task,
+						task->src + (task->dst - task->src)
+						* (time / adjustedRampTime)
+				);
+			}
+			else {
+				task->done = true;
+			}
 		}
 	}
 	// ignore all previous tasksQueue:
@@ -771,7 +913,7 @@ void Ramping::updateRamp(
 		// for correct debug output:
 		if( !task->pos) {
 			task->pos = position;
-			task->src = getValue();
+			task->src = getValue(task);
 		}
 		task->done = true;
 	}

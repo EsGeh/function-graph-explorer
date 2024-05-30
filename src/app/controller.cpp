@@ -33,7 +33,6 @@ Controller::Controller(
 		modelWorker,
 		[this]( uint value ) {
 			modelWorker->resize( value );
-			// resizeView( value );
 		}
 	);
 	// resize: view <- modelWorker
@@ -153,6 +152,17 @@ void Controller::resizeView(
 								.playbackEnabled = updateInfo.playbackEnabled,
 								.samplingSettings = updateInfo.samplingSettings
 							}
+					);
+				}
+		);
+		connect(
+				functionView,
+				&FunctionView::parameterChanged,
+				modelWorker,
+				[this,index](auto parameterName, auto value) {
+					return modelWorker->updateParameters(
+							index,
+							{ { parameterName, value } }
 					);
 				}
 		);

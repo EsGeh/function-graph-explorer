@@ -8,6 +8,7 @@ struct AudioScheduled
 {
 	virtual ~AudioScheduled() {};
 
+	virtual bool getAudioSchedulingEnabled() const = 0;
 	virtual void setAudioSchedulingEnabled(
 			const bool value
 	) = 0;
@@ -29,6 +30,11 @@ struct Model:
 		std::optional<bool> playbackEnabled = false;
 		std::optional<SamplingSettings> samplingSettings = {};
 	};
+	using ParameterSignalDone = std::function<void(
+		const Index index,
+		ParameterBindings parameters
+		)>
+	;
 
 	virtual ~Model() {};
 
@@ -44,6 +50,12 @@ struct Model:
 	virtual void prepareSetSamplingSettings(const Index index) = 0;
 	
 	virtual void postSetAny() = 0;
+
+	virtual void scheduleSetParameterValues(
+			const Index index,
+			const ParameterBindings& parameters,
+			ParameterSignalDone signalizeDone
+	) = 0;
 
 };
 
