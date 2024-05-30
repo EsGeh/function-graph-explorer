@@ -396,7 +396,7 @@ void ScheduledFunctionCollectionImpl::scheduleSetParameterValues(
 				tasksQueue,
 				index,
 				parameterName,
-				value.at(0).c_.real(),
+				value.c_.real(),
 				signalizeDone
 			);
 		}
@@ -846,7 +846,7 @@ void Ramping::updateRamps(
 					[network](auto task) -> double {
 						return network->get(task->index).parameters.at(
 								task->parameterName
-						).at(0).c_.real();
+						).c_.real();
 					},
 					[network,index](auto task, const double value) {
 						network->setParameterValues(

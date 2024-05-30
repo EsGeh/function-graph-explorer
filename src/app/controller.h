@@ -83,7 +83,7 @@ public slots:
 	// implicitly locks the model:
   void updateParameters(
 			const uint index,
-			const ParameterBindings parameters
+			const ParameterBindings& parameters
 	) {
 		if( model->getAudioSchedulingEnabled() ) {
 			modelLock.lock();

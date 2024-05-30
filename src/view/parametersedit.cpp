@@ -35,7 +35,7 @@ void ParametersEdit::updateView()
 		auto description = parameterDescriptions->at(param.first);
 		auto paramWidget = std::make_shared<ParameterValueEntry>(
 				param.first,
-				param.second.at(0),
+				param.second,
 				description
 		);
 		paramWidgets.push_back( paramWidget );
@@ -46,8 +46,8 @@ void ParametersEdit::updateView()
 				paramWidget.get(),
 				&ParameterValueEntry::valueChanged,
 				[this,&param](auto value) {
-					param.second = { C(value, 0) };
-					emit parameterChanged(param.first, { C(value,0) } );
+					param.second = C(value, 0);
+					emit parameterChanged(param.first, param.second );
 				}
 		);
 	}

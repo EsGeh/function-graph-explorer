@@ -25,7 +25,8 @@ struct ParameterDescription {
 
 using ParameterDescriptions = std::map<QString,ParameterDescription>;
 using ParameterNames = std::vector<QString>;
-using ParameterBindings = std::map<QString, std::vector<C>>;
+using ParameterBindings = std::map<QString, C>;
+using StateBindings = std::map<QString, std::vector<C>>;
 
 struct StateDescription {
 	uint size;

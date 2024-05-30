@@ -201,7 +201,7 @@ void updateParameters(
 		{
 			parameters.try_emplace(
 					it->first,
-					std::vector<C>(1,C(it->second.initial,0))
+					C(it->second.initial,0)
 			);
 			it++;
 		}

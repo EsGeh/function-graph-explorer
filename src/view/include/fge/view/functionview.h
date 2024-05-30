@@ -55,7 +55,7 @@ signals:
 	void changed( UpdateInfo updateInfo );
 	void parameterChanged(
 			const QString& parameterName,
-			const std::vector<C> value
+			const C value
 	);
   void viewParamsChanged();
 

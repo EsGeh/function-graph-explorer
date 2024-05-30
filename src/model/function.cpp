@@ -87,7 +87,7 @@ ParameterBindings FormulaFunction::getParameters() const
 
 MaybeError FormulaFunction::setParameter(
 		const QString& name,
-		const std::vector<C>& value
+		const C& value
 )
 {
 	auto entry = parameters.find( name );
@@ -126,18 +126,10 @@ MaybeError FormulaFunction::init(
 	symbols.add_variable( "x", varX );
 	// parameters:
 	for( auto& [paramName, paramValue] : this->parameters ) {
-		if( paramValue.size() == 1 ) {
-			symbols.add_variable(
-					paramName.toStdString(),
-					paramValue[0]
-			);
-		}
-		else {
-			symbols.add_vector(
-					paramName.toStdString(),
-					paramValue
-			);
-		}
+		symbols.add_variable(
+				paramName.toStdString(),
+				paramValue
+		);
 	}
 	// add state:
 	for( auto& [key, value] : this->state ) {

@@ -43,7 +43,7 @@ public exprtk::ifunction<C>
 		virtual ParameterBindings getParameters() const = 0;
 		virtual MaybeError setParameter(
 				const QString& name,
-				const std::vector<C>& value
+				const C& value
 		) = 0;
 		virtual StateDescriptions getStateDescriptions() const = 0;
 
@@ -87,7 +87,7 @@ class FormulaFunction:
 		virtual ParameterBindings getParameters() const override;
 		virtual MaybeError setParameter(
 				const QString& name,
-				const std::vector<C>& value
+				const C& value
 		) override;
 		virtual StateDescriptions getStateDescriptions() const override;
 
@@ -110,7 +110,7 @@ class FormulaFunction:
 		QString formulaStr;
 		ParameterBindings parameters;
 		StateDescriptions stateDescriptions;
-		ParameterBindings state;
+		StateBindings state;
 		expression_t formula;
 		C varX;
 };

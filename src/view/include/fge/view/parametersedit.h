@@ -28,7 +28,7 @@ public:
 signals:
 	void parameterChanged(
 			const QString& parameterName,
-			const std::vector<C>& value
+			const C& value
 	);
 
 private:
@@ -36,7 +36,7 @@ private:
 		std::vector<std::shared_ptr<ParameterValueEntry>> paramWidgets;
 		// Data:
 		ParameterBindings* parameters;
-		std::map<QString,ParameterDescription>* parameterDescriptions;
+		ParameterDescriptions* parameterDescriptions;
 };
 
 #endif // PARAMETERSEDIT_H
