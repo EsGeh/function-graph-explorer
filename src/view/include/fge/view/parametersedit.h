@@ -2,9 +2,8 @@
 #define PARAMETERSEDIT_H
 
 #include "fge/view/parametervalueentry.h"
-#include "fge/view/parameter_utils.h"
+#include "fge/shared/parameter_utils.h"
 #include "fge/shared/data.h"
-#include "parameter_utils.h"
 #include <QDialog>
 #include <memory>
 

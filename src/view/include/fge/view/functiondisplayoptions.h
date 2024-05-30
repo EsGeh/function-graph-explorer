@@ -2,7 +2,7 @@
 #define FUNCTIONDISPLAYOPTIONS_H
 
 #include "fge/view/viewdata.h"
-#include "fge/view/parameter_utils.h"
+#include "fge/shared/parameter_utils.h"
 #include "fge/shared/data.h"
 #include <QDialog>
 
@@ -17,7 +17,6 @@ class FunctionDisplayOptions : public QDialog
 
 public:
 	explicit FunctionDisplayOptions(
-			const std::vector<QString>& parameters,
 			const FunctionViewData& viewData,
 			const SamplingSettings& samplingSettings,
 			QWidget *parent = nullptr

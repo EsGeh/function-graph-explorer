@@ -1,4 +1,4 @@
-#include "fge/view/parameter_utils.h"
+#include "fge/shared/parameter_utils.h"
 #include <expected>
 #include <QStringList>
 
@@ -107,7 +107,7 @@ ParseResult parseFunctionDataDescription(
 			if( !ok || size < 0 ) {
 				continue;
 			}
-			ret.insert({ words.at(2), VariableDescription{ .size = (uint )size } });
+			ret.insert({ words.at(2), StateDescription{ .size = (uint )size } });
 		}
 		else {
 			continue;

@@ -16,13 +16,18 @@ struct SamplingSettings {
 	bool buffered = false;
 };
 
-struct VariableDescription {
-	uint size;
+struct ParameterDescription {
+	double initial = 0;
+	double min = 0;
+	double max = 1;
+	double step = 0;
 };
 
-using ParameterDescriptions = std::vector<QString>;
-using StateDescriptions = std::map<QString,VariableDescription>;
-
+using ParameterDescriptions = std::map<QString,ParameterDescription>;
+using ParameterNames = std::vector<QString>;
 using ParameterBindings = std::map<QString, std::vector<C>>;
 
-ParameterDescriptions descrFromParameters( const ParameterBindings& parameters );
+struct StateDescription {
+	uint size;
+};
+using StateDescriptions = std::map<QString,StateDescription>;

@@ -1,7 +1,4 @@
 #include "fge/view/functionview.h"
-#include "include/fge/view/functiondisplayoptions.h"
-#include "include/fge/view/parameter_utils.h"
-#include "include/fge/view/parametersedit.h"
 #include "ui_functionview.h"
 #include <qcheckbox.h>
 
@@ -36,7 +33,6 @@ FunctionView::FunctionView(
 			this
 	);
 	displayDialog = new FunctionDisplayOptions(
-			descrFromParameters( parameters ),
 			viewData,
 			samplingSettings,
 			this

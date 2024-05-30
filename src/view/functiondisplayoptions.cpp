@@ -1,5 +1,4 @@
 #include "fge/view/functiondisplayoptions.h"
-#include "include/fge/view/parameter_utils.h"
 #include "ui_functiondisplayoptions.h"
 #include <QMenuBar>
 #include <QAction>
@@ -120,7 +119,6 @@ const std::vector<Template> templates = {
 };
 
 FunctionDisplayOptions::FunctionDisplayOptions(
-		const std::vector<QString>& parameters,
 		const FunctionViewData& viewData,
 		const SamplingSettings& samplingSettings,
 		QWidget *parent

@@ -1,7 +1,7 @@
 #ifndef FUNCTIONVIEW_H
 #define FUNCTIONVIEW_H
 
-#include "fge/view/parameter_utils.h"
+#include "fge/shared/parameter_utils.h"
 #include "fge/view/viewdata.h"
 #include "fge/view/parametersedit.h"
 #include "fge/view/graphview.h"

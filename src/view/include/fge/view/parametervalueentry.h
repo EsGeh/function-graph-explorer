@@ -1,8 +1,7 @@
 #pragma once
 
 #include "fge/shared/data.h"
-#include "fge/view/parameter_utils.h"
-#include "parameter_utils.h"
+#include "fge/shared/parameter_utils.h"
 #include <QWidget>
 
 namespace Ui {
