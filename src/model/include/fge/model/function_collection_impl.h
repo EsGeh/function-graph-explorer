@@ -16,7 +16,7 @@ class FunctionCollectionImpl:
 		struct InvalidEntry
 		{
 			QString error;
-			FunctionParameters parameters;
+			FunctionInfo parameters;
 		};
 
 		using FunctionOrInvalid = std::expected<
@@ -39,14 +39,14 @@ class FunctionCollectionImpl:
 		virtual std::expected<std::shared_ptr<Function>,Error> get(const Index index) const override;
 		virtual MaybeError set(
 				const Index index,
-				const FunctionParameters& parameters
+				const FunctionInfo& parameters
 		) override;
 		virtual MaybeError setParameterValues(
 				const Index index,
 				const ParameterBindings& parameters
 		) override;
 
-		virtual FunctionParameters getFunctionParameters(const uint index) const override;
+		virtual FunctionInfo getFunctionInfo(const uint index) const override;
 
 		virtual NodeInfo* getNodeInfo(
 				const Index index
@@ -55,7 +55,7 @@ class FunctionCollectionImpl:
 	private:
 		void updateFormulas(
 				const size_t startIndex,
-				const std::optional<FunctionParameters>& parameters
+				const std::optional<FunctionInfo>& parameters
 		);
 	private:
 		Symbols constants;

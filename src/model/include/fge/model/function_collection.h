@@ -5,7 +5,7 @@
 #include <memory>
 
 
-struct FunctionParameters
+struct FunctionInfo
 {
 	QString formula;
 	ParameterBindings parameters;
@@ -30,9 +30,9 @@ class FunctionCollection
 
 		virtual MaybeError set(
 				const Index index,
-				const FunctionParameters& parameters
+				const FunctionInfo& parameters
 		) = 0;
-		virtual FunctionParameters getFunctionParameters(const uint index) const = 0;
+		virtual FunctionInfo getFunctionInfo(const uint index) const = 0;
 		virtual MaybeError setParameterValues(
 				const Index index,
 				const ParameterBindings& parameters

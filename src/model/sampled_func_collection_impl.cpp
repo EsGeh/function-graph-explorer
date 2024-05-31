@@ -43,12 +43,12 @@ void SampledFunctionCollectionImpl::resize(const uint size)
 }
 
 // Read entries:
-FunctionParameters SampledFunctionCollectionImpl::get(
+FunctionInfo SampledFunctionCollectionImpl::get(
 		const size_t index
 ) const
 {
 	LOG_FUNCTION()
-	return LowLevel::getFunctionParameters(index);
+	return LowLevel::getFunctionInfo(index);
 }
 
 MaybeError SampledFunctionCollectionImpl::getError(
@@ -74,7 +74,7 @@ MaybeError SampledFunctionCollectionImpl::set(
 {
 	LOG_FUNCTION()
 	auto ret = LowLevel::set( index, 
-		FunctionParameters{
+		FunctionInfo{
 			.formula = formula,
 			.parameters = parameters,
 			.stateDescriptions = stateDescriptions

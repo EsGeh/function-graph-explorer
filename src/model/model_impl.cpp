@@ -112,7 +112,7 @@ ScheduledFunctionCollectionImpl::Index ScheduledFunctionCollectionImpl::size() c
 }
 
 // Read entries:
-FunctionParameters ScheduledFunctionCollectionImpl::get(
+FunctionInfo ScheduledFunctionCollectionImpl::get(
 		const size_t index
 ) const
 {
@@ -334,7 +334,7 @@ MaybeError ScheduledFunctionCollectionImpl::set(
 				return network->set( index, formula, parameters, stateDescriptions );
 		});
 	}
-	auto functionParameters = FunctionParameters{ formula, parameters, stateDescriptions };
+	auto functionParameters = FunctionInfo{ formula, parameters, stateDescriptions };
 	auto future = writeTasks.write([&](auto& tasksQueue) {
 		// ramp down first:
 		WritePrepare<&ScheduledFunctionCollectionImpl::set>::prepare(tasksQueue);

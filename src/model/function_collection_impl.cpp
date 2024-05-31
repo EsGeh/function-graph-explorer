@@ -113,12 +113,12 @@ FunctionOrError FunctionCollectionImpl::get(const Index index) const
 	});
 }
 
-FunctionParameters FunctionCollectionImpl::getFunctionParameters(const uint index) const
+FunctionInfo FunctionCollectionImpl::getFunctionInfo(const uint index) const
 {
 	auto entry = entries.at( index );
 	if( entry->functionOrError ) {
 		auto function = entry->functionOrError.value();
-		return FunctionParameters{
+		return FunctionInfo{
 			.formula = function->toString(),
 			.parameters = function->getParameters(),
 			.stateDescriptions = function->getStateDescriptions()
@@ -140,7 +140,7 @@ void FunctionCollectionImpl::resize( const uint size ) {
 			auto entry = std::shared_ptr<NetworkEntry>(new NetworkEntry {
 					.functionOrError = std::unexpected(InvalidEntry{
 						.error = "not yet initialized",
-						.parameters = FunctionParameters{
+						.parameters = FunctionInfo{
 								.formula = (i>0)
 									? QString("%1(x)").arg( functionName(i-1) )
 									: "cos( 2pi * x )"
@@ -156,7 +156,7 @@ void FunctionCollectionImpl::resize( const uint size ) {
 
 MaybeError FunctionCollectionImpl::set(
 		const Index index,
-		const FunctionParameters& parameters
+		const FunctionInfo& parameters
 ) {
 	// assert( index < size() );
 	Symbols functionSymbols;
@@ -202,7 +202,7 @@ MaybeError FunctionCollectionImpl::setParameterValues(
 
 void FunctionCollectionImpl::updateFormulas(
 		const size_t startIndex,
-		const std::optional<FunctionParameters>& parameters
+		const std::optional<FunctionInfo>& parameters
 )
 {
 	Symbols functionSymbols;
@@ -225,7 +225,7 @@ void FunctionCollectionImpl::updateFormulas(
 	 */
 	for( size_t i=startIndex; i<entries.size(); i++ ) {
 		auto entry = entries.at(i);
-		FunctionParameters params = getFunctionParameters(i);
+		FunctionInfo params = getFunctionInfo(i);
 		if( i==startIndex && parameters ) {
 			params = parameters.value();
 		}

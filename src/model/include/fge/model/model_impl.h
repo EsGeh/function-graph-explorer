@@ -147,7 +147,7 @@ class ScheduledFunctionCollectionImpl:
 
 		virtual Index size() const override;
 
-		virtual FunctionParameters get(
+		virtual FunctionInfo get(
 				const size_t index
 		) const override;
 

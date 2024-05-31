@@ -35,7 +35,7 @@ class SampledFunctionCollectionImpl:
 		void resize(const uint size) override;
 
 		// Read entries:
-		virtual FunctionParameters get(
+		virtual FunctionInfo get(
 				const size_t index
 		) const override;
 

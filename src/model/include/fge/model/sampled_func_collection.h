@@ -24,7 +24,7 @@ struct SampledFunctionCollection
 	virtual void resize( const uint size ) = 0;
 
 	// Read entries:
-	virtual FunctionParameters get(
+	virtual FunctionInfo get(
 			const size_t index
 	) const = 0;
 	virtual MaybeError getError(
