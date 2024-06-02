@@ -1,5 +1,4 @@
 #pragma once
-
 #include "fge/model/function.h"
 #include "fge/shared/data.h"
 #include <memory>
@@ -9,6 +8,7 @@ struct FunctionInfo
 {
 	QString formula;
 	ParameterBindings parameters;
+	ParameterDescriptions parameterDescriptions;
 	StateDescriptions stateDescriptions;
 };
 
@@ -26,11 +26,11 @@ class FunctionCollection
 		virtual void resize( const uint size ) = 0;
 
 		// Read / write entries:
-		virtual FunctionOrError get(const uint index) const = 0;
+		virtual FunctionOrError getFunction(const Index index) const = 0;
 
 		virtual MaybeError set(
 				const Index index,
-				const FunctionInfo& parameters
+				const FunctionInfo& functionInfo
 		) = 0;
 		virtual FunctionInfo getFunctionInfo(const uint index) const = 0;
 		virtual MaybeError setParameterValues(

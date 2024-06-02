@@ -44,7 +44,7 @@ void SampledFunctionCollectionImpl::resize(const uint size)
 
 // Read entries:
 FunctionInfo SampledFunctionCollectionImpl::get(
-		const size_t index
+		const Index index
 ) const
 {
 	LOG_FUNCTION()
@@ -56,7 +56,7 @@ MaybeError SampledFunctionCollectionImpl::getError(
 ) const
 {
 	LOG_FUNCTION()
-	auto functionOrError = LowLevel::get(index);
+	auto functionOrError = LowLevel::getFunction(index);
 	if( !functionOrError ) {
 		return functionOrError.error();
 	}
@@ -77,7 +77,27 @@ MaybeError SampledFunctionCollectionImpl::set(
 		FunctionInfo{
 			.formula = formula,
 			.parameters = parameters,
+			.parameterDescriptions = get(index).parameterDescriptions,
 			.stateDescriptions = stateDescriptions
+		}
+	);
+	updateBuffers(index);
+	return ret;
+}
+
+MaybeError SampledFunctionCollectionImpl::setParameterDescriptions(
+		const Index index,
+		const ParameterDescriptions& parameterDescriptions
+)
+{
+	LOG_FUNCTION()
+	auto old = get(index);
+	auto ret = LowLevel::set( index, 
+		FunctionInfo{
+			.formula = old.formula,
+			.parameters = old.parameters,
+			.parameterDescriptions = parameterDescriptions,
+			.stateDescriptions = old.stateDescriptions
 		}
 	);
 	updateBuffers(index);
@@ -117,7 +137,7 @@ void SampledFunctionCollectionImpl::setSamplingSettings(
 	getNodeInfo(index)->samplingSettings = value;
 	if( value.buffered ) {
 		std::shared_ptr<Function> maybeFunction = nullptr;
-		auto functionOrError = LowLevel::get(index);
+		auto functionOrError = LowLevel::getFunction(index);
 		if( functionOrError ) {
 			maybeFunction = functionOrError.value();
 		}
@@ -136,7 +156,7 @@ ErrorOrValue<std::vector<std::pair<C,C>>> SampledFunctionCollectionImpl::getGrap
 ) const
 {
 	LOG_FUNCTION()
-	auto errorOrFunction = LowLevel::get( index );
+	auto errorOrFunction = LowLevel::getFunction( index );
 	if( !errorOrFunction ) {
 		return std::unexpected( errorOrFunction.error() );
 	}
@@ -233,7 +253,7 @@ float SampledFunctionCollectionImpl::audioFunction(
 	double ret = 0;
 	C time = C(T(position) / T(samplerate), 0);
 	for( Index i=0; i<size(); i++ ) {
-		auto functionOrError = LowLevel::get(i);
+		auto functionOrError = LowLevel::getFunction(i);
 		auto isPlaybackEnabled = getNodeInfo(i)->isPlaybackEnabled;
 		if( !functionOrError || !isPlaybackEnabled )
 			continue;
@@ -271,7 +291,7 @@ void SampledFunctionCollectionImpl::updateBuffers( const Index startIndex )
 {
 	for(uint index=startIndex; index<size(); index++) {
 		std::shared_ptr<Function> maybeFunction = nullptr;
-		auto functionOrError = LowLevel::get(index);
+		auto functionOrError = LowLevel::getFunction(index);
 		if( functionOrError ) {
 			maybeFunction = functionOrError.value();
 		}

@@ -148,6 +148,7 @@ void Controller::resizeView(
 							Model::Update{
 								.formula = updateInfo.formula,
 								.parameters = updateInfo.parameters,
+								.parameterDescriptions = updateInfo.parameterDescriptions,
 								.stateDescriptions = updateInfo.stateDescriptions,
 								.playbackEnabled = updateInfo.playbackEnabled,
 								.samplingSettings = updateInfo.samplingSettings

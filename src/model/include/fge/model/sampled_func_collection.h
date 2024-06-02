@@ -25,7 +25,7 @@ struct SampledFunctionCollection
 
 	// Read entries:
 	virtual FunctionInfo get(
-			const size_t index
+			const Index index
 	) const = 0;
 	virtual MaybeError getError(
 			const Index index
@@ -37,6 +37,10 @@ struct SampledFunctionCollection
 			const QString& formula,
 			const ParameterBindings& parameters,
 			const StateDescriptions& stateDescriptions
+	) = 0;
+	virtual MaybeError setParameterDescriptions(
+			const Index index,
+			const ParameterDescriptions& parameterDescriptions
 	) = 0;
 	virtual MaybeError setParameterValues(
 			const Index index,

@@ -36,7 +36,7 @@ class SampledFunctionCollectionImpl:
 
 		// Read entries:
 		virtual FunctionInfo get(
-				const size_t index
+				const Index index
 		) const override;
 
 		virtual MaybeError getError(
@@ -52,11 +52,15 @@ class SampledFunctionCollectionImpl:
 				const StateDescriptions& stateDescriptions
 		) override;
 
+		virtual MaybeError setParameterDescriptions(
+				const Index index,
+				const ParameterDescriptions& parameterDescriptions
+		) override;
+
 		virtual MaybeError setParameterValues(
 				const Index index,
 				const ParameterBindings& parameters
 		) override;
-
 
 		/***************
 		 * Sampling

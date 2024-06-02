@@ -26,6 +26,7 @@ struct Model:
 	struct Update {
 		std::optional<QString> formula = {};
 		std::optional<ParameterBindings> parameters = {};
+		std::optional<ParameterDescriptions> parameterDescriptions = {};
 		std::optional<StateDescriptions> stateDescriptions = {};
 		std::optional<bool> playbackEnabled = false;
 		std::optional<SamplingSettings> samplingSettings = {};

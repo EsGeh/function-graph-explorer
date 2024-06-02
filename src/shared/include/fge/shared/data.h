@@ -2,12 +2,21 @@
 
 #include <map>
 #include <QString>
+#include <optional>
+#include <expected>
 #include "fge/shared/complex_adaptor.h"
 
 using uint = unsigned int;
 
 typedef cmplx::complex_t C;
 typedef double T;
+
+typedef QString Error;
+
+template <typename T>
+using ErrorOrValue = std::expected<T, Error>;
+
+typedef std::optional<Error> MaybeError;
 
 struct SamplingSettings {
 	uint resolution = 0;
@@ -25,8 +34,12 @@ struct ParameterDescription {
 
 using ParameterDescriptions = std::map<QString,ParameterDescription>;
 using ParameterNames = std::vector<QString>;
-using ParameterBindings = std::map<QString, C>;
-using StateBindings = std::map<QString, std::vector<C>>;
+
+template <typename Value>
+using VariableBindings = std::map<QString, Value>;
+
+using ParameterBindings = VariableBindings<C>;
+using StateBindings = VariableBindings<std::vector<C>>;
 
 struct StateDescription {
 	uint size;

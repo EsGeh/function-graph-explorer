@@ -103,9 +103,10 @@ FunctionView::FunctionView(
 			samplingSettings = displayDialog->getSamplingSettings();
 			ui->formulaEdit->setText( displayDialog->getFormula() );
 			parametersDialog->updateView();
-			emit changed({
+			emit changed(UpdateInfo{
 					.formula = getFormula(),
 					.parameters = getParameters(),
+					.parameterDescriptions = getParameterDescriptions(),
 					.stateDescriptions = getStateDescriptions(),
 					.samplingSettings = getSamplingSettings()
 			});
@@ -127,6 +128,11 @@ FunctionView::~FunctionView()
 
 QString FunctionView::getFormula() {
 	return ui->formulaEdit->text();
+}
+
+const ParameterDescriptions& FunctionView::getParameterDescriptions() const
+{
+	return dataDescription.parameterDescriptions;
 }
 
 const ParameterBindings& FunctionView::getParameters() const

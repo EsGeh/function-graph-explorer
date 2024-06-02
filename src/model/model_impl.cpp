@@ -113,7 +113,7 @@ ScheduledFunctionCollectionImpl::Index ScheduledFunctionCollectionImpl::size() c
 
 // Read entries:
 FunctionInfo ScheduledFunctionCollectionImpl::get(
-		const size_t index
+		const Index index
 ) const
 {
 	return getNetworkConst()->read([index](auto& network) {
@@ -291,6 +291,14 @@ MaybeError ScheduledFunctionCollectionImpl::bulkUpdate(
 			prepareSetSamplingSettings(index);
 		}
 	}
+	if(
+			update.parameterDescriptions.has_value()
+	) {
+		setParameterDescriptions(
+				index,
+				update.parameterDescriptions.value_or( get(index).parameterDescriptions )
+		);
+	}
 	// set:
 	auto maybeError = [this,index,update](){
 		MaybeError ret{};
@@ -334,7 +342,6 @@ MaybeError ScheduledFunctionCollectionImpl::set(
 				return network->set( index, formula, parameters, stateDescriptions );
 		});
 	}
-	auto functionParameters = FunctionInfo{ formula, parameters, stateDescriptions };
 	auto future = writeTasks.write([&](auto& tasksQueue) {
 		// ramp down first:
 		WritePrepare<&ScheduledFunctionCollectionImpl::set>::prepare(tasksQueue);
@@ -347,6 +354,17 @@ MaybeError ScheduledFunctionCollectionImpl::set(
 	});
 	auto ret = future.get();
 	return ret;
+}
+
+MaybeError ScheduledFunctionCollectionImpl::setParameterDescriptions(
+		const Index index,
+		const ParameterDescriptions& parameterDescriptions
+)
+{
+	LOG_FUNCTION()
+	return getNetwork()->write([index,&parameterDescriptions](auto& network) {
+			return network->setParameterDescriptions( index, parameterDescriptions );
+	});
 }
 
 MaybeError ScheduledFunctionCollectionImpl::setParameterValues(

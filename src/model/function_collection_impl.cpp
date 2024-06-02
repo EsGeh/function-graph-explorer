@@ -1,4 +1,5 @@
 #include "fge/model/function_collection_impl.h"
+#include "include/fge/model/function_collection.h"
 
 
 #define DECL_FUNC_BEGIN(CLASS, ORD, ...) \
@@ -104,29 +105,34 @@ uint FunctionCollectionImpl::size() const
 	return entries.size();
 }
 
-FunctionOrError FunctionCollectionImpl::get(const Index index) const
+FunctionOrError FunctionCollectionImpl::getFunction(const Index index) const
 {
 	auto entry = entries.at( index );
 	return entry->functionOrError
-	.transform_error([](auto invalidEntry) {
-			return invalidEntry.error;
-	});
+		.transform([](auto validEntry) {
+				return validEntry.function;
+		})
+		.transform_error([](auto invalidEntry) {
+				return invalidEntry.error;
+		});
 }
 
 FunctionInfo FunctionCollectionImpl::getFunctionInfo(const uint index) const
 {
 	auto entry = entries.at( index );
 	if( entry->functionOrError ) {
-		auto function = entry->functionOrError.value();
+		auto function = entry->functionOrError.value().function;
+		auto parameterDescriptions = entry->functionOrError.value().parameterDescriptions;
 		return FunctionInfo{
 			.formula = function->toString(),
 			.parameters = function->getParameters(),
+			.parameterDescriptions = parameterDescriptions,
 			.stateDescriptions = function->getStateDescriptions()
 		};
 	}
 	else {
 		auto error = entry->functionOrError.error();
-		return error.parameters;
+		return error.functionInfo;
 	}
 }
 
@@ -140,7 +146,7 @@ void FunctionCollectionImpl::resize( const uint size ) {
 			auto entry = std::shared_ptr<NetworkEntry>(new NetworkEntry {
 					.functionOrError = std::unexpected(InvalidEntry{
 						.error = "not yet initialized",
-						.parameters = FunctionInfo{
+						.functionInfo = FunctionInfo{
 								.formula = (i>0)
 									? QString("%1(x)").arg( functionName(i-1) )
 									: "cos( 2pi * x )"
@@ -170,13 +176,13 @@ MaybeError FunctionCollectionImpl::set(
 		if( entry->functionOrError.has_value() ) {
 			functionSymbols.addFunction(
 					functionName( i ),
-					entry->functionOrError.value().get()
+					entry->functionOrError.value().function.get()
 			);
 		}
 	}
 	updateFormulas( index, parameters );
-	if( !get(index) ) {
-		return get(index).error();
+	if( !getFunction(index) ) {
+		return getFunction(index).error();
 	}
 	return {};
 }
@@ -186,7 +192,7 @@ MaybeError FunctionCollectionImpl::setParameterValues(
 		const ParameterBindings& parameters
 )
 {
-	FunctionOrError functionOrError = get( index );
+	FunctionOrError functionOrError = getFunction( index );
 	if( !functionOrError ) {
 		return functionOrError.error();
 	}
@@ -202,7 +208,7 @@ MaybeError FunctionCollectionImpl::setParameterValues(
 
 void FunctionCollectionImpl::updateFormulas(
 		const size_t startIndex,
-		const std::optional<FunctionInfo>& parameters
+		const std::optional<FunctionInfo>& functionInfo
 )
 {
 	Symbols functionSymbols;
@@ -216,7 +222,7 @@ void FunctionCollectionImpl::updateFormulas(
 		if( entry->functionOrError.has_value() ) {
 			functionSymbols.addFunction(
 					functionName( i ),
-					entry->functionOrError.value().get()
+					entry->functionOrError.value().function.get()
 			);
 		}
 	}
@@ -225,29 +231,36 @@ void FunctionCollectionImpl::updateFormulas(
 	 */
 	for( size_t i=startIndex; i<entries.size(); i++ ) {
 		auto entry = entries.at(i);
-		FunctionInfo params = getFunctionInfo(i);
-		if( i==startIndex && parameters ) {
-			params = parameters.value();
+		FunctionInfo currentFunctionInfo = getFunctionInfo(i);
+		if( i==startIndex && functionInfo ) {
+			currentFunctionInfo = functionInfo.value();
 		}
 		entry->functionOrError = formulaFunctionFactory(
-				params.formula,
-				params.parameters,
-				params.stateDescriptions,
+				currentFunctionInfo.formula,
+				currentFunctionInfo.parameters,
+				currentFunctionInfo.stateDescriptions,
 				{
 					constants,
 					functionSymbols
 				}
-		).transform_error([params](auto error){
+		)
+		.transform([&currentFunctionInfo](auto function) -> ValidEntry {
+				return ValidEntry{
+					.function = function,
+					.parameterDescriptions = currentFunctionInfo.parameterDescriptions
+				};
+		})
+		.transform_error([currentFunctionInfo](auto error) -> InvalidEntry {
 			return InvalidEntry{
 				.error = error,
-				.parameters = params
+				.functionInfo = currentFunctionInfo
 			};
 		});
 		if( !entry->info )
 		{
 			std::shared_ptr<Function> maybeFunction = {};
 			if( entry->functionOrError ) {
-				maybeFunction = entry->functionOrError.value();
+				maybeFunction = entry->functionOrError.value().function;
 			}
 			entry->info = createNodeInfo(
 					i,
@@ -257,7 +270,7 @@ void FunctionCollectionImpl::updateFormulas(
 		if( entry->functionOrError ) {
 			functionSymbols.addFunction(
 					functionName( i ),
-					entry->functionOrError.value().get()
+					entry->functionOrError.value().function.get()
 			);
 		}
 	}

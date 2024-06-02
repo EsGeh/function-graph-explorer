@@ -148,7 +148,7 @@ class ScheduledFunctionCollectionImpl:
 		virtual Index size() const override;
 
 		virtual FunctionInfo get(
-				const size_t index
+				const Index index
 		) const override;
 
 		virtual MaybeError getError(
@@ -191,6 +191,11 @@ class ScheduledFunctionCollectionImpl:
 				const QString& formula,
 				const ParameterBindings& parameters,
 				const StateDescriptions& stateDescriptions
+		) override;
+
+		virtual MaybeError setParameterDescriptions(
+				const Index index,
+				const ParameterDescriptions& parameterDescriptions
 		) override;
 
 		virtual MaybeError setParameterValues(

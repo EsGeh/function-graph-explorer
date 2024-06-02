@@ -21,13 +21,14 @@ class FunctionView : public QWidget
 
 public:
 
-		struct UpdateInfo {
-			std::optional<QString> formula = {};
-			std::optional<ParameterBindings> parameters = {};
-			std::optional<StateDescriptions> stateDescriptions = {};
-			std::optional<bool> playbackEnabled = {};
-			std::optional<SamplingSettings> samplingSettings= {};
-		};
+	struct UpdateInfo {
+		std::optional<QString> formula = {};
+		std::optional<ParameterBindings> parameters = {};
+		std::optional<ParameterDescriptions> parameterDescriptions = {};
+		std::optional<StateDescriptions> stateDescriptions = {};
+		std::optional<bool> playbackEnabled = {};
+		std::optional<SamplingSettings> samplingSettings= {};
+	};
 
 public:
 	explicit FunctionView(
@@ -37,6 +38,7 @@ public:
 	~FunctionView();
 
 	QString getFormula();
+	const ParameterDescriptions& getParameterDescriptions() const;
 	const ParameterBindings& getParameters() const;
 	StateDescriptions getStateDescriptions() const;
 	const FunctionViewData& getViewData() const;

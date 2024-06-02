@@ -13,14 +13,19 @@ class FunctionCollectionImpl:
 		using NodeInfo = FunctionCollectionWithInfo::NodeInfo;
 
 	private:
+		struct ValidEntry
+		{
+			std::shared_ptr<Function> function;
+			ParameterDescriptions parameterDescriptions;
+		};
 		struct InvalidEntry
 		{
 			QString error;
-			FunctionInfo parameters;
+			FunctionInfo functionInfo;
 		};
 
 		using FunctionOrInvalid = std::expected<
-			std::shared_ptr<Function>,
+			ValidEntry,
 			InvalidEntry
 		>;
 
@@ -36,10 +41,10 @@ class FunctionCollectionImpl:
 		virtual uint size() const override;
 		virtual void resize( const uint size ) override;
 
-		virtual std::expected<std::shared_ptr<Function>,Error> get(const Index index) const override;
+		virtual std::expected<std::shared_ptr<Function>,Error> getFunction(const Index index) const override;
 		virtual MaybeError set(
 				const Index index,
-				const FunctionInfo& parameters
+				const FunctionInfo& functionInfo
 		) override;
 		virtual MaybeError setParameterValues(
 				const Index index,
@@ -55,7 +60,7 @@ class FunctionCollectionImpl:
 	private:
 		void updateFormulas(
 				const size_t startIndex,
-				const std::optional<FunctionInfo>& parameters
+				const std::optional<FunctionInfo>& functionInfo
 		);
 	private:
 		Symbols constants;
