@@ -21,8 +21,8 @@ const std::vector<Template> templates = {
 			"amp * cos( freq * 2pi*x )"
 		}).join("\n"),
 		.data = (QStringList {
-			"parameter 1 freq 1 0 1000",
-			"parameter 1 amp 1 0 1",
+			"parameter 1 freq 1 0 1000 0 fade=volume",
+			"parameter 1 amp 1 0 1 0 fade=parameter",
 		}).join("\n")
 	},
 	{

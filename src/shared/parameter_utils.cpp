@@ -1,4 +1,5 @@
 #include "fge/shared/parameter_utils.h"
+#include "include/fge/shared/data.h"
 #include <expected>
 #include <QStringList>
 
@@ -16,7 +17,13 @@ namespace intern {
 	std::optional<DummyError> parseOptionalDouble(
 			const uint index,
 			const QStringList& words,
-			double& d
+			double* d
+	);
+
+	std::optional<DummyError> parseOptionalFadeType(
+			const uint index,
+			const QStringList& words,
+			FadeType* ramp
 	);
 
 	std::map<QString,ParameterDescription> onlyParameterDescriptions(
@@ -46,13 +53,14 @@ QString functionDataDescriptionToString( const FunctionDataDescription& dataDesc
 {
 	QString str = "";
 	for( auto [name, value] : dataDescription.parameterDescriptions ) {
-		str += QString("parameter %2 %1 %3 %4 %5 %6\n")
+		str += QString("parameter %2 %1 %3 %4 %5 %6 %7\n")
 			.arg( name )
 			.arg( 1 ) // size
 			.arg( value.initial )
 			.arg( value.min )
 			.arg( value.max )
 			.arg( value.step )
+			.arg( (value.rampType == FadeType::VolumeFade) ? "fade=volume" : "fade=parameter" )
 		;
 	}
 	for( auto [name, value] : dataDescription.stateDescriptions ) {
@@ -88,13 +96,15 @@ ParseResult parseFunctionDataDescription(
 				continue;
 			}
 			ParameterDescription param;
-			auto parseError = parseOptionalDouble(3,words,param.initial);
+			auto parseError = parseOptionalDouble(3,words, &param.initial);
 			if( parseError ) continue;
-			parseError = parseOptionalDouble(4,words,param.min);
+			parseError = parseOptionalDouble(4,words, &param.min);
 			if( parseError ) continue;
-			parseError = parseOptionalDouble(5,words,param.max);
+			parseError = parseOptionalDouble(5,words, &param.max);
 			if( parseError ) continue;
-			parseError = parseOptionalDouble(6,words,param.step);
+			parseError = parseOptionalDouble(6,words, &param.step);
+			if( parseError ) continue;
+			parseError = parseOptionalFadeType(7,words, &param.rampType);
 			if( parseError ) continue;
 			ret.insert({ words.at(2), param });
 		}
@@ -119,14 +129,35 @@ ParseResult parseFunctionDataDescription(
 std::optional<DummyError> parseOptionalDouble(
 		const uint index,
 		const QStringList& words,
-		double& d
+		double* d
 )
 {
 	if( words.size() >= index+1 ) {
 		bool ok;
 		double val = words.at(index).toDouble( &ok );
 		if( ok ) {
-			d = val;
+			*d = val;
+		}
+		else {
+			return DummyError{};
+		}
+	}
+	return {};
+}
+
+std::optional<DummyError> parseOptionalFadeType(
+		const uint index,
+		const QStringList& words,
+		FadeType* ramp
+)
+{
+	if( words.size() >= index+1 ) {
+		auto word = words.at(index);
+		if( word == "fade=volume" ) {
+			*ramp = FadeType::VolumeFade;
+		}
+		else if( word == "fade=parameter" ) {
+			*ramp = FadeType::ParameterFade;
 		}
 		else {
 			return DummyError{};

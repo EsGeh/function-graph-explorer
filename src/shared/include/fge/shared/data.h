@@ -25,11 +25,17 @@ struct SamplingSettings {
 	bool buffered = false;
 };
 
+enum class FadeType {
+	VolumeFade,
+	ParameterFade
+};
+
 struct ParameterDescription {
 	double initial = 0;
 	double min = 0;
 	double max = 1;
 	double step = 0;
+	FadeType rampType = FadeType::VolumeFade;
 };
 
 using ParameterDescriptions = std::map<QString,ParameterDescription>;

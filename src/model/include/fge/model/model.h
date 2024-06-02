@@ -52,7 +52,7 @@ struct Model:
 	
 	virtual void postSetAny() = 0;
 
-	virtual void scheduleSetParameterValues(
+	virtual ParameterBindings scheduleSetParameterValues(
 			const Index index,
 			const ParameterBindings& parameters,
 			ParameterSignalDone signalizeDone

@@ -203,7 +203,7 @@ class ScheduledFunctionCollectionImpl:
 				const ParameterBindings& parameters
 		) override;
 
-		virtual void scheduleSetParameterValues(
+		virtual ParameterBindings scheduleSetParameterValues(
 				const Index index,
 				const ParameterBindings& parameters,
 				ParameterSignalDone signalizeDone

@@ -378,21 +378,43 @@ MaybeError ScheduledFunctionCollectionImpl::setParameterValues(
 				return network->setParameterValues( index, parameters );
 		});
 	}
-	auto future = writeTasks.write([&](auto& tasksQueue) {
-		// ramp down first:
-		WritePrepare<&ScheduledFunctionCollectionImpl::setParameterValues>::prepare(tasksQueue);
-		// schedule model change:
-		return makeSetter<::setParameterValues>(
-				tasksQueue,
-				this->position,
-				index, parameters
-		);
+	auto future = writeTasks.write([&](auto& tasksQueue)
+			-> std::future<MaybeError>
+	{
+		return getNetwork()->read([&](auto network) {
+			auto volumeFadeParametersView =
+				parameters
+				| std::ranges::views::filter( [network,index](const auto& entry) {
+						return network->get(index).parameterDescriptions.at(
+							entry.first
+						).rampType == FadeType::VolumeFade;
+				})
+			;
+			if( volumeFadeParametersView.empty() ) {
+				std::promise<MaybeError> promise;
+				auto future = promise.get_future();
+				promise.set_value({});
+				return future;
+			}
+			// ramp down first:
+			WritePrepare<&ScheduledFunctionCollectionImpl::setParameterValues>::prepare(tasksQueue);
+			ParameterBindings volumeFadeParameters;
+			for( auto [name, value] : volumeFadeParametersView ) {
+				// qDebug() << "FADE parameter:" << name;
+				volumeFadeParameters.insert({ name, value });
+			}
+			// schedule model change:
+			return makeSetter<::setParameterValues>(
+					tasksQueue,
+					this->position,
+					index, volumeFadeParameters
+			);
+		});
 	});
-	auto ret = future.get();
-	return ret;
+	return future.get();
 }
 
-void ScheduledFunctionCollectionImpl::scheduleSetParameterValues(
+ParameterBindings ScheduledFunctionCollectionImpl::scheduleSetParameterValues(
 		const Index index,
 		const ParameterBindings& parameters,
 		ParameterSignalDone signalizeDone
@@ -400,16 +422,18 @@ void ScheduledFunctionCollectionImpl::scheduleSetParameterValues(
 {
 	LOG_FUNCTION()
 	if( !audioSchedulingEnabled ) {
-		auto ret = getNetwork()->write([index,&parameters](auto& network) {
-				return network->setParameterValues( index, parameters );
-		});
-		signalizeDone(
-				index,
-				parameters
-		);
+		return {};
 	}
-	writeTasks.write([&](auto& tasksQueue) {
-		for( auto [parameterName, value] : parameters ) {
+	return writeTasks.write([&](auto& tasksQueue){
+		ParameterBindings selectedParams = getNetwork()->read([&](auto network) {
+			return parameters
+				| std::ranges::views::filter([&](auto entry) {
+					return network->get(index).parameterDescriptions.at( entry.first ).rampType == FadeType::ParameterFade;
+			})
+				| std::ranges::to<ParameterBindings>();
+		});
+		// ramp parameters:
+		for( auto [parameterName, value] : selectedParams ) {
 			Ramping::rampParameter(
 				tasksQueue,
 				index,
@@ -418,6 +442,7 @@ void ScheduledFunctionCollectionImpl::scheduleSetParameterValues(
 				signalizeDone
 			);
 		}
+		return selectedParams;
 	});
 }
 

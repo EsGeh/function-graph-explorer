@@ -7,6 +7,8 @@
 
 #include <QObject>
 #include <QThread>
+#include <mutex>
+#include <ranges>
 
 /**
  * Mediator between GUI thread
@@ -85,9 +87,10 @@ public slots:
 			const uint index,
 			const ParameterBindings& parameters
 	) {
-		if( model->getAudioSchedulingEnabled() ) {
-			modelLock.lock();
-			model->scheduleSetParameterValues(
+		// update parameters asynchronously:
+		ParameterBindings asyncParams = [&]{
+			std::scoped_lock locked(modelLock);
+			return model->scheduleSetParameterValues(
 					index, parameters,
 					[this](auto index, auto parameters) {
 						modelLock.lock();
@@ -100,21 +103,27 @@ public slots:
 						);
 					}
 			);
-			modelLock.unlock();
+		}();
+		// the remaining parameters
+		// are to be set synchronously:
+		auto syncParams = parameters
+			| std::ranges::views::filter([&asyncParams](auto entry){
+				return !asyncParams.contains( entry.first );
+			})
+			| std::ranges::to<ParameterBindings>();
+		if( syncParams.empty() ) {
+			return;
 		}
-		else {
-			modelLock.lock();
-			model->setParameterValues(
-					index, parameters
-			);
-			emit updateDone(
-					model, index,
-					Model::Update{
-						.parameters = parameters
-					},
-					{}
-			);
-		}
+		modelLock.lock();
+		model->setParameterValues( index, syncParams );
+		model->postSetAny();
+		emit updateDone(
+				model, index,
+				Model::Update{
+					.parameters = syncParams
+				},
+				{}
+		);
 	};
 
 	// request read access to model:
