@@ -31,7 +31,7 @@ const std::vector<Template> templates = {
 			"sgn(cos( freq * 2pi*x ))"
 		}).join("\n"),
 		.data = (QStringList {
-			"parameter 1 freq 1 0 1000",
+			"parameter 1 freq 1 0 1000 0 fade=volume",
 		}).join("\n")
 	},
 	{
@@ -40,7 +40,7 @@ const std::vector<Template> templates = {
 			"2*frac(freq * x)-1"
 		}).join("\n"),
 		.data = (QStringList {
-			"parameter 1 freq 1 0 1000",
+			"parameter 1 freq 1 0 1000 0 fade=volume",
 		}).join("\n")
 	},
 	{
@@ -54,7 +54,7 @@ const std::vector<Template> templates = {
 			"1/N*acc;"
 		}).join("\n"),
 		.data = (QStringList {
-			"parameter 1 freq 1 0 1000",
+			"parameter 1 freq 1 0 1000 0 fade=volume",
 		}).join("\n")
 	},
 	{
@@ -63,7 +63,7 @@ const std::vector<Template> templates = {
 			"exp( freq*i*2pi*x )"
 		}).join("\n"),
 		.data = (QStringList {
-			"parameter 1 freq 1 0 1000",
+			"parameter 1 freq 1 0 1000 0 fade=volume",
 		}).join("\n")
 	},
 	{
