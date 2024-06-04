@@ -44,17 +44,19 @@ const std::vector<Template> templates = {
 		}).join("\n")
 	},
 	{
-		.name = "Series",
+		.name = "Harm. Series",
 		.formula = (QStringList {
-			"var N := 4;",
 			"var acc := 0;",
 			"for( var k:=1; k<=N; k+=1 ) {",
-			"  acc += cos(k*freq*2pi*x);",
+  		"  acc += (1/decay)^(k-1) * cos(k*freq*2pi*x);",
 			"};",
-			"1/N*acc;"
+			"amp * 1/N * acc;"
 		}).join("\n"),
 		.data = (QStringList {
 			"parameter 1 freq 1 0 1000 0 fade=volume",
+			"parameter 1 amp 1 0 1 0.05 fade=parameter",
+			"parameter 1 N 1 1 16 1 fade=volume",
+			"parameter 1 decay 1 1 100 1 fade=parameter",
 		}).join("\n")
 	},
 	{
