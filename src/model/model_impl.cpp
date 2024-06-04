@@ -436,7 +436,11 @@ ParameterBindings ScheduledFunctionCollectionImpl::scheduleSetParameterValues(
 		ParameterBindings selectedParams = getNetwork()->read([&](auto network) {
 			return parameters
 				| std::ranges::views::filter([&](auto entry) {
-					return network->get(index).parameterDescriptions.at( entry.first ).rampType == FadeType::ParameterFade;
+						auto params = network->get(index).parameterDescriptions;
+						if( params.find( entry.first ) == params.end() ) {
+							return false;
+						}
+						return params.at( entry.first ).rampType == FadeType::ParameterFade;
 			})
 				| std::ranges::to<ParameterBindings>();
 		});
