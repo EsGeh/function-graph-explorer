@@ -3,8 +3,6 @@
 #include <qslider.h>
 #include <qspinbox.h>
 
-const int sliderDiv = 10;
-
 ParameterValueEntry::ParameterValueEntry(
 		const QString& name,
 		const C& param,
@@ -20,12 +18,17 @@ ParameterValueEntry::ParameterValueEntry(
 	ui->value->setSingleStep(
 			description.step>0 ? description.step : 0.1
 	);
+
+	int sliderDiv = 10;
+	if( description.step>0 ) {
+		sliderDiv = 1 / description.step;
+	}
 	ui->slider->setRange( description.min*sliderDiv, description.max*sliderDiv);
 	// ui->slider->setSingleStep( description.step );
 	connect(
 		ui->value,
 		&QDoubleSpinBox::valueChanged,
-		[this]() {
+		[this,sliderDiv]() {
 			const auto value = ui->value->value();
 			// update slider
 			{
@@ -39,7 +42,7 @@ ParameterValueEntry::ParameterValueEntry(
 	connect(
 		ui->slider,
 		&QSlider::valueChanged,
-		[this]() {
+		[this,sliderDiv]() {
 			const auto value = double(ui->slider->value()) / sliderDiv;
 			// update spinbox:
 			{
