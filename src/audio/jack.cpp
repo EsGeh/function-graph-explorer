@@ -67,7 +67,7 @@ void AudioWorker::run() {
 	}
 	// init hasData = 0:
 	{
-		while( buffersNotFull.try_acquire() ) {};
+		while( hasData.try_acquire() ) {};
 	}
 	buffersNotFull.acquire();
 	fillBuffer(writeIndex);
