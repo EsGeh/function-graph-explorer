@@ -277,62 +277,130 @@ void ScheduledFunctionCollectionImpl::resize( const uint size )
 	return;
 }
 
+std::future<MaybeError> toMaybeError( std::future<void>&& f ) {
+	return std::async( std::launch::deferred, [f = std::move(f)] -> MaybeError {
+			f.wait();
+			return {};
+	} );
+};
+
 MaybeError ScheduledFunctionCollectionImpl::bulkUpdate(
 		const Index index,
 		const Update& update
 )
 {
 	LOG_FUNCTION()
-	// prepare:
+	if( !audioSchedulingEnabled ) {
+		return getNetwork()->write([index,&update](auto& network) {
+			MaybeError ret{};
+			if(
+					update.formula.has_value()
+					|| update.parameters.has_value()
+					|| update.stateDescriptions.has_value()
+			) {
+				ret = network->set(
+						index,
+						update.formula.value_or( network->get(index).formula ),
+						update.parameters.value_or( network->get(index).parameters ),
+						update.stateDescriptions.value_or( network->get(index).stateDescriptions )
+				);
+			}
+			if( update.parameterDescriptions.has_value() ) {
+				network->setParameterDescriptions( index, update.parameterDescriptions.value() );
+			}
+			if( update.playbackEnabled.has_value() ) {
+				network->setIsPlaybackEnabled(index, update.playbackEnabled.value());
+			}
+			if( update.samplingSettings.has_value() ) {
+				network->setSamplingSettings(index, update.samplingSettings.value());
+			}
+			return ret;
+		});
+	}
+	// audioSchedulingEnabled => update with ramping:
+	update.parameterDescriptions.and_then([&](const auto& descrs) {
+		getNetwork()->read([&](auto& network) {
+			network->setParameterDescriptions( index, descrs );
+		});
+		return std::optional<ParameterBindings>{};
+	});
+	auto futures = writeTasks.write([&](auto& tasksQueue)
+			-> std::vector<std::future<MaybeError>>
 	{
+		// prepare:
 		if(
 				update.formula.has_value()
 				|| update.parameters.has_value()
 				|| update.stateDescriptions.has_value()
 		) {
-			prepareSet(index);
+			WritePrepare<&ScheduledFunctionCollectionImpl::set>::prepare(tasksQueue);
 		}
 		if( update.playbackEnabled.has_value() ) {
-			prepareSetIsPlaybackEnabled(index, update.playbackEnabled.value());
+			getNetwork()->read([&tasksQueue,index,value = update.playbackEnabled.value()](auto& network) {
+					WritePrepare<&ScheduledFunctionCollectionImpl::setIsPlaybackEnabled>::prepare(
+							tasksQueue,
+							network,
+							index, value
+					);
+			});
 		}
 		if( update.samplingSettings.has_value() ) {
-			prepareSetSamplingSettings(index);
-		}
-	}
-	if(
-			update.parameterDescriptions.has_value()
-	) {
-		setParameterDescriptions(
-				index,
-				update.parameterDescriptions.value_or( get(index).parameterDescriptions )
-		);
-	}
-	// set:
-	auto maybeError = [this,index,update](){
-		MaybeError ret{};
-		if(
-				update.formula.has_value()
-				|| update.parameters.has_value()
-				|| update.stateDescriptions.has_value()
-		) {
-			ret = set(
-					index,
-					update.formula.value_or( get(index).formula ),
-					update.parameters.value_or( get(index).parameters ),
-					update.stateDescriptions.value_or( get(index).stateDescriptions )
+			WritePrepare<&ScheduledFunctionCollectionImpl::setSamplingSettings>::prepare(
+					tasksQueue
 			);
 		}
-		if( update.playbackEnabled.has_value() ) {
-			setIsPlaybackEnabled(index, update.playbackEnabled.value());
+		// SET:
+		return [this,&tasksQueue,index,update]()
+			-> std::vector<std::future<MaybeError>>
+		{
+			std::vector<std::future<MaybeError>> ret;
+			if(
+					update.formula.has_value()
+					|| update.parameters.has_value()
+					|| update.stateDescriptions.has_value()
+			) {
+				ret.push_back( std::move( makeSetter<::set>(
+							tasksQueue,
+							this->position,
+							index,
+							update.formula.value_or( get(index).formula ),
+							update.parameters.value_or( get(index).parameters ),
+							update.stateDescriptions.value_or( get(index).stateDescriptions )
+				) ) );
+			}
+			if( update.playbackEnabled.has_value() ) {
+				ret.push_back( toMaybeError( makeSetter<::setIsPlaybackEnabled>(
+						tasksQueue,
+						this->position,
+						index, update.playbackEnabled.value()
+				) ) );
+			}
+			if( update.samplingSettings.has_value() ) {
+				ret.push_back( toMaybeError( makeSetter<::setSamplingSettings>(
+						tasksQueue,
+						this->position,
+						index, update.samplingSettings.value()
+				) ) );
+			}
+			return ret;
+		}();
+	});
+	MaybeError ret = {};
+	for( auto& f : futures ) {
+		auto currentRet = f.get();
+		if( currentRet ) {
+			ret = currentRet;
 		}
-		if( update.samplingSettings.has_value() ) {
-			setSamplingSettings(index, update.samplingSettings.value());
-		}
-		return ret;
-	}();
-	// turn on audio, if muted:
-	postSetAny();
-	return maybeError;
+	}
+	writeTasks.write([&](auto& tasksQueue) {
+		getNetwork()->read([&tasksQueue](auto& network) {
+			postWrite(
+					tasksQueue,
+					network
+			);
+		});
+	});
+	return ret;
 }
 
 // Set Entries:

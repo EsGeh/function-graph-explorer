@@ -51,7 +51,11 @@ ParameterValueEntry::ParameterValueEntry(
 		}
 	);
 
-	ui->value->setValue( param.c_.real() );
+	{
+		auto blockedOld = ui->value->blockSignals(true);
+		ui->value->setValue( param.c_.real() );
+		ui->value->blockSignals(blockedOld);
+	}
 	{
 		auto blockedOld = ui->slider->blockSignals(true);
 		ui->slider->setValue( param.c_.real()*sliderDiv );

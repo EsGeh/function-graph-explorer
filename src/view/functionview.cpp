@@ -40,7 +40,7 @@ FunctionView::FunctionView(
 
 	connect(
 		ui->formulaEdit,
-		&QLineEdit::textChanged,
+		&QLineEdit::textEdited,
 		[this](QString value) {
 			displayDialog->setFormula( value );
 			emit changed({
