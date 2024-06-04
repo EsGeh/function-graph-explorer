@@ -69,6 +69,7 @@ FunctionView::FunctionView(
 		ui->optionsBtn,
 		&QAbstractButton::clicked,
 		[this]() {
+			displayDialog->setFormula( ui->formulaEdit->text() );
 			displayDialog->setDataDescription(
 					functionDataDescriptionToString( dataDescription )
 			);
