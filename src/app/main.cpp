@@ -19,6 +19,9 @@ const unsigned int viewResolution = 4410;
 
 int main(int argc, char *argv[])
 {
+#ifndef NDEBUG
+	qSetMessagePattern("[%{time hh:mm:ss}] %{message}");
+#endif
 	qInfo().nospace() << "-----------------------------";
 	qInfo().nospace() << PROJECT_NAME << " " << PROJECT_VERSION;
 	qInfo().nospace() << "-----------------------------";

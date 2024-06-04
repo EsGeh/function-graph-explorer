@@ -7,6 +7,10 @@
 #include <thread>
 #include <QDebug>
 
+#ifdef DEBUG_CONCURRENCY
+#define AUDIO_STUB
+#endif
+
 
 typedef jack_default_audio_sample_t sample_t;
 typedef QString Error;
@@ -130,15 +134,17 @@ class JackClient {
 		const QString clientName;
 		uint bufferSize = 0;
 		uint samplerate = 0;
-		bool playing = false;
 		// jack:
 		jack_client_t* client = nullptr;
 		jack_port_t* ports[1] = { nullptr };
-		// AudioCallback callback = nullptr;
-		// PlaybackPosition position = 0;
 		// worker thread:
 		std::thread worker;
-		bool workerStop = false;
+		// bool workerStop = false;
+
+#ifdef AUDIO_STUB
+		std::atomic<bool> isJackFakeThreadRunning;
+		std::thread jackFakeThread;
+#endif
 };
 
 #endif

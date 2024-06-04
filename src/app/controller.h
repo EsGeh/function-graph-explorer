@@ -54,6 +54,10 @@ signals:
 
 public slots:
 
+	void printThreadId() {
+		qDebug() << "MODEL WORKER THREAD:" << (unsigned long )QThread::currentThreadId();
+	}
+
 	// queue model->resize
 	// implicitly locks the model:
   void resize(

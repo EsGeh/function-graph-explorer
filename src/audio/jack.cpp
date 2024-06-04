@@ -4,6 +4,11 @@
 #include <QDebug>
 #include <thread>
 
+#ifdef DEBUG_CONCURRENCY
+#include <chrono>
+using namespace std::chrono_literals;
+#endif
+
 // jack callback functions:
 
 int processAudio(
@@ -79,7 +84,7 @@ void AudioWorker::run() {
 		}
 		qDebug().nospace() << "AUDIO THREAD done: ";
 	});
-	qDebug().nospace() << "AUDIO THREAD: " << to_qstring(worker.get_id());
+	qDebug().nospace() << "AUDIO THREAD: " << to_qstring( worker.get_id() );
 }
 
 void AudioWorker::stop() {
@@ -115,6 +120,7 @@ JackClient::~JackClient()
 {}
 
 MaybeError JackClient::init() {
+#ifndef AUDIO_STUB
 	try {
 		{
 			jack_status_t status;
@@ -165,25 +171,33 @@ MaybeError JackClient::init() {
 		client = nullptr;
 		return { error };
 	}
+#else
+	bufferSize = 1024;
+	samplerate = 44100;
+#endif
 
 	return {};
 }
 
 void JackClient::exit() {
+#ifndef AUDIO_STUB
 	if(!client) {
 		return;
 	}
 	jack_client_close(
 			client
 	);
+#endif
 }
 
 MaybeError JackClient::start(
 		const Callbacks& callbacks
 ) {
+#ifndef AUDIO_STUB
 	if( !client ) {
 		return Error("No client!");
 	}
+#endif
 	if( bufferSize == 0 ) {
 		return "failed to determine buffer size";
 	}
@@ -193,21 +207,41 @@ MaybeError JackClient::start(
 			samplerate
 	);
 	audioWorker.run();
+#ifdef AUDIO_STUB
+	isJackFakeThreadRunning = true;
+	jackFakeThread = std::thread([this]() {
+		while(isJackFakeThreadRunning) {
+			std::this_thread::sleep_for( 2s );
+			audioWorker.getSamplesInit();
+			audioWorker.getSamplesExit();
+		};
+	});
+#endif
 	return {};
 }
 
 void JackClient::stop() {
+#ifndef AUDIO_STUB
 	if(!client) {
 		return;
 	}
+#endif
 	if( audioWorker.isRunning() ) {
 		audioWorker.stop();
 	}
+#ifdef AUDIO_STUB
+	isJackFakeThreadRunning = false;
+	jackFakeThread.join();
+#endif
 }
 
 bool JackClient::isRunning() const
 {
+#ifndef AUDIO_STUB
 	return audioWorker.isRunning();
+#else
+	return isJackFakeThreadRunning;
+#endif
 }
 
 QString JackClient::getClientName() const

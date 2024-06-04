@@ -5,6 +5,7 @@
 #include <cstring>
 #include <ctime>
 #include <memory>
+#include <optional>
 #include <strings.h>
 #include <QDebug>
 #include <ranges>
@@ -90,7 +91,8 @@ ScheduledFunctionCollectionImpl::ScheduledFunctionCollectionImpl(
 )
 	: guardedNetwork( std::make_shared<SampledFunctionCollectionImpl>(
 				defSamplingSettings
-	))
+	), "NETWORK" )
+	, writeTasks( "TASKS" )
 	, modelWorkerThread([this](){ modelWorkerLoop(); } )
 {
 }
@@ -108,6 +110,7 @@ ScheduledFunctionCollectionImpl::~ScheduledFunctionCollectionImpl()
 
 ScheduledFunctionCollectionImpl::Index ScheduledFunctionCollectionImpl::size() const
 {
+	LOG_FUNCTION()
 	return getNetworkConst()->read([](auto& network){ return network->size(); });
 }
 
@@ -116,6 +119,7 @@ FunctionInfo ScheduledFunctionCollectionImpl::get(
 		const Index index
 ) const
 {
+	LOG_FUNCTION()
 	return getNetworkConst()->read([index](auto& network) {
 			return network->get(index);
 	});
@@ -125,6 +129,7 @@ MaybeError ScheduledFunctionCollectionImpl::getError(
 		const Index index
 ) const
 {
+	LOG_FUNCTION()
 	return getNetworkConst()->read([index](auto& network){
 			return network->getError(index);
 	});
@@ -134,6 +139,7 @@ SamplingSettings ScheduledFunctionCollectionImpl::getSamplingSettings(
 		const Index index
 ) const
 {
+	LOG_FUNCTION()
 	return getNetworkConst()->read([index](auto& network){
 			return network->getSamplingSettings(index);
 	});
@@ -146,6 +152,7 @@ ErrorOrValue<std::vector<std::pair<C,C>>> ScheduledFunctionCollectionImpl::getGr
 		const unsigned int resolution
 ) const
 {
+	LOG_FUNCTION()
 	return getNetworkConst()->read([index,range,resolution](auto& network){
 			return network->getGraph(index, range, resolution);
 	});
@@ -156,6 +163,7 @@ bool ScheduledFunctionCollectionImpl::getIsPlaybackEnabled(
 		const Index index
 ) const
 {
+	LOG_FUNCTION()
 	return getNetworkConst()->read([index](auto& network){
 			return network->getIsPlaybackEnabled(index);
 	});

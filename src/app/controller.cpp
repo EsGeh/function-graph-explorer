@@ -1,5 +1,7 @@
 #include "controller.h"
 #include <mutex>
+#include <qnamespace.h>
+#include <qobjectdefs.h>
 #include <scoped_allocator>
 #include <QtConcurrent>
 
@@ -22,6 +24,7 @@ Controller::Controller(
 	modelWorker = new ModelWorker( model );
 	modelWorker->moveToThread( workerThread );
 	workerThread->start();
+	QMetaObject::invokeMethod(modelWorker, &ModelWorker::printThreadId, Qt::QueuedConnection );
 	connect(workerThread, &QThread::finished, modelWorker, &QObject::deleteLater);
 
 	// CONNECTIONS:
@@ -52,7 +55,8 @@ Controller::Controller(
 			this,
 			[this,view](auto model, auto index, auto updateInfo, auto maybeError) {
 				auto functionView = view->getFunctionView(index);
-				maybeError.and_then([functionView](auto error) {
+				maybeError.and_then([&](auto error) {
+					qDebug() << "ERROR" << index << error;
 					functionView->setFormulaError( error );
 					return MaybeError{};
 				} );
@@ -113,7 +117,6 @@ Controller::Controller(
 			view->getFunctionViewCount()
 	);
 	modelWorker->unlockModel();
-
 }
 
 Controller::~Controller()
