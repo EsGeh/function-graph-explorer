@@ -16,6 +16,10 @@
 #define LOG_MODEL
 #endif
 
+#ifdef LOG_MODEL_GET
+#include <source_location>
+#endif
+
 #ifdef LOG_MODEL
 #include <source_location>
 #endif
@@ -28,6 +32,16 @@
 	}
 #else
 #define LOG_FUNCTION()
+#endif
+
+#ifdef LOG_MODEL_GET
+#define LOG_FUNCTION_GET() \
+	{ \
+		const auto location = std::source_location::current(); \
+		qDebug() << QString("%1: %2").arg(double(position) / 44100.0).arg(location.function_name()); \
+	}
+#else
+#define LOG_FUNCTION_GET()
 #endif
 
 
@@ -110,7 +124,7 @@ ScheduledFunctionCollectionImpl::~ScheduledFunctionCollectionImpl()
 
 ScheduledFunctionCollectionImpl::Index ScheduledFunctionCollectionImpl::size() const
 {
-	LOG_FUNCTION()
+	LOG_FUNCTION_GET()
 	return getNetworkConst()->read([](auto& network){ return network->size(); });
 }
 
@@ -119,7 +133,7 @@ FunctionInfo ScheduledFunctionCollectionImpl::get(
 		const Index index
 ) const
 {
-	LOG_FUNCTION()
+	LOG_FUNCTION_GET()
 	return getNetworkConst()->read([index](auto& network) {
 			return network->get(index);
 	});
@@ -129,7 +143,7 @@ MaybeError ScheduledFunctionCollectionImpl::getError(
 		const Index index
 ) const
 {
-	LOG_FUNCTION()
+	LOG_FUNCTION_GET()
 	return getNetworkConst()->read([index](auto& network){
 			return network->getError(index);
 	});
@@ -139,7 +153,7 @@ SamplingSettings ScheduledFunctionCollectionImpl::getSamplingSettings(
 		const Index index
 ) const
 {
-	LOG_FUNCTION()
+	LOG_FUNCTION_GET()
 	return getNetworkConst()->read([index](auto& network){
 			return network->getSamplingSettings(index);
 	});
@@ -152,7 +166,7 @@ ErrorOrValue<std::vector<std::pair<C,C>>> ScheduledFunctionCollectionImpl::getGr
 		const unsigned int resolution
 ) const
 {
-	LOG_FUNCTION()
+	LOG_FUNCTION_GET()
 	return getNetworkConst()->read([index,range,resolution](auto& network){
 			return network->getGraph(index, range, resolution);
 	});
@@ -163,7 +177,7 @@ bool ScheduledFunctionCollectionImpl::getIsPlaybackEnabled(
 		const Index index
 ) const
 {
-	LOG_FUNCTION()
+	LOG_FUNCTION_GET()
 	return getNetworkConst()->read([index](auto& network){
 			return network->getIsPlaybackEnabled(index);
 	});
@@ -617,7 +631,7 @@ void ScheduledFunctionCollectionImpl::valuesToBuffer(
 
 bool ScheduledFunctionCollectionImpl::getAudioSchedulingEnabled() const
 {
-	LOG_FUNCTION()
+	LOG_FUNCTION_GET()
 	return audioSchedulingEnabled;
 }
 
