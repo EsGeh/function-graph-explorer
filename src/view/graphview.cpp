@@ -2,6 +2,7 @@
 #include <QValueAxis>
 #include <QtCharts/QLineSeries>
 #include <qevent.h>
+#include <qgraphicsitem.h>
 #include <qnamespace.h>
 
 
@@ -246,12 +247,14 @@ void GraphView::updateAxes() {
 
 void GraphView::updateTimeMarker()
 {
-	if( playbackTimeMarker ) {
-		scene()->removeItem( playbackTimeMarker );
+	if( !playbackTimeMarker ) {
+		QPen pen("#555555");
+		pen.setWidth(2);
+		playbackTimeMarker = new QGraphicsLineItem();
+		scene()->addItem( playbackTimeMarker );
+		playbackTimeMarker->setPen( pen );
 	}
-	QPen pen("#666666");
-	pen.setWidth(2);
-	playbackTimeMarker = scene()->addLine(
+	playbackTimeMarker->setLine(
 			QLineF(
 				chart()->mapToPosition(
 					QPointF(
@@ -265,8 +268,7 @@ void GraphView::updateTimeMarker()
 						viewData->getYRange().second
 					)
 				)
-			),
-			pen
+			)
 	);
 	playbackTimeMarker->setVisible( timeMarkerEnabled );
 	playbackTimeMarker->setZValue(100);

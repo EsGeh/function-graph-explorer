@@ -3,6 +3,7 @@
 
 #include "fge/view/viewdata.h"
 #include <QChartView>
+#include <qgraphicsitem.h>
 #include <qlineseries.h>
 
 
