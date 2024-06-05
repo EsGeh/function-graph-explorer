@@ -48,6 +48,8 @@ public exprtk::ifunction<C>
 		virtual StateDescriptions getStateDescriptions() const = 0;
 
 		C operator()(const C& x);
+
+		virtual void resetState() = 0;
 };
 
 /*******************
@@ -90,6 +92,8 @@ class FormulaFunction:
 				const C& value
 		) override;
 		virtual StateDescriptions getStateDescriptions() const override;
+
+		virtual void resetState() override;
 
 	protected:
 		FormulaFunction();

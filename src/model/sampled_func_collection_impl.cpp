@@ -294,6 +294,7 @@ void SampledFunctionCollectionImpl::updateBuffers( const Index startIndex )
 		auto functionOrError = LowLevel::getFunction(index);
 		if( functionOrError ) {
 			maybeFunction = functionOrError.value();
+			functionOrError.value()->resetState();
 		}
 		updateBuffer( index, maybeFunction );
 	}
@@ -350,7 +351,7 @@ C getWithResolution(
 			assert( lookupPos < samplingSettings.periodic );
 			*/
 			if( isBufferable( function, samplingSettings ) ) {
-				const int xpos = xToRasterIndex(lookupPos, samplingSettings.resolution) % samplingSettings.resolution;
+				const int xpos = xToRasterIndex(lookupPos, samplingSettings.resolution) % int(samplingSettings.resolution * samplingSettings.periodic);
 				assert( buffer->inRange( xpos ) );
 				return buffer->lookup( xpos );
 			}

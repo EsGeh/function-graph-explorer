@@ -103,6 +103,13 @@ StateDescriptions FormulaFunction::getStateDescriptions() const
 	return stateDescriptions;
 }
 
+void FormulaFunction::resetState()
+{
+	for( auto& [name, value] : state ) {
+		value.assign( value.size(), C(0,0) );
+	}
+}
+
 MaybeError FormulaFunction::init(
 		const QString& formulaStr,
 		const ParameterBindings& parameters,

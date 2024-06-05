@@ -196,12 +196,19 @@ MaybeError FunctionCollectionImpl::setParameterValues(
 	if( !functionOrError ) {
 		return functionOrError.error();
 	}
-	auto function = functionOrError.value();
-	for( auto [key, val] : parameters ) {
-		auto maybeError = function->setParameter( key, val );
-		if( maybeError ) {
-			return maybeError.value();
+	{
+		auto function = functionOrError.value();
+		for( auto [key, val] : parameters ) {
+			auto maybeError = function->setParameter( key, val );
+			if( maybeError ) {
+				return maybeError.value();
+			}
 		}
+	}
+	for( uint i = index; i<size(); i++ ) {
+		getFunction(i).transform([](auto function) {
+			function->resetState();
+		});
 	}
 	return {};
 }

@@ -32,7 +32,7 @@ class FunctionBuffer
 		inline Value lookup(
 				const Index index
 		) const {
-			return buffer[indexMin+index];
+			return buffer[index-indexMin];
 		}
 	private:
 		Index indexMin;
