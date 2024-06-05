@@ -82,6 +82,9 @@ FunctionView::FunctionView(
 		ui->playbackEnabled,
 		&QCheckBox::stateChanged,
 		[this](auto value) {
+			if( !value) {
+				disablePlaybackPosition();
+			}
 			emit changed({
 					.playbackEnabled = (value != 0)
 			});
@@ -154,6 +157,11 @@ const SamplingSettings& FunctionView::getSamplingSettings() const {
 	return samplingSettings;
 }
 
+bool FunctionView::getIsPlaybackEnabled() const
+{
+	return ui->playbackEnabled->isChecked();
+}
+
 void FunctionView::setFormula( const QString& str ) {
 	ui->formulaEdit->setText( str );
 }
@@ -183,14 +191,14 @@ void FunctionView::setFormulaError( const QString& str )
 	graphView->reset();
 }
 
-void FunctionView::setPlaybackTimeEnabled( const bool value )
+void FunctionView::disablePlaybackPosition()
 {
-	graphView->setPlaybackTimeEnabled( value );
+	graphView->disablePlaybackCursor();
 }
 
 void FunctionView::setPlaybackTime( const double value )
 {
-	graphView->setPlaybackTime( value );
+	graphView->setPlaybackCursor( value );
 }
 
 void updateParameters(

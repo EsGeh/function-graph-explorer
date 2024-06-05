@@ -43,6 +43,7 @@ public:
 	StateDescriptions getStateDescriptions() const;
 	const FunctionViewData& getViewData() const;
 	const SamplingSettings& getSamplingSettings() const;
+	bool getIsPlaybackEnabled() const;
 
   void setFormula( const QString& str );
   void setParameters( const ParameterBindings& value );
@@ -53,7 +54,7 @@ public:
   );
   void setFormulaError( const QString& str );
 
-	void setPlaybackTimeEnabled( const bool value );
+	void disablePlaybackPosition();
 	void setPlaybackTime( const double value );
 
 signals:

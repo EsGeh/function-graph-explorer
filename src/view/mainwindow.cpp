@@ -71,9 +71,7 @@ void MainWindow::resizeFunctionView(const size_t size) {
 void MainWindow::resetPlayback()
 {
 	for( auto funcView : functionViews ) {
-		setPlaybackTime( 0 );
-		funcView->setPlaybackTimeEnabled( false );
-		funcView->setPlaybackTime( 0 );
+		funcView->disablePlaybackPosition();
 	}
 }
 
@@ -83,7 +81,9 @@ void MainWindow::setPlaybackTime( const double value )
 	ui->time->setValue( value );
 	ui->time->blockSignals( blockedOld );
 	for( auto funcView : functionViews ) {
-		funcView->setPlaybackTimeEnabled( true );
+		if( !funcView->getIsPlaybackEnabled() ) {
+			continue;
+		}
 		funcView->setPlaybackTime( value );
 	}
 }

@@ -77,22 +77,29 @@ void GraphView::setGraph(
 void GraphView::reset() {
 	QChart *chart = this->chart();
 	chart->removeAllSeries();
-	setPlaybackTimeEnabled( false );
+	disablePlaybackCursor();
 }
 
-void GraphView::setPlaybackTime( const double value )
+void GraphView::disablePlaybackCursor()
 {
-	timeMarker = value;
-	if( viewData->autoScrollOnPlayback && timeMarker > viewData->getXRange().second ) {
-		viewData->origin.first = floor( timeMarker );
-		emit viewChanged();
-	}
+	playbackCursorEnabled = false;
 	updateTimeMarker();
 }
 
-void GraphView::setPlaybackTimeEnabled( const bool value )
+void GraphView::setPlaybackCursor( const double value )
 {
-	timeMarkerEnabled = value;
+	playbackCursorEnabled = true;
+	playbackCursor = value;
+	if( viewData->autoScrollOnPlayback ) {
+		if(
+				playbackCursor > viewData->getXRange().second
+				|| playbackCursor < viewData->getXRange().first
+		)
+		{
+			viewData->origin.first = floor( playbackCursor );
+			emit viewChanged();
+		}
+	}
 	updateTimeMarker();
 }
 
@@ -262,19 +269,19 @@ void GraphView::updateTimeMarker()
 			QLineF(
 				chart()->mapToPosition(
 					QPointF(
-						timeMarker,
+						playbackCursor,
 						viewData->getYRange().first
 					)
 				),
 				chart()->mapToPosition(
 					QPointF(
-						timeMarker,
+						playbackCursor,
 						viewData->getYRange().second
 					)
 				)
 			)
 	);
-	playbackTimeMarker->setVisible( timeMarkerEnabled );
+	playbackTimeMarker->setVisible( playbackCursorEnabled );
 	playbackTimeMarker->setZValue(100);
 }
 

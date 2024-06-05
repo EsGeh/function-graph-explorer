@@ -23,8 +23,8 @@ public:
 
 	void reset();
 
-	void setPlaybackTimeEnabled( const bool value );
-	void setPlaybackTime( const double value );
+	void disablePlaybackCursor();
+	void setPlaybackCursor( const double value );
 
 signals:
 	void viewChanged();
@@ -50,8 +50,8 @@ private:
 private:
 	// Data:
 	FunctionViewData* viewData;
-	double timeMarker;
-	bool timeMarkerEnabled = false;
+	double playbackCursor;
+	bool playbackCursorEnabled = false;
 	// GUI:
 	QLineSeries* series;
 	QGraphicsLineItem* playbackTimeMarker;
