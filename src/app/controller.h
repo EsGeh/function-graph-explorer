@@ -170,10 +170,12 @@ public slots:
 private slots:
 	void tick() {
 		std::scoped_lock locked(modelLock);
-		emit playbackPositionChanged(
-				model->getPosition(),
-				model->getSamplerate()
-		);
+		if( model->getAudioSchedulingEnabled() ) {
+			emit playbackPositionChanged(
+					model->getPosition(),
+					model->getSamplerate()
+			);
+		}
 	}
 
 private:

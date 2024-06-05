@@ -11,6 +11,7 @@ struct FunctionViewData {
 	std::pair<T,T> scaleExp = { 0, 0 };
 	std::pair<bool,bool> originCentered = { 0, 1 };
 	bool displayImaginary = false;
+	bool autoScrollOnPlayback = 1;
 
 	T playbackDuration = 1;
 	T playbackSpeed = 1;

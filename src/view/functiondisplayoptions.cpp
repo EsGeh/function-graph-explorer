@@ -180,6 +180,11 @@ FunctionDisplayOptions::FunctionDisplayOptions(
 			ui->displayImaginary, &QCheckBox::stateChanged,
 			[this](bool value){ this->viewData.displayImaginary = value; }
 	);
+	// autoScrollOnPlayback:
+	connect(
+			ui->autoScrollOnPlayback, &QCheckBox::stateChanged,
+			[this](bool value){ this->viewData.autoScrollOnPlayback = value; }
+	);
 	// playback:
 	connect(
 			ui->duration, &QDoubleSpinBox::valueChanged,
@@ -271,6 +276,8 @@ void FunctionDisplayOptions::updateView() {
 	ui->centeredY->setChecked( viewData.originCentered.second );
 	// displayImaginary:
 	ui->displayImaginary->setChecked( viewData.displayImaginary );
+	// autoScrollOnPlayback:
+	ui->autoScrollOnPlayback->setChecked( viewData.autoScrollOnPlayback );
 
 	ui->duration->setValue( viewData.playbackDuration );
 	ui->speed->setValue( viewData.playbackSpeed );

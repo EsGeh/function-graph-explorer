@@ -83,6 +83,10 @@ void GraphView::reset() {
 void GraphView::setPlaybackTime( const double value )
 {
 	timeMarker = value;
+	if( viewData->autoScrollOnPlayback && timeMarker > viewData->getXRange().second ) {
+		viewData->origin.first = floor( timeMarker );
+		emit viewChanged();
+	}
 	updateTimeMarker();
 }
 
