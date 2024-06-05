@@ -1,6 +1,7 @@
 #include "fge/view/graphview.h"
 #include <QValueAxis>
 #include <QtCharts/QLineSeries>
+#include <qevent.h>
 #include <qnamespace.h>
 
 
@@ -10,6 +11,8 @@ GraphView::GraphView(
 )
   : QChartView{parent}
 	, viewData( viewData )
+	, series( nullptr )
+	, playbackTimeMarker( nullptr )
 {
 	setAlignment(Qt::AlignRight);
 	setBackgroundBrush(QBrush(Qt::white));
@@ -29,6 +32,7 @@ GraphView::GraphView(
 		QValueAxis* axis = new QValueAxis();
 		chart->addAxis( axis, Qt::AlignLeft );
 	}
+
 	updateAxes();
 }
 
@@ -39,9 +43,9 @@ void GraphView::setGraph(
 	reset();
 	QChart *chart = this->chart();
 
+	// imaginary:
 	if(viewData->displayImaginary) {
-
-		auto series = new QLineSeries();
+		series = new QLineSeries();
 		for( auto value: values ) {
 			*series << QPointF( value.first.c_.real(), value.second.c_.imag() );
 		}
@@ -52,9 +56,9 @@ void GraphView::setGraph(
 		series->attachAxis( chart->axes(Qt::Horizontal).first() );
 		series->attachAxis( chart->axes(Qt::Vertical).first() );
 	}
+	// real:
 	{
-
-		auto series = new QLineSeries();
+		series = new QLineSeries();
 		for( auto value: values ) {
 			*series << QPointF( value.first.c_.real(), value.second.c_.real() );
 		}
@@ -66,7 +70,27 @@ void GraphView::setGraph(
 		series->attachAxis( chart->axes(Qt::Vertical).first() );
 	}
 	updateAxes();
+	updateTimeMarker();
 }
+
+void GraphView::reset() {
+	QChart *chart = this->chart();
+	chart->removeAllSeries();
+	setPlaybackTimeEnabled( false );
+}
+
+void GraphView::setPlaybackTime( const double value )
+{
+	timeMarker = value;
+	updateTimeMarker();
+}
+
+void GraphView::setPlaybackTimeEnabled( const bool value )
+{
+	timeMarkerEnabled = value;
+	updateTimeMarker();
+}
+
 
 QSize GraphView::minimumSizeHint() const {
 	return {200, 200};
@@ -76,29 +100,17 @@ QSize GraphView::sizeHint() const {
 	return {200, 200};
 }
 
-void GraphView::updateAxes() {
-	QChart *chart = this->chart();
-	chart->axes(Qt::Horizontal).first()->setRange(
-			viewData->getXRange().first,
-			viewData->getXRange().second
-	);
-	chart->axes(Qt::Vertical).first()->setRange(
-			viewData->getYRange().first,
-			viewData->getYRange().second
-	);
-}
-
-void GraphView::reset() {
-	QChart *chart = this->chart();
-	chart->removeAllSeries();
+void GraphView::resizeEvent(QResizeEvent* event)
+{
+	QChartView::resizeEvent(event);
+	updateTimeMarker();
 }
 
 template <typename T> int sgn(T val) {
-    return (T(0) < val) - (val < T(0));
+  return (T(0) < val) - (val < T(0));
 }
 
 void GraphView::wheelEvent(QWheelEvent *event) {
-
 	QPoint step = {0,0};
 	{
 		QPoint numPixels = event->pixelDelta();
@@ -220,16 +232,56 @@ void GraphView::keyPressEvent(QKeyEvent *event)
 	}
 }
 
+void GraphView::updateAxes() {
+	QChart *chart = this->chart();
+	chart->axes(Qt::Horizontal).first()->setRange(
+			viewData->getXRange().first,
+			viewData->getXRange().second
+	);
+	chart->axes(Qt::Vertical).first()->setRange(
+			viewData->getYRange().first,
+			viewData->getYRange().second
+	);
+}
+
+void GraphView::updateTimeMarker()
+{
+	if( playbackTimeMarker ) {
+		scene()->removeItem( playbackTimeMarker );
+	}
+	QPen pen("#666666");
+	pen.setWidth(2);
+	playbackTimeMarker = scene()->addLine(
+			QLineF(
+				chart()->mapToPosition(
+					QPointF(
+						timeMarker,
+						viewData->getYRange().first
+					)
+				),
+				chart()->mapToPosition(
+					QPointF(
+						timeMarker,
+						viewData->getYRange().second
+					)
+				)
+			),
+			pen
+	);
+	playbackTimeMarker->setVisible( timeMarkerEnabled );
+	playbackTimeMarker->setZValue(100);
+}
+
 void GraphView::moveView(QPoint direction)
 {
-		viewData->origin.first += direction.x() * (viewData->getXRange().second - viewData->getXRange().first)/4;
-		viewData->origin.second += direction.y() * (viewData->getYRange().second - viewData->getYRange().first)/4;
+	viewData->origin.first += direction.x() * (viewData->getXRange().second - viewData->getXRange().first)/4;
+	viewData->origin.second += direction.y() * (viewData->getYRange().second - viewData->getYRange().first)/4;
 }
 
 void GraphView::zoomView(QPoint direction)
 {
-		viewData->scaleExp.first += direction.x();
-		viewData->scaleExp.second += direction.y();
+	viewData->scaleExp.first += direction.x();
+	viewData->scaleExp.second += direction.y();
 }
 
 void GraphView::resetTranslation()
@@ -239,5 +291,5 @@ void GraphView::resetTranslation()
 
 void GraphView::resetZoom()
 {
-		viewData->scaleExp = {0,0};
+	viewData->scaleExp = {0,0};
 }

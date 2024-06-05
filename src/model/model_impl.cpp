@@ -183,6 +183,18 @@ bool ScheduledFunctionCollectionImpl::getIsPlaybackEnabled(
 	});
 }
 
+double ScheduledFunctionCollectionImpl::getPosition() const
+{
+	LOG_FUNCTION_GET()
+	return this->position;
+}
+
+uint ScheduledFunctionCollectionImpl::getSamplerate() const
+{
+	LOG_FUNCTION_GET()
+	return this->samplerate;
+}
+
 /************************
  * WRITE:
 ************************/

@@ -12,6 +12,8 @@ struct AudioScheduled
 	virtual void setAudioSchedulingEnabled(
 			const bool value
 	) = 0;
+	virtual double getPosition() const = 0;
+	virtual uint getSamplerate() const = 0;
 
 	virtual void betweenAudio(
 			const PlaybackPosition position,

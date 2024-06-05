@@ -11,6 +11,7 @@ MainWindow::MainWindow(QWidget *parent)
 		, functionViews()
 {
 	ui->setupUi(this);
+	ui->time->setEnabled(false);
 	connect(
 		ui->functionCount,
 		&QSpinBox::valueChanged,
@@ -64,5 +65,25 @@ void MainWindow::resizeFunctionView(const size_t size) {
 					funcView
 			);
 		}
+	}
+}
+
+void MainWindow::resetPlayback()
+{
+	for( auto funcView : functionViews ) {
+		setPlaybackTime( 0 );
+		funcView->setPlaybackTimeEnabled( false );
+		funcView->setPlaybackTime( 0 );
+	}
+}
+
+void MainWindow::setPlaybackTime( const double value )
+{
+	auto blockedOld = ui->time->blockSignals(true);
+	ui->time->setValue( value );
+	ui->time->blockSignals( blockedOld );
+	for( auto funcView : functionViews ) {
+		funcView->setPlaybackTimeEnabled( true );
+		funcView->setPlaybackTime( value );
 	}
 }

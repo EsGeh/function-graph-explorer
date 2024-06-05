@@ -183,6 +183,16 @@ void FunctionView::setFormulaError( const QString& str )
 	graphView->reset();
 }
 
+void FunctionView::setPlaybackTimeEnabled( const bool value )
+{
+	graphView->setPlaybackTimeEnabled( value );
+}
+
+void FunctionView::setPlaybackTime( const double value )
+{
+	graphView->setPlaybackTime( value );
+}
+
 void updateParameters(
 		const std::map<QString,ParameterDescription>& parameterDescriptions,
 		ParameterBindings& parameters

@@ -7,6 +7,7 @@
 
 #include <QObject>
 #include <QThread>
+#include <QTimer>
 #include <mutex>
 #include <ranges>
 
@@ -37,7 +38,17 @@ public:
 			QObject *parent = nullptr
 	)
 		: model(model)
-	{};
+		, timer( nullptr )
+	{
+		timer = new QTimer(this);
+		connect(timer, &QTimer::timeout, this, &ModelWorker::tick);
+		timer->start(10);
+	};
+
+	~ModelWorker() {
+		timer->stop();
+		delete timer;
+	}
 
 signals:
 	void resizeDone(
@@ -51,6 +62,11 @@ signals:
 			const MaybeError maybeError
 	);
 	void readAccessGranted( const Model* model, const uint index);
+	void playbackPositionChanged(
+			const PlaybackPosition position,
+			const uint samplerate
+	);
+	void playbackStopped();
 
 public slots:
 
@@ -141,10 +157,31 @@ public slots:
 		modelLock.unlock();
 	}
 
+	void setPlaybackEnabled( const bool value ) {
+		if( value ) {
+			timer->start();
+		}
+		else {
+			timer->stop();
+			emit playbackStopped();
+		}
+	}
+
+private slots:
+	void tick() {
+		std::scoped_lock locked(modelLock);
+		emit playbackPositionChanged(
+				model->getPosition(),
+				model->getSamplerate()
+		);
+	}
+
 private:
 	std::mutex modelLock;
 	Model* model;
 	bool audioEnabled = 0;
+
+	QTimer* timer;
 
 };
 

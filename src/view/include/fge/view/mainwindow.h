@@ -26,6 +26,9 @@ public:
 
 	void resizeFunctionView(const size_t size);
 
+	void resetPlayback();
+	void setPlaybackTime( const double value );
+
 signals:
 	void functionCountChanged(const size_t count);
 	void isAudioEnabledChanged(const bool value);

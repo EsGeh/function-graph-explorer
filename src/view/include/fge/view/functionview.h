@@ -53,6 +53,9 @@ public:
   );
   void setFormulaError( const QString& str );
 
+	void setPlaybackTimeEnabled( const bool value );
+	void setPlaybackTime( const double value );
+
 signals:
 	void changed( UpdateInfo updateInfo );
 	void parameterChanged(

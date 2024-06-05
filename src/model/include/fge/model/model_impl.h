@@ -169,6 +169,9 @@ class ScheduledFunctionCollectionImpl:
 				const Index index
 		) const override;
 
+		virtual double getPosition() const override;
+		virtual uint getSamplerate() const override;
+
 		// WRITE:
 
 		virtual void prepareResize() override;
@@ -273,7 +276,7 @@ class ScheduledFunctionCollectionImpl:
 
 	private:
 		bool audioSchedulingEnabled = false;
-		PlaybackPosition position = 0;
+		std::atomic<PlaybackPosition> position = 0;
 		std::atomic<uint> samplerate = 0;
 
 		mutex_guarded<std::shared_ptr<SampledFunctionCollectionImpl>> guardedNetwork;

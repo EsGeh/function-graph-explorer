@@ -86,7 +86,7 @@ Controller::Controller(
 	connect(
 		view,
 		&MainWindow::isAudioEnabledChanged,
-		[jack,model]( bool value ) {
+		[this, model, jack]( bool value ) {
 			if(value) {
 				auto maybeError = jack->start(
 						Callbacks{
@@ -101,13 +101,37 @@ Controller::Controller(
 						}
 				);
 				if( !maybeError ) {
-					model->setAudioSchedulingEnabled(true);
+					model->setAudioSchedulingEnabled( true );
+					QMetaObject::invokeMethod(
+						modelWorker, &ModelWorker::setPlaybackEnabled, Qt::QueuedConnection,
+						true 
+					);
 				}
 			}
 			else {
-				model->setAudioSchedulingEnabled(false);
+				model->setAudioSchedulingEnabled( false );
 				jack->stop();
+				QMetaObject::invokeMethod(
+					modelWorker, &ModelWorker::setPlaybackEnabled, Qt::QueuedConnection,
+					false 
+				);
 			}
+		}
+	);
+	connect(
+		modelWorker,
+		&ModelWorker::playbackPositionChanged,
+		this,
+		[model,view]( const PlaybackPosition position, const uint samplerate ) {
+			view->setPlaybackTime( double(position) / double(samplerate) );
+		}
+	);
+	connect(
+		modelWorker,
+		&ModelWorker::playbackStopped,
+		this,
+		[view]() {
+			view->resetPlayback();
 		}
 	);
 
