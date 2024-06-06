@@ -60,7 +60,7 @@ QString functionDataDescriptionToString( const FunctionDataDescription& dataDesc
 			.arg( value.min )
 			.arg( value.max )
 			.arg( value.step )
-			.arg( (value.rampType == FadeType::VolumeFade) ? "fade=volume" : "fade=parameter" )
+			.arg( (value.rampType == FadeType::RampVolume) ? "ramp=volume" : "ramp=parameter" )
 		;
 	}
 	for( auto [name, value] : dataDescription.stateDescriptions ) {
@@ -153,11 +153,11 @@ std::optional<DummyError> parseOptionalFadeType(
 {
 	if( words.size() >= index+1 ) {
 		auto word = words.at(index);
-		if( word == "fade=volume" ) {
-			*ramp = FadeType::VolumeFade;
+		if( word == "ramp=volume" ) {
+			*ramp = FadeType::RampVolume;
 		}
-		else if( word == "fade=parameter" ) {
-			*ramp = FadeType::ParameterFade;
+		else if( word == "ramp=parameter" ) {
+			*ramp = FadeType::RampParameter;
 		}
 		else {
 			return DummyError{};

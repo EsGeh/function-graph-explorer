@@ -87,7 +87,6 @@ struct SampledFunctionCollection
 struct SampledFunctionCollectionInternal:
 	public SampledFunctionCollection
 {
-
 	using AudioCallback = std::function<void(
 			const PlaybackPosition position,
 			const uint samplerate
@@ -109,4 +108,14 @@ struct SampledFunctionCollectionInternal:
 			const unsigned int samplerate,
 			AudioCallback callback
 	) = 0;
+
+	virtual std::pair<MaybeError, std::vector<Index>> setParameterValuesDeferBufferUpdates(
+			const Index index,
+			const ParameterBindings& parameters
+	) = 0;
+
+	virtual void updateBuffers(
+			const Index startIndex
+	) = 0;
+
 };

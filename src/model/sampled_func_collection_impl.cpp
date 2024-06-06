@@ -110,9 +110,31 @@ MaybeError SampledFunctionCollectionImpl::setParameterValues(
 )
 {
 	LOG_FUNCTION()
-	auto ret = LowLevel::setParameterValues( index,parameters );
+	auto ret = setParameterValuesDeferBufferUpdates( index, parameters ).first;
 	updateBuffers(index);
 	return ret;
+}
+
+std::pair<MaybeError, std::vector<SampledFunctionCollectionImpl::Index>> SampledFunctionCollectionImpl::setParameterValuesDeferBufferUpdates(
+		const Index index,
+		const ParameterBindings& parameters
+)
+{
+	LOG_FUNCTION()
+	auto ret = LowLevel::setParameterValues( index, parameters );
+	std::vector<Index> buffered;
+	for(uint i=index; i<size(); i++) {
+		std::shared_ptr<Function> maybeFunction = nullptr;
+		auto functionOrError = LowLevel::getFunction(i);
+		if( functionOrError ) {
+			maybeFunction = functionOrError.value();
+		}
+		const auto& samplingSettings = getNodeInfoConst(i)->samplingSettings;
+		if( isBufferable(maybeFunction, samplingSettings) ) {
+			buffered.push_back( i );
+		}
+	}
+	return { ret, buffered };
 }
 
 
@@ -243,6 +265,19 @@ void SampledFunctionCollectionImpl::setMasterVolume(const double value)
 	masterVolume = value;
 }
 
+void SampledFunctionCollectionImpl::updateBuffers( const Index startIndex )
+{
+	for(uint index=startIndex; index<size(); index++) {
+		std::shared_ptr<Function> maybeFunction = nullptr;
+		auto functionOrError = LowLevel::getFunction(index);
+		if( functionOrError ) {
+			maybeFunction = functionOrError.value();
+			functionOrError.value()->resetState();
+		}
+		updateBuffer( index, maybeFunction );
+	}
+}
+
 // private:
 
 float SampledFunctionCollectionImpl::audioFunction(
@@ -286,19 +321,6 @@ std::shared_ptr<SampledFunctionCollectionImpl::LowLevel::NodeInfo> SampledFuncti
 	});
 	return ret;
 };
-
-void SampledFunctionCollectionImpl::updateBuffers( const Index startIndex )
-{
-	for(uint index=startIndex; index<size(); index++) {
-		std::shared_ptr<Function> maybeFunction = nullptr;
-		auto functionOrError = LowLevel::getFunction(index);
-		if( functionOrError ) {
-			maybeFunction = functionOrError.value();
-			functionOrError.value()->resetState();
-		}
-		updateBuffer( index, maybeFunction );
-	}
-}
 
 void SampledFunctionCollectionImpl::updateBuffer(
 		const Index index,

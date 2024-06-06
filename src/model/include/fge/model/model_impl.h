@@ -39,13 +39,15 @@ constexpr auto set = &SampledFunctionCollectionImpl::set;
 constexpr auto setParameterValues = &SampledFunctionCollectionImpl::setParameterValues;
 constexpr auto setIsPlaybackEnabled = &SampledFunctionCollectionImpl::setIsPlaybackEnabled;
 constexpr auto setSamplingSettings = &SampledFunctionCollectionImpl::setSamplingSettings;
+constexpr auto updateBuffers = &SampledFunctionCollectionImpl::updateBuffers;
 
 constexpr auto setters = std::make_tuple(
 		std::make_pair(resize,"resize"),
 		std::make_pair(set,"set"),
 		std::make_pair(setParameterValues,"setParameterValues"),
 		std::make_pair(setIsPlaybackEnabled,"setIsPlaybackEnabled"),
-		std::make_pair(setSamplingSettings, "setSamplingSettings")
+		std::make_pair(setSamplingSettings, "setSamplingSettings"),
+		std::make_pair(updateBuffers, "updateBuffers")
 );
 
 using ResizeTask = SetterTask<resize>;
@@ -53,6 +55,7 @@ using SetTask = SetterTask<set>;
 using SetParameterValuesTask = SetterTask<setParameterValues>;
 using SetIsPlaybackEnabledTask = SetterTask<setIsPlaybackEnabled>;
 using SetSamplingSettingsTask = SetterTask<setSamplingSettings>;
+using UpdateBuffersTask = SetterTask<updateBuffers>;
 
 
 struct Ramping {
@@ -90,6 +93,7 @@ struct Ramping {
 		bool done = false;
 		bool succeeded = false;
 		ParameterSignalDone signalizeDone;
+		std::vector<Index> delayedUpdates;
 	};
 	public:
 		template <typename TaskQueue>
@@ -128,7 +132,7 @@ struct Ramping {
 		static void updateRamp(
 				View view,
 				std::function<double(const Task* task)> getValue,
-				std::function<void(const Task* task,const double)> setValue,
+				std::function<void(Task* task,const double)> setValue,
 				const PlaybackPosition position,
 				const uint samplerate
 		);
@@ -257,6 +261,7 @@ class ScheduledFunctionCollectionImpl:
 			SetParameterValuesTask,
 			SetIsPlaybackEnabledTask,
 			SetSamplingSettingsTask,
+			UpdateBuffersTask,
 			RampTask,
 			RampMasterEnvTask,
 			RampMasterVolumeTask,
@@ -298,11 +303,12 @@ class ScheduledFunctionCollectionImpl:
 	friend auto makeSetter(
 		TaskQueue& taskQueue,
 		const PlaybackPosition position,
+		TaskDoneCallback taskDoneCallback,
 		Args... args
 	);
 
 	template <auto function>
-	friend void run(
+	friend TaskDoneCallback run(
 		SampledFunctionCollectionImpl* network,
 		SetterTask<function>* setter
 	);

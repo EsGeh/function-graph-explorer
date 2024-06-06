@@ -24,6 +24,8 @@ template <
 	using ret_t = Return;
 };
 
+using TaskDoneCallback = std::function<void()>;
+
 template <
 	auto function,
 	typename TaskQueue,
@@ -32,11 +34,12 @@ template <
 auto makeSetter(
 		TaskQueue& taskQueue,
 		const PlaybackPosition position,
+		TaskDoneCallback taskDoneCallback,
 		Args... args
 );
 
 template <auto function>
-void run(
+TaskDoneCallback run(
 		SampledFunctionCollectionImpl* network,
 		SetterTask<function>* setter
 );

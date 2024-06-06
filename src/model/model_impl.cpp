@@ -1,6 +1,7 @@
 #include "fge/model/model_impl.h"
 #include "include/fge/model/sampled_func_collection.h"
 #include "include/fge/model/sampled_func_collection_impl.h"
+#include "include/fge/model/template_utils.h"
 #include "include/fge/model/template_utils_def.h"
 #include <cstring>
 #include <ctime>
@@ -296,6 +297,7 @@ void ScheduledFunctionCollectionImpl::resize( const uint size )
 		return makeSetter<::resize>(
 				tasksQueue,
 				this->position,
+				[]{},
 				size
 		);
 	});
@@ -388,6 +390,7 @@ MaybeError ScheduledFunctionCollectionImpl::bulkUpdate(
 				ret.push_back( std::move( makeSetter<::set>(
 							tasksQueue,
 							this->position,
+							[]{},
 							index,
 							update.formula.value_or( get(index).formula ),
 							update.parameters.value_or( get(index).parameters ),
@@ -398,6 +401,7 @@ MaybeError ScheduledFunctionCollectionImpl::bulkUpdate(
 				ret.push_back( toMaybeError( makeSetter<::setIsPlaybackEnabled>(
 						tasksQueue,
 						this->position,
+						[]{},
 						index, update.playbackEnabled.value()
 				) ) );
 			}
@@ -405,6 +409,7 @@ MaybeError ScheduledFunctionCollectionImpl::bulkUpdate(
 				ret.push_back( toMaybeError( makeSetter<::setSamplingSettings>(
 						tasksQueue,
 						this->position,
+						[]{},
 						index, update.samplingSettings.value()
 				) ) );
 			}
@@ -451,6 +456,7 @@ MaybeError ScheduledFunctionCollectionImpl::set(
 		return makeSetter<::set>(
 					tasksQueue,
 					this->position,
+					[]{},
 					index, formula, parameters, stateDescriptions
 		);
 	});
@@ -489,8 +495,8 @@ MaybeError ScheduledFunctionCollectionImpl::setParameterValues(
 				| std::ranges::views::filter( [network,index](const auto& entry) {
 						return network->get(index).parameterDescriptions.at(
 							entry.first
-						).rampType == FadeType::VolumeFade;
-				})
+						).rampType == FadeType::RampVolume;
+				} )
 			;
 			if( volumeFadeParametersView.empty() ) {
 				std::promise<MaybeError> promise;
@@ -509,6 +515,7 @@ MaybeError ScheduledFunctionCollectionImpl::setParameterValues(
 			return makeSetter<::setParameterValues>(
 					tasksQueue,
 					this->position,
+					[]{},
 					index, volumeFadeParameters
 			);
 		});
@@ -527,6 +534,8 @@ ParameterBindings ScheduledFunctionCollectionImpl::scheduleSetParameterValues(
 		return {};
 	}
 	return writeTasks.write([&](auto& tasksQueue){
+		// find all parameters which are to be faded by
+		// ramping the parameter
 		ParameterBindings selectedParams = getNetwork()->read([&](auto network) {
 			return parameters
 				| std::ranges::views::filter([&](auto entry) {
@@ -534,8 +543,8 @@ ParameterBindings ScheduledFunctionCollectionImpl::scheduleSetParameterValues(
 						if( params.find( entry.first ) == params.end() ) {
 							return false;
 						}
-						return params.at( entry.first ).rampType == FadeType::ParameterFade;
-			})
+						return params.at( entry.first ).rampType == FadeType::RampParameter;
+					})
 				| std::ranges::to<ParameterBindings>();
 		});
 		// ramp parameters:
@@ -577,6 +586,7 @@ void ScheduledFunctionCollectionImpl::setIsPlaybackEnabled(
 		return makeSetter<::setIsPlaybackEnabled>(
 				tasksQueue,
 				this->position,
+				[]{},
 				index,value
 		);
 	});
@@ -604,6 +614,7 @@ void ScheduledFunctionCollectionImpl::setSamplingSettings(
 		return makeSetter<::setSamplingSettings>(
 				tasksQueue,
 				this->position,
+				[]{},
 				index, value
 		);
 	});
@@ -748,24 +759,41 @@ void ScheduledFunctionCollectionImpl::betweenAudio(
 			}
 		}
 		#endif
-		for( auto& someTask : tasksQueue ) {
-			if( auto task = std::get_if<RampParameterTask>( &someTask ); task && task->done && task->succeeded ) {
-				parameteterSignals.push_back( [
-						signalizeDone = task->signalizeDone,
-						index = task->index,
-						name = task->parameterName,
-						value = task->dst
-				]() {
-					signalizeDone(
-						index,
-						{ {
-							name,
-							{ C(value,0) }
-						} }
-					);
-				});
+
+		auto finishedRamps = tasksQueue
+				| std::views::filter([](auto& someTask){
+					auto task = std::get_if<RampParameterTask>(&someTask);
+					return task && task->done && task->succeeded;
+				})
+				| std::views::transform([](auto& task){
+					return &std::get<RampParameterTask>( task );
+				})
+				| std::ranges::to<std::vector<RampParameterTask*>>()
+		;
+		for( auto task : finishedRamps ) {
+			if( !task->delayedUpdates.empty() ) {
+				WritePrepare<&ScheduledFunctionCollectionImpl::setParameterValues>::prepare(tasksQueue);
 			}
+			makeSetter<::updateBuffers>(
+					tasksQueue,
+					this->position,
+					[ signalizeDone = task->signalizeDone
+					, index = task->index
+					, name = task->parameterName
+					, value = task->dst
+					]{
+						signalizeDone(
+								index,
+								{ {
+									name,
+									{ C(value,0) }
+								} }
+						);
+					},
+					task->index
+			);
 		}
+
 		// cleanup ramps:
 		{
 			auto [rem_begin, rem_end] = std::ranges::remove_if(tasksQueue, [](auto& someTask) -> bool {
@@ -807,32 +835,35 @@ void ScheduledFunctionCollectionImpl::modelWorkerLoop()
 		if( stopModelWorker ) {
 			break;
 		}
-		writeTasks.try_write([&](auto& tasksQueue) {
+		std::optional<std::optional<TaskDoneCallback>> taskDoneCallback = writeTasks.try_write([&](auto& tasksQueue) {
 			assert( !tasksQueue.empty() );
 			auto& someTask = tasksQueue.front();
-			std::visit([&](auto& task) {
+			return std::visit([&](auto& task)
+					-> std::optional<TaskDoneCallback>
+			{
 					using Task = std::decay_t<decltype(task)>;
+					assert( IsSetterTask<Task>::value );
 					if constexpr ( IsSetterTask<Task>::value ) {
 						assert( !task.done );
-						{
-							expensiveTaskRunning = true;
-							getNetwork()->try_write([&task](auto network) {
-								return run(network.get(), &task);
-							});
-							expensiveTaskRunning = false;
-						}
+						expensiveTaskRunning = true;
+						auto ret = getNetwork()->try_write([&task](auto network) {
+							return run(network.get(), &task);
+						});
+						expensiveTaskRunning = false;
 						#ifdef LOG_MODEL
 						qDebug() << QString("%1: executing '%2")
 							.arg( double(position) / double(samplerate) )
 							.arg( functionName(task) )
 						;
 						#endif
+						return ret;
 					}
-					else {
-						assert( IsSetterTask<Task>::value );
-					}
+					return {};
 			}, someTask );
 		});
+		if( taskDoneCallback && taskDoneCallback.value() ){
+			taskDoneCallback.value().value()();
+		}
 	};
 }
 
@@ -998,10 +1029,11 @@ void Ramping::updateRamps(
 						).c_.real();
 					},
 					[network,index](auto task, const double value) {
-						network->setParameterValues(
-								task->index,
-								{ { task->parameterName, { C(value,0) } } }
-						);
+						task->delayedUpdates =
+							network->setParameterValuesDeferBufferUpdates(
+									task->index,
+									{ { task->parameterName, { C(value,0) } } }
+							).second;
 					},
 					position, samplerate
 			);
@@ -1013,7 +1045,7 @@ template <typename Task, typename View>
 void Ramping::updateRamp(
 		View view,
 		std::function<double(const Task* task)> getValue,
-		std::function<void(const Task* task,const double)> setValue,
+		std::function<void(Task* task,const double)> setValue,
 		const PlaybackPosition position,
 		const uint samplerate
 ) {
@@ -1027,6 +1059,7 @@ void Ramping::updateRamp(
 		double time = double(position - task->pos.value()) / double(samplerate);
 		if constexpr ( std::is_same_v<Task,RampParameterTask> ) {
 			double adjustedRampTime = parameterRampTime;
+			std::vector<Index> delayedUpdates;
 			if( time < adjustedRampTime )
 			{
 				setValue(

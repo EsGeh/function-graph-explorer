@@ -62,6 +62,11 @@ class SampledFunctionCollectionImpl:
 				const ParameterBindings& parameters
 		) override;
 
+		virtual std::pair<MaybeError, std::vector<Index>> setParameterValuesDeferBufferUpdates(
+				const Index index,
+				const ParameterBindings& parameters
+		) override;
+
 		/***************
 		 * Sampling
 		 ***************/
@@ -116,6 +121,7 @@ class SampledFunctionCollectionImpl:
 		virtual double getMasterVolume() const override;
 		virtual void setMasterVolume(const double value) override;
 
+		void updateBuffers( const Index startIndex ) override;
 	public:
 		::NodeInfo* getNodeInfo( const Index index ) const {
 			return static_cast<::NodeInfo*>(LowLevel::getNodeInfo(index));
@@ -132,7 +138,6 @@ class SampledFunctionCollectionImpl:
 				std::shared_ptr<Function> maybeFunction
 		) override;
 
-		void updateBuffers( const Index startIndex );
 		void updateBuffer( const Index index, std::shared_ptr<Function> maybeFunction );
 
 		const ::NodeInfo* getNodeInfoConst( const Index index ) const {

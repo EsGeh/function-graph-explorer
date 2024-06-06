@@ -44,15 +44,35 @@ struct SetterTraits
 	static constexpr decltype(function) value = function;
 };
 
-template <typename Function>
-const char* functionName() {
-	return std::get<std::pair<Function,const char*>>( setters ).second;
-};
+
+namespace intern {
+	template <typename Tuple, typename Function, int Index = 0>
+	auto find(Tuple t, Function f)
+		-> std::optional<const char*>
+	{
+		constexpr auto tup_size = std::tuple_size_v<Tuple>;
+
+		if constexpr(Index == tup_size)
+			return {};
+		else {
+			auto entry = std::get<Index>(t);
+			if constexpr ( std::is_same_v<decltype(entry.first),Function> ) {
+				if ( entry.first == f ) {
+					return entry.second;
+				}
+				else {
+					return find<Tuple, Function, 1+Index>(t, f);
+				}
+			} else {
+				return find<Tuple, Function, 1+Index>(t, f);
+			}
+		}
+	}
+}
 
 template <auto function>
 const char* functionName(const SetterTask<function>& setterTask) {
-	using Function = typename SetterTraits<SetterTask<function>>::type;
-	return functionName<Function>();
+	return intern::find( setters, function ).value();
 };
 
 // definitions:
@@ -72,6 +92,7 @@ struct SetterTask
 			)
 		)
 	);
+	TaskDoneCallback taskDoneCallback = [](auto){};
 	std::promise<ReturnType> promise;
 	bool done = false;
 };
@@ -84,6 +105,7 @@ template <
 auto makeSetter(
 		TaskQueue& taskQueue,
 		const PlaybackPosition position,
+		TaskDoneCallback taskDoneCallback,
 		Args... args
 )
 {
@@ -94,7 +116,8 @@ auto makeSetter(
 	auto tuple = std::tuple( args... );
 	auto task = SetterTask<function>{
 		.args = tuple,
-		.pos = position
+		.pos = position,
+		.taskDoneCallback = taskDoneCallback
 	};
 	auto future = task.promise.get_future();
 	taskQueue.push_back(std::move(task));
@@ -102,12 +125,13 @@ auto makeSetter(
 }
 
 template <auto function>
-void run(
+TaskDoneCallback run(
 		SampledFunctionCollectionImpl* network,
 		SetterTask<function>* setter
 )
 {
 	using Return = typename FunctionTraits<decltype(function)>::ret_t;
+	TaskDoneCallback fillPromise;
 	if constexpr ( ! std::is_void<Return>::value ) {
 		auto ret = std::apply(
 				function,
@@ -116,7 +140,9 @@ void run(
 					setter->args
 				)
 		);
-		setter->promise.set_value(ret);
+		fillPromise = [setter,ret]{
+			setter->promise.set_value(ret);
+		};
 	}
 	else {
 		std::apply(
@@ -126,9 +152,15 @@ void run(
 					setter->args
 				)
 		);
-		setter->promise.set_value();
+		fillPromise = [setter]{
+			setter->promise.set_value();
+		};
 	}
 	setter->done = true;
+	return [fillPromise,setter]{
+		fillPromise();
+		setter->taskDoneCallback();
+	};
 }
 
 using ModelImpl = ScheduledFunctionCollectionImpl;

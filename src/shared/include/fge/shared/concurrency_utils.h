@@ -104,7 +104,7 @@ public:
 				return ret;
 			}
 			LOG_MUTEX_GUARDED( "TRY READ", "give up");
-			return {};
+			return std::optional<decltype(f(data))>{};
 		}
   }
   auto try_write( auto f )
@@ -130,7 +130,7 @@ public:
 				return ret;
 			}
 			LOG_MUTEX_GUARDED( "TRY WRITE", "give up" );
-			return {};
+			return std::optional<decltype(f(data))>{};
 		}
   }
 private:

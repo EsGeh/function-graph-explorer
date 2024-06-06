@@ -114,6 +114,7 @@ public slots:
 					index, parameters,
 					[this](auto index, auto parameters) {
 						modelLock.lock();
+						model->postSetAny();
 						emit updateDone(
 								model, index,
 								Model::Update{
