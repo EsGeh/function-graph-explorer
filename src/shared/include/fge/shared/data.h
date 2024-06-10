@@ -25,6 +25,12 @@ struct SamplingSettings {
 	bool buffered = false;
 };
 
+struct PlaybackSettings {
+	T playbackDuration = 1;
+	T playbackSpeed = 1;
+	T playbackOffset = 0;
+};
+
 enum class FadeType {
 	RampVolume,
 	RampParameter

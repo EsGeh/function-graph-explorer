@@ -27,6 +27,7 @@ public:
 		std::optional<ParameterDescriptions> parameterDescriptions = {};
 		std::optional<StateDescriptions> stateDescriptions = {};
 		std::optional<bool> playbackEnabled = {};
+		std::optional<PlaybackSettings> playbackSettings = {};
 		std::optional<SamplingSettings> samplingSettings= {};
 	};
 
@@ -77,6 +78,7 @@ private:
 
 	FunctionDataDescription dataDescription;
 	FunctionViewData viewData;
+	PlaybackSettings playbackSettings;
 	SamplingSettings samplingSettings;
 };
 

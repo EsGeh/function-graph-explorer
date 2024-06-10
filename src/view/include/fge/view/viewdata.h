@@ -13,10 +13,6 @@ struct FunctionViewData {
 	bool displayImaginary = false;
 	bool autoScrollOnPlayback = 1;
 
-	T playbackDuration = 1;
-	T playbackSpeed = 1;
-	T playbackOffset = 0;
-
 	std::pair<T,T> getScale() const {
 		return {
 			pow( 2, scaleExp.first ),

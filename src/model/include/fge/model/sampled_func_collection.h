@@ -74,6 +74,14 @@ struct SampledFunctionCollection
 			const unsigned int samplerate
 	) = 0;
 
+	virtual PlaybackSettings getPlaybackSettings(
+			const Index index
+	) const = 0;
+	virtual void setPlaybackSettings(
+			const Index index,
+			const PlaybackSettings& value
+	) = 0;
+
 	virtual bool getIsPlaybackEnabled(
 			const Index index
 	) const = 0;

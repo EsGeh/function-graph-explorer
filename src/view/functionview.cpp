@@ -74,6 +74,7 @@ FunctionView::FunctionView(
 					functionDataDescriptionToString( dataDescription )
 			);
 			displayDialog->setViewData( viewData );
+			displayDialog->setPlaybackSettings( playbackSettings );
 			displayDialog->setSamplingSettings( samplingSettings ),
 			displayDialog->show();
 		}
@@ -104,6 +105,7 @@ FunctionView::FunctionView(
 			);
 			ui->parametersBtn->setVisible( parameters.size() > 0 );
 			viewData = displayDialog->getViewData();
+			playbackSettings = displayDialog->getPlaybackSettings();
 			samplingSettings = displayDialog->getSamplingSettings();
 			ui->formulaEdit->setText( displayDialog->getFormula() );
 			parametersDialog->updateView();
@@ -112,6 +114,7 @@ FunctionView::FunctionView(
 					.parameters = getParameters(),
 					.parameterDescriptions = getParameterDescriptions(),
 					.stateDescriptions = getStateDescriptions(),
+					.playbackSettings = playbackSettings,
 					.samplingSettings = getSamplingSettings()
 			});
 		}

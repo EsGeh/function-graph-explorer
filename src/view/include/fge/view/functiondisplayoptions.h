@@ -26,11 +26,13 @@ public:
 	QString getFormula() const;
 	QString getDataDescription() const;
 	const FunctionViewData& getViewData() const;
+	const PlaybackSettings& getPlaybackSettings() const;
 	const SamplingSettings& getSamplingSettings() const;
 
 	void setFormula(const QString& value);
 	void setDataDescription( const QString& str );
 	void setViewData(const FunctionViewData& value);
+	void setPlaybackSettings(const PlaybackSettings& value);
 	void setSamplingSettings(const SamplingSettings& value);
 
 private:
@@ -39,6 +41,7 @@ private:
 private:
     Ui::FunctionDisplayOptions *ui;
 		FunctionViewData viewData;
+		PlaybackSettings playbackSettings;
 		SamplingSettings samplingSettings;
 };
 

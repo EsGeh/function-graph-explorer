@@ -30,6 +30,7 @@ struct Model:
 		std::optional<ParameterBindings> parameters = {};
 		std::optional<ParameterDescriptions> parameterDescriptions = {};
 		std::optional<StateDescriptions> stateDescriptions = {};
+		std::optional<PlaybackSettings> playbackSettings= {};
 		std::optional<bool> playbackEnabled = false;
 		std::optional<SamplingSettings> samplingSettings = {};
 	};

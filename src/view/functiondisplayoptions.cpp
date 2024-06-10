@@ -188,15 +188,15 @@ FunctionDisplayOptions::FunctionDisplayOptions(
 	// playback:
 	connect(
 			ui->duration, &QDoubleSpinBox::valueChanged,
-			[this](double value){ this->viewData.playbackDuration = value; }
+			[this](double value){ this->playbackSettings.playbackDuration = value; }
 	);
 	connect(
 			ui->speed, &QDoubleSpinBox::valueChanged,
-			[this](double value){ this->viewData.playbackSpeed = value; }
+			[this](double value){ this->playbackSettings.playbackSpeed = value; }
 	);
 	connect(
 			ui->offset, &QDoubleSpinBox::valueChanged,
-			[this](double value){ this->viewData.playbackOffset = value; }
+			[this](double value){ this->playbackSettings.playbackOffset = value; }
 	);
 	// samplingSettings:
 	connect(
@@ -238,6 +238,11 @@ const FunctionViewData& FunctionDisplayOptions::getViewData() const
 	return viewData;
 }
 
+const PlaybackSettings& FunctionDisplayOptions::getPlaybackSettings() const
+{
+	return playbackSettings;
+}
+
 const SamplingSettings& FunctionDisplayOptions::getSamplingSettings() const
 {
 	return samplingSettings;
@@ -254,6 +259,11 @@ void FunctionDisplayOptions::setDataDescription(const QString& value ) {
 void FunctionDisplayOptions::setViewData(const FunctionViewData& value) {
 	this->viewData = value;
 	updateView();
+}
+
+void FunctionDisplayOptions::setPlaybackSettings(const PlaybackSettings& value)
+{
+	playbackSettings = value;
 }
 
 void FunctionDisplayOptions::setSamplingSettings(const SamplingSettings& value)
@@ -279,9 +289,9 @@ void FunctionDisplayOptions::updateView() {
 	// autoScrollOnPlayback:
 	ui->autoScrollOnPlayback->setChecked( viewData.autoScrollOnPlayback );
 
-	ui->duration->setValue( viewData.playbackDuration );
-	ui->speed->setValue( viewData.playbackSpeed );
-	ui->offset->setValue( viewData.playbackOffset );
+	ui->duration->setValue( playbackSettings.playbackDuration );
+	ui->speed->setValue( playbackSettings.playbackSpeed );
+	ui->offset->setValue( playbackSettings.playbackOffset );
 
 	// samplingSettings:
 	ui->resolution->setValue( samplingSettings.resolution );

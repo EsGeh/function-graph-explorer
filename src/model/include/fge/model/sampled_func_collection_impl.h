@@ -14,6 +14,7 @@ struct NodeInfo:
 	bool isPlaybackEnabled = false;
 	double volumeEnvelope = 1;
 	SamplingSettings samplingSettings;
+	PlaybackSettings playbackSettings;
 	FunctionBuffer functionBuffer;
 };
 
@@ -88,6 +89,14 @@ class SampledFunctionCollectionImpl:
 		) const override;
 
 		// sampling for audio:
+
+		virtual PlaybackSettings getPlaybackSettings(
+				const Index index
+		) const override;
+		virtual void setPlaybackSettings(
+				const Index index,
+				const PlaybackSettings& value
+		) override;
 		virtual bool getIsPlaybackEnabled(
 				const Index index
 		) const override;

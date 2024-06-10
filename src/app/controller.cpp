@@ -155,6 +155,7 @@ void Controller::resizeView(
 										.parameters = updateInfo.parameters,
 										.parameterDescriptions = updateInfo.parameterDescriptions,
 										.stateDescriptions = updateInfo.stateDescriptions,
+										.playbackSettings = updateInfo.playbackSettings,
 										.playbackEnabled = updateInfo.playbackEnabled,
 										.samplingSettings = updateInfo.samplingSettings
 									}

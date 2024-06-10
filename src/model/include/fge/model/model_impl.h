@@ -38,6 +38,7 @@ const double parameterRampTime = 100.0 / 1000.0;
 constexpr auto resize = &SampledFunctionCollectionImpl::resize;
 constexpr auto set = &SampledFunctionCollectionImpl::set;
 constexpr auto setParameterValues = &SampledFunctionCollectionImpl::setParameterValues;
+constexpr auto setPlaybackSettings = &SampledFunctionCollectionImpl::setPlaybackSettings;
 constexpr auto setIsPlaybackEnabled = &SampledFunctionCollectionImpl::setIsPlaybackEnabled;
 constexpr auto setSamplingSettings = &SampledFunctionCollectionImpl::setSamplingSettings;
 constexpr auto updateBuffers = &SampledFunctionCollectionImpl::updateBuffers;
@@ -46,6 +47,7 @@ constexpr auto setters = std::make_tuple(
 		std::make_pair(resize,"resize"),
 		std::make_pair(set,"set"),
 		std::make_pair(setParameterValues,"setParameterValues"),
+		std::make_pair(setPlaybackSettings,"setPlaybackSettings"),
 		std::make_pair(setIsPlaybackEnabled,"setIsPlaybackEnabled"),
 		std::make_pair(setSamplingSettings, "setSamplingSettings"),
 		std::make_pair(updateBuffers, "updateBuffers")
@@ -54,6 +56,7 @@ constexpr auto setters = std::make_tuple(
 using ResizeTask = SetterTask<resize>;
 using SetTask = SetterTask<set>;
 using SetParameterValuesTask = SetterTask<setParameterValues>;
+using SetPlaybackSettingsTask = SetterTask<setPlaybackSettings>;
 using SetIsPlaybackEnabledTask = SetterTask<setIsPlaybackEnabled>;
 using SetSamplingSettingsTask = SetterTask<setSamplingSettings>;
 using UpdateBuffersTask = SetterTask<updateBuffers>;
@@ -170,6 +173,10 @@ class ScheduledFunctionCollectionImpl:
 				const unsigned int resolution
 		) const override;
 
+		virtual PlaybackSettings getPlaybackSettings(
+				const Index index
+		) const override;
+
 		virtual bool getIsPlaybackEnabled(
 				const Index index
 		) const override;
@@ -217,6 +224,11 @@ class ScheduledFunctionCollectionImpl:
 				ParameterSignalDone signalizeDone
 		) override;
 
+		virtual void setPlaybackSettings(
+				const Index index,
+				const PlaybackSettings& value
+		) override;
+
 		virtual void setIsPlaybackEnabled(
 				const Index index,
 				const bool value
@@ -260,6 +272,7 @@ class ScheduledFunctionCollectionImpl:
 			ResizeTask,
 			SetTask,
 			SetParameterValuesTask,
+			SetPlaybackSettingsTask,
 			SetIsPlaybackEnabledTask,
 			SetSamplingSettingsTask,
 			UpdateBuffersTask,

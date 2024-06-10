@@ -210,6 +210,24 @@ ErrorOrValue<std::vector<std::pair<C,C>>> SampledFunctionCollectionImpl::getGrap
 }
 
 // sampling for audio:
+
+PlaybackSettings SampledFunctionCollectionImpl::getPlaybackSettings(
+		const Index index
+) const
+{
+	LOG_FUNCTION()
+	return getNodeInfoConst(index)->playbackSettings;
+}
+
+void SampledFunctionCollectionImpl::setPlaybackSettings(
+		const Index index,
+		const PlaybackSettings& value
+)
+{
+	LOG_FUNCTION()
+	getNodeInfo(index)->playbackSettings = value;
+}
+
 bool SampledFunctionCollectionImpl::getIsPlaybackEnabled(
 		const Index index
 ) const
@@ -296,10 +314,11 @@ float SampledFunctionCollectionImpl::audioFunction(
 		double volEnv = getNodeInfoConst(i)->volumeEnvelope;
 		const auto& samplingSettings = getNodeInfoConst(i)->samplingSettings;
 		const auto& buffer = getNodeInfoConst(i)->functionBuffer;
+		const auto& playbackSettings = getNodeInfoConst(i)->playbackSettings;
 		ret += (
 				getWithResolution(
 					function,
-					time,
+					time * playbackSettings.playbackSpeed,
 					samplingSettings,
 					&buffer
 				).c_.real()

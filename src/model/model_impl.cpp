@@ -184,6 +184,17 @@ ErrorOrValue<std::vector<std::pair<C,C>>> ScheduledFunctionCollectionImpl::getGr
 }
 
 // sampling for audio:
+
+PlaybackSettings ScheduledFunctionCollectionImpl::getPlaybackSettings(
+		const Index index
+) const
+{
+	LOG_FUNCTION_GET()
+	return getNetworkConst()->read([index](auto& network){
+			return network->getPlaybackSettings(index);
+	});
+}
+
 bool ScheduledFunctionCollectionImpl::getIsPlaybackEnabled(
 		const Index index
 ) const
@@ -346,6 +357,9 @@ MaybeError ScheduledFunctionCollectionImpl::bulkUpdate(
 			if( update.parameterDescriptions.has_value() ) {
 				network->setParameterDescriptions( index, update.parameterDescriptions.value() );
 			}
+			if( update.playbackSettings.has_value() ) {
+				network->setPlaybackSettings(index, update.playbackSettings.value());
+			}
 			if( update.playbackEnabled.has_value() ) {
 				network->setIsPlaybackEnabled(index, update.playbackEnabled.value());
 			}
@@ -382,6 +396,11 @@ MaybeError ScheduledFunctionCollectionImpl::bulkUpdate(
 					);
 			});
 		}
+		if( update.playbackSettings.has_value() ) {
+			WritePrepare<&ScheduledFunctionCollectionImpl::setPlaybackSettings>::prepare(
+					tasksQueue
+			);
+		}
 		if( update.samplingSettings.has_value() ) {
 			WritePrepare<&ScheduledFunctionCollectionImpl::setSamplingSettings>::prepare(
 					tasksQueue
@@ -405,6 +424,14 @@ MaybeError ScheduledFunctionCollectionImpl::bulkUpdate(
 							update.formula.value_or( get(index).formula ),
 							update.parameters.value_or( get(index).parameters ),
 							update.stateDescriptions.value_or( get(index).stateDescriptions )
+				) ) );
+			}
+			if( update.playbackSettings.has_value() ) {
+				ret.push_back( toMaybeError( makeSetter<::setPlaybackSettings>(
+						tasksQueue,
+						this->position,
+						[]{},
+						index, update.playbackSettings.value()
 				) ) );
 			}
 			if( update.playbackEnabled.has_value() ) {
@@ -569,6 +596,35 @@ ParameterBindings ScheduledFunctionCollectionImpl::scheduleSetParameterValues(
 		}
 		return selectedParams;
 	});
+}
+
+void ScheduledFunctionCollectionImpl::setPlaybackSettings(
+		const Index index,
+		const PlaybackSettings& value
+)
+{
+	LOG_FUNCTION()
+	if( !audioSchedulingEnabled ) {
+		return getNetwork()->write([index,value](auto& network) {
+			return network->setPlaybackSettings( index, value );
+		});
+		return;
+	}
+	auto future = writeTasks.write([&](auto& tasksQueue) {
+		// ramp down first:
+		WritePrepare<&ScheduledFunctionCollectionImpl::setPlaybackSettings>::prepare(
+				tasksQueue
+		);
+		// schedule model change:
+		return makeSetter<::setPlaybackSettings>(
+				tasksQueue,
+				this->position,
+				[]{},
+				index,value
+		);
+	});
+	future.get();
+	return;
 }
 
 void ScheduledFunctionCollectionImpl::setIsPlaybackEnabled(
