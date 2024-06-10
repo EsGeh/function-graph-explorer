@@ -735,8 +735,11 @@ void ScheduledFunctionCollectionImpl::setAudioSchedulingEnabled(
 	// switch on:
 	if( value == true ) {
 		audioSchedulingEnabled = value;
-		auto returnSignal = writeTasks.write([](auto& tasksQueue) {
+		auto returnSignal = writeTasks.write([this](auto& tasksQueue) {
 			Ramping::rampMasterEnv( tasksQueue, 1 );
+			getNetwork()->read([&tasksQueue](auto& network) {
+				Ramping::adjustMasterVolume(tasksQueue, network);
+			});
 			return [&](){
 				auto task = SignalReturnTask{};
 				auto returnSignal = task.promise.get_future();
