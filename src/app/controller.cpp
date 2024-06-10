@@ -5,6 +5,19 @@
 #include <scoped_allocator>
 #include <QtConcurrent>
 
+#ifdef LOG_CONTROLLER
+#include <source_location>
+#endif
+
+#ifdef LOG_CONTROLLER
+#define LOG_FUNCTION() \
+	{ \
+		const auto location = std::source_location::current(); \
+		qDebug() << location.function_name(); \
+	}
+#else
+#define LOG_FUNCTION()
+#endif
 
 Controller::Controller(
 	Model* model,
@@ -20,133 +33,96 @@ Controller::Controller(
 	// INITIALIZE:
 
 	// modelWorker:
-	workerThread = new QThread(this);
-	modelWorker = new ModelWorker( model );
-	modelWorker->moveToThread( workerThread );
-	workerThread->start();
-	QMetaObject::invokeMethod(modelWorker, &ModelWorker::printThreadId, Qt::QueuedConnection );
-	connect(workerThread, &QThread::finished, modelWorker, &QObject::deleteLater);
+	modelWorker = new ModelWorker( model, this );
+	assert( view->getFunctionViewCount() == 1 );
 
 	// CONNECTIONS:
+	connect(
+		modelWorker,
+		&ModelWorker::writeDone,
+		this,
+		&Controller::writeDoneCallback
+	);
 
-	// resize: view -> modelWorker
+	// resize:
 	connect(
 		view,
 		&MainWindow::functionCountChanged,
-		modelWorker,
+		this,
 		[this]( uint value ) {
-			modelWorker->resize( value );
-		}
-	);
-	// resize: view <- modelWorker
-	connect(
-		modelWorker,
-		&ModelWorker::resizeDone,
-		this,
-		[this]( const Model* model, const uint oldSize ) {
-			resizeView( model, oldSize );
-			modelWorker->unlockModel();
-		}
-	);
-	// view <- modelWorker:
-	connect(
-			modelWorker,
-			&ModelWorker::updateDone,
-			this,
-			[this,view](auto model, auto index, auto updateInfo, auto maybeError) {
-				auto functionView = view->getFunctionView(index);
-				maybeError.and_then([&](auto error) {
-					qDebug() << "ERROR" << index << error;
-					functionView->setFormulaError( error );
-					return MaybeError{};
-				} );
-				// update Graph:
-				if(
-						updateInfo.formula.has_value()
-						|| updateInfo.parameters.has_value()
-						|| updateInfo.stateDescriptions.has_value()
-						|| updateInfo.samplingSettings.has_value()
-				) {
-					for( auto j=index; j<model->size(); j++ ) {
-						setViewGraph(model, j);
+			modelWorker->write( this, "resize",
+					[value](auto model) {
+						auto oldSize = model->size();
+						model->resize( value );
+						model->postSetAny();
+						return oldSize;
+					},
+					[this](auto model, auto oldSize) {
+						resizeView( model, oldSize );
 					}
-				}
-				modelWorker->unlockModel();
-			}
-	);
-	connect(
-		modelWorker,
-		&ModelWorker::readAccessGranted,
-		this,
-		[this](auto model, auto index) {
-			setViewGraph(model, index);
-			modelWorker->unlockModel();
+			);
 		}
 	);
+
 	connect(
 		view,
 		&MainWindow::isAudioEnabledChanged,
-		[this, model, jack]( bool value ) {
+		[this]( bool value ) {
 			if(value) {
-				auto maybeError = jack->start(
-						Callbacks{
-							// audio callback:
-							.valuesToBuffer = [model](std::vector<float>* buffer, const PlaybackPosition position, const uint samplerate) {
-								model->valuesToBuffer( buffer, position, samplerate );
-							},
-							// update:
-							.betweenAudioCallback = [model](auto position, auto samplerate) {
-								model->betweenAudio( position, samplerate );
-							}
-						}
-				);
-				if( !maybeError ) {
-					model->setAudioSchedulingEnabled( true );
-					QMetaObject::invokeMethod(
-						modelWorker, &ModelWorker::setPlaybackEnabled, Qt::QueuedConnection,
-						true 
-					);
-				}
+				startPlayback();
 			}
 			else {
-				model->setAudioSchedulingEnabled( false );
-				jack->stop();
-				QMetaObject::invokeMethod(
-					modelWorker, &ModelWorker::setPlaybackEnabled, Qt::QueuedConnection,
-					false 
-				);
+				stopPlayback();
 			}
 		}
 	);
 	connect(
 		modelWorker,
-		&ModelWorker::playbackPositionChanged,
+		&ModelWorker::tick,
 		this,
-		[model,view]( const PlaybackPosition position, const uint samplerate ) {
-			view->setPlaybackTime( double(position) / double(samplerate) );
-		}
-	);
-	connect(
-		modelWorker,
-		&ModelWorker::playbackStopped,
-		this,
-		[view]() {
-			view->resetPlayback();
+		[this]() {
+			modelWorker->read( this,
+					[](auto model) {
+						return double(model->getPosition()) / double(model->getSamplerate());
+					},
+					[view = this->view](auto model, auto pos){ view->setPlaybackTime( pos ); }
+			);
 		}
 	);
 
 	// SET INITIAL model size:
-
-	modelWorker->resize(
-			view->getFunctionViewCount()
+	modelWorker->write(
+			this, "initialize model size",
+			[view](auto model){
+					model->resize( view->getFunctionViewCount() );
+			},
+			[this](auto model){
+				resizeView( model, 0 );
+			}
 	);
-	modelWorker->unlockModel();
 }
 
 Controller::~Controller()
 {
-	workerThread->quit();
-	workerThread->wait();
+}
+
+void Controller::run() {
+	// run:
+	view->show();
+}
+
+void Controller::exit()
+{
+	LOG_FUNCTION()
+	stopPlayback().get();
+	modelWorker->exit();
+}
+
+void Controller::writeDoneCallback(
+		std::function<void()> doneCallback
+)
+{
+	doneCallback();
 }
 
 void Controller::resizeView(
@@ -164,21 +140,44 @@ void Controller::resizeView(
 				model->getSamplingSettings(index)
 		);
 		// CONNECT:
-		// view -> modelWorker
 		connect(
 				functionView,
 				&FunctionView::changed,
-				modelWorker,
+				this,
 				[this,index](auto updateInfo) {
-					return modelWorker->updateFunction(
-							index,
-							Model::Update{
-								.formula = updateInfo.formula,
-								.parameters = updateInfo.parameters,
-								.parameterDescriptions = updateInfo.parameterDescriptions,
-								.stateDescriptions = updateInfo.stateDescriptions,
-								.playbackEnabled = updateInfo.playbackEnabled,
-								.samplingSettings = updateInfo.samplingSettings
+					modelWorker->write(
+							this,
+							"update",
+							[index,updateInfo](auto model){
+								return model->bulkUpdate(index,
+									Model::Update{
+										.formula = updateInfo.formula,
+										.parameters = updateInfo.parameters,
+										.parameterDescriptions = updateInfo.parameterDescriptions,
+										.stateDescriptions = updateInfo.stateDescriptions,
+										.playbackEnabled = updateInfo.playbackEnabled,
+										.samplingSettings = updateInfo.samplingSettings
+									}
+								);
+							},
+							[this,index,updateInfo](auto model, auto maybeError){
+								auto functionView = view->getFunctionView(index);
+								maybeError.and_then([&](auto error) {
+									qDebug() << "ERROR" << index << error;
+									functionView->setFormulaError( error );
+									return MaybeError{};
+								} );
+								// update Graph:
+								if(
+										updateInfo.formula.has_value()
+										|| updateInfo.parameters.has_value()
+										|| updateInfo.stateDescriptions.has_value()
+										|| updateInfo.samplingSettings.has_value()
+								) {
+									for( auto j=index; j<model->size(); j++ ) {
+										setViewGraph(model, j);
+									}
+								}
 							}
 					);
 				}
@@ -186,21 +185,72 @@ void Controller::resizeView(
 		connect(
 				functionView,
 				&FunctionView::parameterChanged,
-				modelWorker,
+				this,
 				[this,index](auto parameterName, auto value) {
-					return modelWorker->updateParameters(
-							index,
-							{ { parameterName, value } }
-					);
-				}
+					modelWorker->write( this, "parameterChanged",
+							[this,index, parameterName, value](auto model) -> MaybeError {
+								// update parameters asynchronously:
+								ParameterBindings parameters = { { parameterName, value } };
+								ParameterBindings asyncParams = [&]{
+									return model->scheduleSetParameterValues(
+											index, parameters,
+											[this](auto index, auto parameters) {
+												modelWorker->write(this,"async parameter done",
+														[](auto model) {
+															model->postSetAny();
+														},
+														[this,index](auto model){
+															// update Graph:
+															for( auto j=index; j<model->size(); j++ ) {
+																setViewGraph(model, j);
+															}
+														}
+												);
+											}
+									);
+								}();
+								// the remaining parameters
+								// are to be set synchronously:
+								auto syncParams = parameters
+									| std::ranges::views::filter([&asyncParams](auto entry){
+										return !asyncParams.contains( entry.first );
+									})
+									| std::ranges::to<ParameterBindings>();
+								if( syncParams.empty() ) {
+									return {};
+								}
+								auto ret = model->setParameterValues( index, syncParams );
+								model->postSetAny();
+								return ret;
+							},
+							[this,index, parameterName, value](auto model, auto maybeError) {
+								auto functionView = view->getFunctionView(index);
+								maybeError.and_then([&](auto error) {
+									qDebug() << "ERROR" << index << error;
+									functionView->setFormulaError( error );
+									return MaybeError{};
+								} );
+								// update Graph:
+								for( auto j=index; j<model->size(); j++ ) {
+									setViewGraph(model, j);
+								}
+							}
+				);
+			}
 		);
 		// view -> modelWorker
 		connect(
 			functionView,
 			&FunctionView::viewParamsChanged,
-			modelWorker,
-			[this,index]() {
-				modelWorker->requestRead( index );
+			this,
+			[this,index]{
+				modelWorker->read(
+						this,
+						[](auto){},
+						[this,index](auto model){
+							setViewGraph(model, index);
+						}
+				);
 			}
 		);
 	}
@@ -235,7 +285,45 @@ void Controller::setViewGraph(const Model* model, const uint iFunction) {
 	}
 }
 
-void Controller::run() {
-	// run:
-	view->show();
+void Controller::startPlayback()
+{
+	modelWorker->write( this, "setAudioSchedulingEnabled(true)",
+			[jack = this->jack](auto model){
+				auto maybeError = jack->start(
+						Callbacks{
+							// audio callback:
+							.valuesToBuffer = [model](std::vector<float>* buffer, const PlaybackPosition position, const uint samplerate) {
+								model->valuesToBuffer( buffer, position, samplerate );
+							},
+							// update:
+							.betweenAudioCallback = [model](auto position, auto samplerate) {
+								model->betweenAudio( position, samplerate );
+							}
+						}
+				);
+				if( !maybeError ) {
+						model->setAudioSchedulingEnabled(true);
+				}
+			},
+			[this](auto){
+				modelWorker->startTimer();
+			}
+	);
+}
+
+std::future<void> Controller::stopPlayback()
+{
+	std::shared_ptr<std::promise<void>> promise = std::make_shared<std::promise<void>>();
+	auto future = promise->get_future();
+	modelWorker->stopTimer();
+	modelWorker->write( this, "setAudioSchedulingEnabled(false)",
+			[this,promise](auto model){
+				model->setAudioSchedulingEnabled(false);
+				jack->stop();
+				promise->set_value();
+			},
+			[](auto) {
+			}
+	);
+	return future;
 }

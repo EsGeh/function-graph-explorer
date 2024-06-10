@@ -8,8 +8,13 @@
 #include <QObject>
 #include <QThread>
 #include <QTimer>
+#include <concepts>
 #include <mutex>
+#include <qnamespace.h>
 #include <ranges>
+#include <utility>
+
+
 
 /**
  * Mediator between GUI thread
@@ -38,156 +43,135 @@ public:
 			QObject *parent = nullptr
 	)
 		: model(model)
-		, timer( nullptr )
 	{
+		workerThread = new QThread(parent);
 		timer = new QTimer(this);
+
+		connect(workerThread, &QThread::finished, this, &QObject::deleteLater);
 		connect(timer, &QTimer::timeout, this, &ModelWorker::tick);
-		timer->start(10);
+
+		this->moveToThread( workerThread );
+		workerThread->start();
+		QMetaObject::invokeMethod(this, &ModelWorker::printThreadId, Qt::QueuedConnection );
 	};
 
 	~ModelWorker() {
-		timer->stop();
 		delete timer;
 	}
 
 signals:
-	void resizeDone(
-			const Model* model,
-			const uint oldSize
+	void tick();
+	void writeDone(
+			std::function<void()> doneCallback
 	);
-	void updateDone(
-			const Model* model,
-			const uint index,
-			const Model::Update& update,
-			const MaybeError maybeError
-	);
-	void readAccessGranted( const Model* model, const uint index);
-	void playbackPositionChanged(
-			const PlaybackPosition position,
-			const uint samplerate
-	);
-	void playbackStopped();
 
-public slots:
+public:
+
+	void exit() {
+		timer->stop();
+		workerThread->quit();
+		workerThread->wait();
+	}
 
 	void printThreadId() {
-		qDebug() << "MODEL WORKER THREAD:" << (unsigned long )QThread::currentThreadId();
+		qDebug() << "GUI WORKER THREAD:" << (unsigned long )QThread::currentThreadId();
 	}
 
-	// queue model->resize
-	// implicitly locks the model:
-  void resize(
-			const uint size
-	) {
-		modelLock.lock();
-		auto oldSize = model->size();
-		model->resize( size );
-		model->postSetAny();
-		emit resizeDone( model, oldSize );
-	};
+	void startTimer() {
+		QMetaObject::invokeMethod(this, [this]{
+#ifdef DEBUG_CONCURRENCY
+		timer->start(1000);
+#else
+		timer->start(10);
+#endif
+		}, Qt::QueuedConnection );
+	}
 
-	// queue model->update
-	// implicitly locks the model:
-  void updateFunction(
-			const uint index,
-			const Model::Update& update
-	) {
-		modelLock.lock();
-		if( index >= model->size() ) {
-			qDebug() << "Skipping update. Entry no longer exists.";
-			return;
-		}
-		auto ret = model->bulkUpdate(index, update );
-		emit updateDone( model, index, update, ret );
-	};
+	void stopTimer() {
+		QMetaObject::invokeMethod(this, [this]{
+			timer->stop();
+		}, Qt::QueuedConnection );
+	}
 
-	// queue model->setParameterValues
-	// implicitly locks the model:
-  void updateParameters(
-			const uint index,
-			const ParameterBindings& parameters
+	template <typename Function, typename Continuation>
+	void read(
+			QObject* continueCtxt,
+			Function f,
+			Continuation doneCallback
 	) {
-		// update parameters asynchronously:
-		ParameterBindings asyncParams = [&]{
-			std::scoped_lock locked(modelLock);
-			return model->scheduleSetParameterValues(
-					index, parameters,
-					[this](auto index, auto parameters) {
-						modelLock.lock();
-						model->postSetAny();
-						emit updateDone(
-								model, index,
-								Model::Update{
-									.parameters = parameters
-								},
-								{}
+		if constexpr ( std::same_as<decltype(f(std::as_const(model))),void> ) {
+			QMetaObject::invokeMethod(
+					this,
+					[this,continueCtxt,f,doneCallback](){
+						f(std::as_const(model));
+						writeDone(
+								[this,doneCallback]{
+									doneCallback(std::as_const(model));
+								}
 						);
-					}
+					},
+					Qt::QueuedConnection
 			);
-		}();
-		// the remaining parameters
-		// are to be set synchronously:
-		auto syncParams = parameters
-			| std::ranges::views::filter([&asyncParams](auto entry){
-				return !asyncParams.contains( entry.first );
-			})
-			| std::ranges::to<ParameterBindings>();
-		if( syncParams.empty() ) {
-			return;
-		}
-		modelLock.lock();
-		model->setParameterValues( index, syncParams );
-		model->postSetAny();
-		emit updateDone(
-				model, index,
-				Model::Update{
-					.parameters = syncParams
-				},
-				{}
-		);
-	};
-
-	// request read access to model:
-	// implicitly locks the model:
-	void requestRead(const uint index) {
-		modelLock.lock();
-		emit readAccessGranted( model, index );
-	}
-
-  void unlockModel() {
-		modelLock.unlock();
-	}
-
-	void setPlaybackEnabled( const bool value ) {
-		if( value ) {
-			timer->start();
 		}
 		else {
-			timer->stop();
-			emit playbackStopped();
+			QMetaObject::invokeMethod(
+					this,
+					[this,continueCtxt,f,doneCallback](){
+						auto ret = f(std::as_const(model));
+						writeDone(
+								[this,doneCallback,ret]{
+									doneCallback(std::as_const(model), ret);
+								}
+						);
+					},
+					Qt::QueuedConnection
+			);
 		}
 	}
 
-private slots:
-	void tick() {
-		std::scoped_lock locked(modelLock);
-		if( model->getAudioSchedulingEnabled() ) {
-			emit playbackPositionChanged(
-					model->getPosition(),
-					model->getSamplerate()
+	template <typename Function, typename Continuation>
+	void write(
+			QObject* continueCtxt,
+			const QString& updateName,
+			Function f,
+			Continuation doneCallback
+	) {
+		qDebug() << "ModelWorker::write" << updateName;
+		if constexpr ( std::same_as<decltype(f(model)),void> ) {
+			QMetaObject::invokeMethod(
+					this,
+					[this,continueCtxt,f,doneCallback]{
+						f(model);
+						emit writeDone(
+								[this,doneCallback]{
+									doneCallback(std::as_const(model));
+								}
+						);
+					},
+					Qt::QueuedConnection
+			);
+		}
+		else {
+			QMetaObject::invokeMethod(
+					this,
+					[this,continueCtxt,f,doneCallback]{
+						auto ret = f(model);
+						emit writeDone(
+								[this,doneCallback,ret]{
+									doneCallback(std::as_const(model), ret);
+								}
+						);
+					},
+					Qt::QueuedConnection
 			);
 		}
 	}
 
 private:
-	std::mutex modelLock;
 	Model* model;
-	bool audioEnabled = 0;
-
+	QThread* workerThread;
 	QTimer* timer;
-
 };
-
 
 class Controller : public QObject
 {
@@ -202,6 +186,12 @@ public:
 	);
 	~Controller();
 	void run();
+	void exit();
+
+public slots:
+	void writeDoneCallback(
+			std::function<void()> doneCallback
+	);
 
 private:
 	void resizeView(
@@ -212,11 +202,13 @@ private:
 	void setViewFormula( const Model* model, const uint iFunction);
 	void setViewGraph( const Model* model, const uint iFunction);
 
+	void startPlayback();
+	std::future<void> stopPlayback();
+
 private:
 	MainWindow* view;
 	JackClient* jack;
 	const uint viewResolution;
-	QThread* workerThread;
 	ModelWorker* modelWorker;
 
 };

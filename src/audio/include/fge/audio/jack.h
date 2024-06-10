@@ -72,7 +72,7 @@ class AudioWorker
 		void stop();
 
 		// Is worker thread running?
-		bool isRunning() const;
+		bool getIsRunning() const;
 	private:
 		void fillBuffer(const uint index);
 	private:
@@ -81,7 +81,8 @@ class AudioWorker
 		std::counting_semaphore<2> hasData{0};
 		// std::mutex lock;
 		std::thread worker;
-		bool stopWorker = true;
+		std::atomic<bool> stopWorkerSignal = true;
+		std::atomic<bool> isRunning = false;
 		// buffers:
 		SampleTable buffer[count];
 		uint readIndex = 0;
@@ -137,9 +138,6 @@ class JackClient {
 		// jack:
 		jack_client_t* client = nullptr;
 		jack_port_t* ports[1] = { nullptr };
-		// worker thread:
-		std::thread worker;
-		// bool workerStop = false;
 
 #ifdef AUDIO_STUB
 		std::atomic<bool> isJackFakeThreadRunning;

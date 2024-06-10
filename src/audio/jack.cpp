@@ -57,7 +57,8 @@ void AudioWorker::run() {
 	readIndex = 0;
 	writeIndex = 0;
 	position = 0;
-	stopWorker = false;
+	stopWorkerSignal = false;
+	isRunning = true;
 	// init buffersNotFull = 2:
 	{
 		while( buffersNotFull.try_acquire() ) {};
@@ -75,7 +76,7 @@ void AudioWorker::run() {
 	hasData.release();
 	// fill next buffer
 	worker = std::thread([this]{
-		while(!stopWorker) {
+		while(!stopWorkerSignal) {
 			buffersNotFull.acquire();
 			fillBuffer(writeIndex);
 			writeIndex = (writeIndex + 1) % count;
@@ -83,18 +84,19 @@ void AudioWorker::run() {
 			callbacks.betweenAudioCallback(position, samplerate);
 		}
 		qDebug().nospace() << "AUDIO THREAD done: ";
+		isRunning = false;
 	});
 	qDebug().nospace() << "AUDIO THREAD: " << to_qstring( worker.get_id() );
 }
 
 void AudioWorker::stop() {
-	stopWorker = true;
+	stopWorkerSignal = true;
 	buffersNotFull.release();
 	worker.join();
 }
 
-bool AudioWorker::isRunning() const {
-	return !stopWorker;
+bool AudioWorker::getIsRunning() const {
+	return isRunning;
 }
 
 void AudioWorker::fillBuffer(const uint index) {
@@ -226,7 +228,7 @@ void JackClient::stop() {
 		return;
 	}
 #endif
-	if( audioWorker.isRunning() ) {
+	if( audioWorker.getIsRunning() ) {
 		audioWorker.stop();
 	}
 #ifdef AUDIO_STUB
@@ -238,7 +240,7 @@ void JackClient::stop() {
 bool JackClient::isRunning() const
 {
 #ifndef AUDIO_STUB
-	return audioWorker.isRunning();
+	return audioWorker.getIsRunning();
 #else
 	return isJackFakeThreadRunning;
 #endif
@@ -265,7 +267,7 @@ int processAudio(
 	);
 	// clear buffer:
 	if(
-			!jackObj->audioWorker.isRunning()
+			!jackObj->audioWorker.getIsRunning()
 	) {
 		memset(buffer, 0, sizeof(sample_t) * nframes);
 		return 0;

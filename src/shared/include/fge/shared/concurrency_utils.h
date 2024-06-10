@@ -150,16 +150,14 @@ private:
 	{
 #ifdef LOG_MUTEX
 		if( msg == "" ) {
-			qDebug() << QString("%2 %3 %1")
+			qDebug() << QString("%1 %2")
 				.arg( name )
-				.arg( to_qstring( std::this_thread::get_id() ) )
 				.arg( op )
 			;
 		}
 		else {
-			qDebug() << QString("%2 %3 %1: %4")
+			qDebug() << QString("%1 %2: %3")
 				.arg( name )
-				.arg( to_qstring( std::this_thread::get_id() ) )
 				.arg( op )
 				.arg( msg )
 			;

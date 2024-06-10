@@ -20,7 +20,7 @@ const unsigned int viewResolution = 4410;
 int main(int argc, char *argv[])
 {
 #ifndef NDEBUG
-	qSetMessagePattern("[%{time hh:mm:ss}] %{message}");
+	qSetMessagePattern("[%{time hh:mm:ss}] [%{threadid}] %{message}");
 #endif
 	qInfo().nospace() << "-----------------------------";
 	qInfo().nospace() << PROJECT_NAME << " " << PROJECT_VERSION;
@@ -56,10 +56,7 @@ int main(int argc, char *argv[])
 
 	auto ret = a.exec();
 
-	qInfo().nospace() << "stop audio...";
-	if( jack.isRunning() ) {
-		jack.stop();
-	}
+	controller.exit();
 	jack.exit();
 
 	qInfo().nospace() << "exit.";

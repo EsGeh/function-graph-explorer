@@ -6,11 +6,13 @@
 #include <cstring>
 #include <ctime>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <strings.h>
 #include <QDebug>
 #include <ranges>
 #include <algorithm>
+#include <thread>
 
 
 #ifndef NDEBUG
@@ -110,13 +112,21 @@ ScheduledFunctionCollectionImpl::ScheduledFunctionCollectionImpl(
 	, writeTasks( "TASKS" )
 	, modelWorkerThread([this](){ modelWorkerLoop(); } )
 {
+	LOG_FUNCTION()
 }
 
 ScheduledFunctionCollectionImpl::~ScheduledFunctionCollectionImpl()
 {
-	stopModelWorker = true;
-	modelTasks.release();
+	LOG_FUNCTION()
+	{
+		std::unique_lock lock( writeTasksSignal.lock );
+		qDebug() << "kill MODEL WORKER";
+		writeTasksSignal.stopModelWorker = true;
+		writeTasksSignal.condition_var.notify_one();
+	}
+	qDebug() << "join MODEL WORKER...";
 	modelWorkerThread.join();
+	qDebug() << "join MODEL WORKER done";
 }
 
 /************************
@@ -186,13 +196,13 @@ bool ScheduledFunctionCollectionImpl::getIsPlaybackEnabled(
 
 double ScheduledFunctionCollectionImpl::getPosition() const
 {
-	LOG_FUNCTION_GET()
+	// LOG_FUNCTION_GET()
 	return this->position;
 }
 
 uint ScheduledFunctionCollectionImpl::getSamplerate() const
 {
-	LOG_FUNCTION_GET()
+	// LOG_FUNCTION_GET()
 	return this->samplerate;
 }
 
@@ -654,7 +664,7 @@ void ScheduledFunctionCollectionImpl::valuesToBuffer(
 
 bool ScheduledFunctionCollectionImpl::getAudioSchedulingEnabled() const
 {
-	LOG_FUNCTION_GET()
+	// LOG_FUNCTION_GET()
 	return audioSchedulingEnabled;
 }
 
@@ -669,9 +679,16 @@ void ScheduledFunctionCollectionImpl::setAudioSchedulingEnabled(
 	// switch on:
 	if( value == true ) {
 		audioSchedulingEnabled = value;
-		writeTasks.write([](auto& tasksQueue) {
-				Ramping::rampMasterEnv( tasksQueue, 1 );
+		auto returnSignal = writeTasks.write([](auto& tasksQueue) {
+			Ramping::rampMasterEnv( tasksQueue, 1 );
+			return [&](){
+				auto task = SignalReturnTask{};
+				auto returnSignal = task.promise.get_future();
+				tasksQueue.push_back(std::move(task));
+				return returnSignal;
+			}();
 		});
+		returnSignal.get();
 		return;
 	}
 	// switch off:
@@ -700,7 +717,6 @@ void ScheduledFunctionCollectionImpl::betweenAudio(
 {
 	this->position = position;
 	this->samplerate = samplerate;
-	std::vector<std::function<void()>> parameteterSignals;
 	writeTasks.try_write([&](auto& tasksQueue) -> void {
 		// 1. 
 		if( !tasksQueue.empty() ) {
@@ -711,7 +727,9 @@ void ScheduledFunctionCollectionImpl::betweenAudio(
 						if( !task.done ) {
 							// delegate to the
 							// model worker thread:
-							modelTasks.release();
+							std::unique_lock lock( writeTasksSignal.lock );
+							writeTasksSignal.pendingTask = true;
+							writeTasksSignal.condition_var.notify_one();
 						}
 					}
 					else if constexpr ( std::is_same_v<Task,SignalReturnTask> ) {
@@ -823,30 +841,40 @@ void ScheduledFunctionCollectionImpl::betweenAudio(
 			tasksQueue.erase( rem_begin, rem_end );
 		}
 	});
-	for( auto signal: parameteterSignals ) {
-		signal();
-	}
 }
 
 void ScheduledFunctionCollectionImpl::modelWorkerLoop()
 {
+	qDebug() << "MODEL WORKER THREAD: start";
 	while(true) {
-		modelTasks.acquire();
-		if( stopModelWorker ) {
+		{
+			std::unique_lock lock( writeTasksSignal.lock );
+			writeTasksSignal.condition_var.wait(
+					lock,
+					[this]{ return
+						writeTasksSignal.pendingTask
+						|| writeTasksSignal.stopModelWorker
+						;
+					}
+			);
+		}
+		if( writeTasksSignal.stopModelWorker ) {
+			qDebug() << "MODEL WORKER THREAD: stop:";
 			break;
 		}
-		std::optional<std::optional<TaskDoneCallback>> taskDoneCallback = writeTasks.try_write([&](auto& tasksQueue) {
+		qDebug() << "MODEL WORKER THREAD: woke up";
+		TaskDoneCallback taskDoneCallback = writeTasks.write([&](auto& tasksQueue) {
 			assert( !tasksQueue.empty() );
 			auto& someTask = tasksQueue.front();
 			return std::visit([&](auto& task)
-					-> std::optional<TaskDoneCallback>
+					-> TaskDoneCallback
 			{
 					using Task = std::decay_t<decltype(task)>;
 					assert( IsSetterTask<Task>::value );
 					if constexpr ( IsSetterTask<Task>::value ) {
 						assert( !task.done );
 						expensiveTaskRunning = true;
-						auto ret = getNetwork()->try_write([&task](auto network) {
+						auto ret = getNetwork()->write([&task](auto network) {
 							return run(network.get(), &task);
 						});
 						expensiveTaskRunning = false;
@@ -856,14 +884,14 @@ void ScheduledFunctionCollectionImpl::modelWorkerLoop()
 							.arg( functionName(task) )
 						;
 						#endif
+						task.done = true;
 						return ret;
 					}
 					return {};
 			}, someTask );
 		});
-		if( taskDoneCallback && taskDoneCallback.value() ){
-			taskDoneCallback.value().value()();
-		}
+		taskDoneCallback();
+		writeTasksSignal.pendingTask = false;
 	};
 }
 

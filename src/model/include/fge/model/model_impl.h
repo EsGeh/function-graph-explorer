@@ -6,6 +6,7 @@
 #include "fge/shared/concurrency_utils.h"
 #include "template_utils.h"
 // #include <future>
+#include <condition_variable>
 #include <memory>
 #include <optional>
 #include <tuple>
@@ -287,9 +288,15 @@ class ScheduledFunctionCollectionImpl:
 		mutex_guarded<std::shared_ptr<SampledFunctionCollectionImpl>> guardedNetwork;
 		mutex_guarded<std::deque<WriteTask>> writeTasks;
 
-		std::atomic<bool> stopModelWorker;
 		std::thread modelWorkerThread;
-		std::counting_semaphore<1> modelTasks{0};
+
+		struct {
+			bool pendingTask = false;
+			bool stopModelWorker = false;
+			std::condition_variable condition_var;
+			std::mutex lock;
+		} writeTasksSignal;
+
 		std::atomic<bool> expensiveTaskRunning = false;
 
 	template <auto function>

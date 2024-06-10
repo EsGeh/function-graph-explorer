@@ -92,7 +92,7 @@ struct SetterTask
 			)
 		)
 	);
-	TaskDoneCallback taskDoneCallback = [](auto){};
+	TaskDoneCallback taskDoneCallback;
 	std::promise<ReturnType> promise;
 	bool done = false;
 };
@@ -156,7 +156,6 @@ TaskDoneCallback run(
 			setter->promise.set_value();
 		};
 	}
-	setter->done = true;
 	return [fillPromise,setter]{
 		fillPromise();
 		setter->taskDoneCallback();
