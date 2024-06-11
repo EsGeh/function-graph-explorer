@@ -181,27 +181,6 @@
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_2">
       <item>
-       <layout class="QHBoxLayout" name="horizontalLayout_4">
-        <item>
-         <widget class="QLabel" name="durationLbl">
-          <property name="text">
-           <string>duration (in sec)</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QDoubleSpinBox" name="duration">
-          <property name="maximum">
-           <double>60.000000000000000</double>
-          </property>
-          <property name="value">
-           <double>1.000000000000000</double>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
-      <item>
        <layout class="QHBoxLayout" name="horizontalLayout_5">
         <item>
          <widget class="QLabel" name="speedLbl">
@@ -220,30 +199,6 @@
           </property>
           <property name="value">
            <double>1.000000000000000</double>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
-      <item>
-       <layout class="QHBoxLayout" name="horizontalLayout">
-        <item>
-         <widget class="QLabel" name="offsetLbl">
-          <property name="text">
-           <string>offset</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QDoubleSpinBox" name="offset">
-          <property name="minimum">
-           <double>-100.000000000000000</double>
-          </property>
-          <property name="maximum">
-           <double>100.000000000000000</double>
-          </property>
-          <property name="singleStep">
-           <double>0.100000000000000</double>
           </property>
          </widget>
         </item>

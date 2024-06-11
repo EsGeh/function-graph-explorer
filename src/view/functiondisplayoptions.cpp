@@ -187,16 +187,8 @@ FunctionDisplayOptions::FunctionDisplayOptions(
 	);
 	// playback:
 	connect(
-			ui->duration, &QDoubleSpinBox::valueChanged,
-			[this](double value){ this->playbackSettings.playbackDuration = value; }
-	);
-	connect(
 			ui->speed, &QDoubleSpinBox::valueChanged,
 			[this](double value){ this->playbackSettings.playbackSpeed = value; }
-	);
-	connect(
-			ui->offset, &QDoubleSpinBox::valueChanged,
-			[this](double value){ this->playbackSettings.playbackOffset = value; }
 	);
 	// samplingSettings:
 	connect(
@@ -289,9 +281,7 @@ void FunctionDisplayOptions::updateView() {
 	// autoScrollOnPlayback:
 	ui->autoScrollOnPlayback->setChecked( viewData.autoScrollOnPlayback );
 
-	ui->duration->setValue( playbackSettings.playbackDuration );
 	ui->speed->setValue( playbackSettings.playbackSpeed );
-	ui->offset->setValue( playbackSettings.playbackOffset );
 
 	// samplingSettings:
 	ui->resolution->setValue( samplingSettings.resolution );
