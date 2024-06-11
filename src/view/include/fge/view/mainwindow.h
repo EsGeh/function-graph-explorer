@@ -40,6 +40,9 @@ signals:
 private:
 	Ui::MainWindow *ui;
 	std::vector<FunctionView*> functionViews;
+	
+	// Data:
+	double globalPlaybackSpeed;
 };
 
 #endif // MAINWINDOW_H

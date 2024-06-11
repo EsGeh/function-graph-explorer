@@ -37,6 +37,7 @@ MainWindow::MainWindow(QWidget *parent)
 		ui->playbackSpeed,
 		&QDoubleSpinBox::valueChanged,
 		[this]( auto value ) {
+			globalPlaybackSpeed = value;
 			emit globalPlaybackSpeedChanged( value );
 		}
 	);
@@ -67,7 +68,8 @@ void MainWindow::resizeFunctionView(const size_t size) {
 	else if( functionViews.size() < size ) {
 		while( functionViews.size() < size ) {
 			auto funcView = new FunctionView(
-					QString("f%1(x) =").arg(functionViews.size()) // title
+					QString("f%1(x) =").arg(functionViews.size()), // title
+					&globalPlaybackSpeed
 			);
 			// insert directly before the final spacer:
 			ui->verticalLayout->insertWidget(
@@ -91,7 +93,10 @@ void MainWindow::resetPlayback()
 
 void MainWindow::setGlobalPlaybackSpeed( const double value )
 {
+	auto blockedOld = ui->playbackSpeed->blockSignals(true);
+	globalPlaybackSpeed = value;
 	ui->playbackSpeed->setValue( value );
+	ui->playbackSpeed->blockSignals( blockedOld );
 }
 
 void MainWindow::setPlaybackTime( const double value )

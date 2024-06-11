@@ -34,6 +34,7 @@ public:
 public:
 	explicit FunctionView(
 			const QString& title,
+			const double* globalPlaybackSpeed,
 			QWidget *parent = nullptr
 	);
 	~FunctionView();
@@ -80,6 +81,7 @@ private:
 	FunctionViewData viewData;
 	PlaybackSettings playbackSettings;
 	SamplingSettings samplingSettings;
+	const double* globalPlaybackSpeed;
 };
 
 void updateParameters(

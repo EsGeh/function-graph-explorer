@@ -4,6 +4,7 @@
 
 FunctionView::FunctionView(
 		const QString& title,
+		const double* globalPlaybackSpeed,
 		QWidget *parent
 )
     : QWidget(parent)
@@ -13,6 +14,7 @@ FunctionView::FunctionView(
 		, statusBar(nullptr)
 		, viewData()
 		, samplingSettings()
+		, globalPlaybackSpeed( globalPlaybackSpeed )
 {
 	ui->setupUi(this);
 
@@ -202,7 +204,7 @@ void FunctionView::disablePlaybackPosition()
 void FunctionView::setPlaybackTime( const double value )
 {
 	graphView->setPlaybackCursor(
-			value * playbackSettings.playbackSpeed
+			value * (*globalPlaybackSpeed) * playbackSettings.playbackSpeed
 	);
 }
 
