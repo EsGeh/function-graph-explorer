@@ -8,6 +8,8 @@ set_target_properties(${TARGET_NAME} PROPERTIES
 	AUTOMOC ON
 )
 
+find_package(Qt6 REQUIRED COMPONENTS Concurrent)
+
 target_link_libraries(${TARGET_NAME} PUBLIC cpp_flags)
 target_link_libraries(${TARGET_NAME} PUBLIC
 	audio
@@ -16,3 +18,4 @@ target_link_libraries(${TARGET_NAME} PUBLIC
 	shared
 )
 
+target_link_libraries(${TARGET_NAME} PUBLIC Qt6::Concurrent)

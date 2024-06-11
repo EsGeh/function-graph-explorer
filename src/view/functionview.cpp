@@ -1,11 +1,10 @@
 #include "fge/view/functionview.h"
-#include "include/fge/view/functiondisplayoptions.h"
-#include "include/fge/view/parameter_utils.h"
-#include "include/fge/view/parametersedit.h"
 #include "ui_functionview.h"
+#include <qcheckbox.h>
 
 FunctionView::FunctionView(
 		const QString& title,
+		const double* globalPlaybackSpeed,
 		QWidget *parent
 )
     : QWidget(parent)
@@ -15,6 +14,7 @@ FunctionView::FunctionView(
 		, statusBar(nullptr)
 		, viewData()
 		, samplingSettings()
+		, globalPlaybackSpeed( globalPlaybackSpeed )
 {
 	ui->setupUi(this);
 
@@ -29,12 +29,12 @@ FunctionView::FunctionView(
 	ui->verticalLayout->addWidget( graphView, 1 );
 
 	parametersDialog = new ParametersEdit(
+			"Function Parameters for " + title,
 			&parameters,
 			&dataDescription.parameterDescriptions,
 			this
 	);
 	displayDialog = new FunctionDisplayOptions(
-			descrFromParameters( parameters ),
 			viewData,
 			samplingSettings,
 			this
@@ -42,10 +42,12 @@ FunctionView::FunctionView(
 
 	connect(
 		ui->formulaEdit,
-		&QLineEdit::textChanged,
+		&QLineEdit::textEdited,
 		[this](QString value) {
 			displayDialog->setFormula( value );
-			emit formulaChanged();
+			emit changed({
+					.formula = value
+			});
 		}
 	);
 	connect(
@@ -58,32 +60,37 @@ FunctionView::FunctionView(
 	);
 	connect(
 		parametersDialog,
-		&ParametersEdit::parametersChanged,
-		[this]() {
-			emit formulaChanged();
+		&ParametersEdit::parameterChanged,
+		[this](auto parameterName, auto value) {
+			emit parameterChanged(
+					parameterName, value
+			);
 		}
 	);
 	connect(
 		ui->optionsBtn,
 		&QAbstractButton::clicked,
 		[this]() {
+			displayDialog->setFormula( ui->formulaEdit->text() );
 			displayDialog->setDataDescription(
 					functionDataDescriptionToString( dataDescription )
 			);
 			displayDialog->setViewData( viewData );
+			displayDialog->setPlaybackSettings( playbackSettings );
 			displayDialog->setSamplingSettings( samplingSettings ),
 			displayDialog->show();
 		}
 	);
 	connect(
-		ui->playBtn,
-		&QAbstractButton::clicked,
-		[this]() {
-			emit playButtonPressed(
-					viewData.playbackDuration,
-					viewData.playbackSpeed,
-					viewData.playbackOffset
-			);
+		ui->playbackEnabled,
+		&QCheckBox::stateChanged,
+		[this](auto value) {
+			if( !value) {
+				disablePlaybackPosition();
+			}
+			emit changed({
+					.playbackEnabled = (value != 0)
+			});
 		}
 	);
 	connect(
@@ -100,10 +107,18 @@ FunctionView::FunctionView(
 			);
 			ui->parametersBtn->setVisible( parameters.size() > 0 );
 			viewData = displayDialog->getViewData();
+			playbackSettings = displayDialog->getPlaybackSettings();
 			samplingSettings = displayDialog->getSamplingSettings();
 			ui->formulaEdit->setText( displayDialog->getFormula() );
 			parametersDialog->updateView();
-			emit formulaChanged();
+			emit changed(UpdateInfo{
+					.formula = getFormula(),
+					.parameters = getParameters(),
+					.parameterDescriptions = getParameterDescriptions(),
+					.stateDescriptions = getStateDescriptions(),
+					.playbackSettings = playbackSettings,
+					.samplingSettings = getSamplingSettings()
+			});
 		}
 	);
 	connect(
@@ -124,6 +139,11 @@ QString FunctionView::getFormula() {
 	return ui->formulaEdit->text();
 }
 
+const ParameterDescriptions& FunctionView::getParameterDescriptions() const
+{
+	return dataDescription.parameterDescriptions;
+}
+
 const ParameterBindings& FunctionView::getParameters() const
 {
 	return parameters;
@@ -140,6 +160,11 @@ const FunctionViewData& FunctionView::getViewData() const {
 
 const SamplingSettings& FunctionView::getSamplingSettings() const {
 	return samplingSettings;
+}
+
+bool FunctionView::getIsPlaybackEnabled() const
+{
+	return ui->playbackEnabled->isChecked();
 }
 
 void FunctionView::setFormula( const QString& str ) {
@@ -171,6 +196,18 @@ void FunctionView::setFormulaError( const QString& str )
 	graphView->reset();
 }
 
+void FunctionView::disablePlaybackPosition()
+{
+	graphView->disablePlaybackCursor();
+}
+
+void FunctionView::setPlaybackTime( const double value )
+{
+	graphView->setPlaybackCursor(
+			value * (*globalPlaybackSpeed) * playbackSettings.playbackSpeed
+	);
+}
+
 void updateParameters(
 		const std::map<QString,ParameterDescription>& parameterDescriptions,
 		ParameterBindings& parameters
@@ -196,7 +233,7 @@ void updateParameters(
 		{
 			parameters.try_emplace(
 					it->first,
-					std::vector<C>(1,C(it->second.initial,0))
+					C(it->second.initial,0)
 			);
 			it++;
 		}

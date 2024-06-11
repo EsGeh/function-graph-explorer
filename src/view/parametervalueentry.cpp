@@ -18,16 +18,52 @@ ParameterValueEntry::ParameterValueEntry(
 	ui->value->setSingleStep(
 			description.step>0 ? description.step : 0.1
 	);
+
+	int sliderDiv = 10;
+	if( description.step>0 ) {
+		sliderDiv = 1 / description.step;
+	}
+	ui->slider->setRange( description.min*sliderDiv, description.max*sliderDiv);
+	// ui->slider->setSingleStep( description.step );
 	connect(
 		ui->value,
 		&QDoubleSpinBox::valueChanged,
-		[this]() {
+		[this,sliderDiv]() {
 			const auto value = ui->value->value();
+			// update slider
+			{
+				auto blockedOld = ui->slider->blockSignals(true);
+				ui->slider->setValue( value*sliderDiv );
+				ui->slider->blockSignals(blockedOld);
+			}
+			emit valueChanged(C(value,0));
+		}
+	);
+	connect(
+		ui->slider,
+		&QSlider::valueChanged,
+		[this,sliderDiv]() {
+			const auto value = double(ui->slider->value()) / sliderDiv;
+			// update spinbox:
+			{
+				auto blockedOld = ui->value->blockSignals(true);
+				ui->value->setValue( value );
+				ui->value->blockSignals(blockedOld);
+			}
 			emit valueChanged(C(value,0));
 		}
 	);
 
-	ui->value->setValue( param.c_.real() );
+	{
+		auto blockedOld = ui->value->blockSignals(true);
+		ui->value->setValue( param.c_.real() );
+		ui->value->blockSignals(blockedOld);
+	}
+	{
+		auto blockedOld = ui->slider->blockSignals(true);
+		ui->slider->setValue( param.c_.real()*sliderDiv );
+		ui->slider->blockSignals(blockedOld);
+	}
 }
 
 ParameterValueEntry::~ParameterValueEntry()

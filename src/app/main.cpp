@@ -6,32 +6,34 @@
 
 #include <QApplication>
 #include <QDebug>
+#include <thread>
 
 
 const auto defSamplingSettings = SamplingSettings{
 	.resolution = 44100,
 	.interpolation = 1,
-	.caching = true
+	.periodic = 0,
+	.buffered = false
 };
 const unsigned int viewResolution = 4410;
 
 int main(int argc, char *argv[])
 {
+#ifndef NDEBUG
+	qSetMessagePattern("[%{time hh:mm:ss}] [%{threadid}] %{message}");
+#endif
 	qInfo().nospace() << "-----------------------------";
 	qInfo().nospace() << PROJECT_NAME << " " << PROJECT_VERSION;
 	qInfo().nospace() << "-----------------------------";
 	#ifndef NDEBUG
 	qDebug().nospace() << "DEBUG configuration!";
+	qDebug().nospace() << "MAIN THREAD / GUI THREAD: " << to_qstring(std::this_thread::get_id());
 	#endif
 
 	JackClient jack("fge");
 	{
 		qInfo().nospace() << "start jack client '" << jack.getClientName() << "'...";
-		auto maybeError =
-			jack.init()
-			.or_else([&jack](){
-				return jack.run();
-			});
+		auto maybeError = jack.init();
 		if( maybeError ) {
 			qWarning().noquote() << "Failed to start Jack. No Audio.";
 			qWarning().noquote() << maybeError.value() ;
@@ -39,22 +41,22 @@ int main(int argc, char *argv[])
 		qInfo().nospace() << "done";
 	}
 
-  QApplication a(argc, argv);
-  auto model = Model(
+	QApplication a(argc, argv);
+	auto model = modelFactory(
 			defSamplingSettings
 	);
-  auto view = MainWindow();
+	auto view = MainWindow();
 	Controller controller(
-			&model,
+			model.get(),
 			&view,
 			&jack,
 			viewResolution
 	);
 	controller.run();
 
-  auto ret = a.exec();
+	auto ret = a.exec();
 
-	qInfo().nospace() << "stop audio...";
+	controller.exit();
 	jack.exit();
 
 	qInfo().nospace() << "exit.";

@@ -3,6 +3,8 @@
 
 #include "fge/view/viewdata.h"
 #include <QChartView>
+#include <qgraphicsitem.h>
+#include <qlineseries.h>
 
 
 class GraphView : public QChartView
@@ -21,25 +23,38 @@ public:
 
 	void reset();
 
-	virtual QSize minimumSizeHint() const;
-	virtual QSize sizeHint() const;
+	void disablePlaybackCursor();
+	void setPlaybackCursor( const double value );
 
 signals:
 	void viewChanged();
 
 private:
-	std::pair<T,T> getScale() const;
-	void updateAxes();
 
-	void wheelEvent(QWheelEvent *event);
-	void keyPressEvent(QKeyEvent *event);
+	QSize minimumSizeHint() const override;
+	QSize sizeHint() const override;
+
+	void resizeEvent(QResizeEvent* event) override;
+	void wheelEvent(QWheelEvent *event) override;
+	void keyPressEvent(QKeyEvent *event) override;
+
+	// std::pair<T,T> getScale() const;
+	void updateAxes();
+	void updateTimeMarker();
+
 	void moveView(QPoint direction);
 	void zoomView(QPoint direction);
 	void resetTranslation();
 	void resetZoom();
 
 private:
+	// Data:
 	FunctionViewData* viewData;
+	double playbackCursor;
+	bool playbackCursorEnabled = false;
+	// GUI:
+	QLineSeries* series;
+	QGraphicsLineItem* playbackTimeMarker;
 
 };
 

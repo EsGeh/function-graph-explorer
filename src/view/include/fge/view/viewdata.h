@@ -11,10 +11,7 @@ struct FunctionViewData {
 	std::pair<T,T> scaleExp = { 0, 0 };
 	std::pair<bool,bool> originCentered = { 0, 1 };
 	bool displayImaginary = false;
-
-	T playbackDuration = 1;
-	T playbackSpeed = 1;
-	T playbackOffset = 0;
+	bool autoScrollOnPlayback = 1;
 
 	std::pair<T,T> getScale() const {
 		return {

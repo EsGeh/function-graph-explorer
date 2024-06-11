@@ -21,17 +21,28 @@ public:
   );
   ~MainWindow();
 
+	// GET:
 	FunctionView* getFunctionView(const size_t index) const;
 	size_t getFunctionViewCount() const;
 
+	// SET:
 	void resizeFunctionView(const size_t size);
 
+	void resetPlayback();
+	void setGlobalPlaybackSpeed( const double value );
+	void setPlaybackTime( const double value );
+
 signals:
-	void functionCountChanged(const size_t count);
+	void functionCountChanged(const uint count);
+	void globalPlaybackSpeedChanged(const double playbackSpeed);
+	void isAudioEnabledChanged(const bool value);
 
 private:
 	Ui::MainWindow *ui;
 	std::vector<FunctionView*> functionViews;
+	
+	// Data:
+	double globalPlaybackSpeed;
 };
 
 #endif // MAINWINDOW_H

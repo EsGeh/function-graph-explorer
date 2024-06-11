@@ -1,11 +1,116 @@
 #include "fge/audio/jack.h"
+#include <jack/jack.h>
 #include <jack/types.h>
+#include <QDebug>
+#include <thread>
 
+#ifdef DEBUG_CONCURRENCY
+#include <chrono>
+using namespace std::chrono_literals;
+#endif
+
+// jack callback functions:
 
 int processAudio(
 		jack_nframes_t nframes,
 		void* arg
 );
+
+int setBufferSizeCallback(
+		jack_nframes_t nframes,
+		void* arg
+);
+
+/********************
+ * AudioWorker
+*********************/
+
+void AudioWorker::init(
+		const Callbacks& callbacks,
+		const uint size,
+		const uint samplerate
+)
+{
+	this->callbacks = callbacks;
+	this->samplerate = samplerate;
+	qDebug() << "buffer size:" << size;
+	for( uint i=0; i<count; i++ ) {
+		buffer[i].resize(size);
+	}
+}
+
+SampleTable* AudioWorker::getSamplesInit() {
+	if( !hasData.try_acquire() ) {
+		qDebug() << "INTERNAL XRUN!";
+	}
+	return &buffer[readIndex];
+}
+
+void AudioWorker::getSamplesExit() {
+	readIndex = (readIndex + 1) % count;
+	// signal the worker
+	// thread, we are done
+	buffersNotFull.release();
+}
+
+void AudioWorker::run() {
+	readIndex = 0;
+	writeIndex = 0;
+	position = 0;
+	stopWorkerSignal = false;
+	isRunning = true;
+	// init buffersNotFull = 2:
+	{
+		while( buffersNotFull.try_acquire() ) {};
+		for( uint i=0; i<count; i++) {
+			buffersNotFull.release();
+		}
+	}
+	// init hasData = 0:
+	{
+		while( hasData.try_acquire() ) {};
+	}
+	buffersNotFull.acquire();
+	fillBuffer(writeIndex);
+	writeIndex = (writeIndex + 1) % count;
+	hasData.release();
+	// fill next buffer
+	worker = std::thread([this]{
+		while(!stopWorkerSignal) {
+			buffersNotFull.acquire();
+			fillBuffer(writeIndex);
+			writeIndex = (writeIndex + 1) % count;
+			hasData.release();
+			callbacks.betweenAudioCallback(position, samplerate);
+		}
+		qDebug().nospace() << "AUDIO THREAD done: ";
+		isRunning = false;
+	});
+	qDebug().nospace() << "AUDIO THREAD: " << to_qstring( worker.get_id() );
+}
+
+void AudioWorker::stop() {
+	stopWorkerSignal = true;
+	buffersNotFull.release();
+	worker.join();
+}
+
+bool AudioWorker::getIsRunning() const {
+	return isRunning;
+}
+
+void AudioWorker::fillBuffer(const uint index) {
+	callbacks.valuesToBuffer(
+			&buffer[index],
+			position,
+			samplerate
+	);
+	this->position += buffer[index].size();
+}
+
+/********************
+ * JackClient
+*********************/
 
 JackClient::JackClient(
 		const QString& clientName
@@ -16,38 +121,8 @@ JackClient::JackClient(
 JackClient::~JackClient()
 {}
 
-SampleTable* JackClient::getSampleTable()
-{
-	return &sampleTable;
-}
-
-uint JackClient::getSamplerate()
-{
-	return samplerate;
-}
-
-QString JackClient::getClientName() const
-{
-	return clientName;
-}
-
-bool JackClient::getIsPlaying() {
-	return playing;
-}
-
-uint JackClient::getPlayPos() {
-	return playPos;
-}
-
-jack_client_t* JackClient::getClient() {
-	return client;
-}
-
-jack_port_t* JackClient::getPort() {
-	return ports[0];
-}
-
 MaybeError JackClient::init() {
+#ifndef AUDIO_STUB
 	try {
 		{
 			jack_status_t status;
@@ -65,6 +140,11 @@ MaybeError JackClient::init() {
 		jack_set_process_callback(
 				client,
 				&processAudio,
+				this
+		);
+		jack_set_buffer_size_callback(
+				client,
+				&setBufferSizeCallback,
 				this
 		);
 		// create ports:
@@ -85,54 +165,95 @@ MaybeError JackClient::init() {
 		}
 
 		samplerate = jack_get_sample_rate(client);
-		sampleTable.resize( samplerate * 1, 0 );
+		if( jack_activate(client) ) {
+			throw QString("failed to activate client");
+		}
 	}
 	catch( const QString& error ) {
 		client = nullptr;
 		return { error };
 	}
+#else
+	bufferSize = 1024;
+	samplerate = 44100;
+#endif
 
-	return {};
-}
-
-MaybeError JackClient::run() {
-	if( client == nullptr ) {
-		return Error("Client not initialized. call 'JackClient::init()' first!");
-	}
-	if( jack_activate(client) ) {
-		return "cannot activate client";
-	}
-	workerStop = false;
-	worker = std::thread([this]{
-			while(!workerStop) {
-				sleep(1);
-			};
-	});
 	return {};
 }
 
 void JackClient::exit() {
+#ifndef AUDIO_STUB
 	if(!client) {
 		return;
 	}
-	workerStop = true;
-	worker.join();
 	jack_client_close(
 			client
 	);
+#endif
 }
 
-void JackClient::play() {
-	playing = true;
+MaybeError JackClient::start(
+		const Callbacks& callbacks
+) {
+#ifndef AUDIO_STUB
+	if( !client ) {
+		return Error("No client!");
+	}
+#endif
+	if( bufferSize == 0 ) {
+		return "failed to determine buffer size";
+	}
+	audioWorker.init(
+			callbacks,
+			bufferSize,
+			samplerate
+	);
+	audioWorker.run();
+#ifdef AUDIO_STUB
+	isJackFakeThreadRunning = true;
+	jackFakeThread = std::thread([this]() {
+		while(isJackFakeThreadRunning) {
+			std::this_thread::sleep_for( 2s );
+			audioWorker.getSamplesInit();
+			audioWorker.getSamplesExit();
+		};
+	});
+#endif
+	return {};
 }
 
 void JackClient::stop() {
-	playing = false;
-	playPos = 0;
+#ifndef AUDIO_STUB
+	if(!client) {
+		return;
+	}
+#endif
+	if( audioWorker.getIsRunning() ) {
+		audioWorker.stop();
+	}
+#ifdef AUDIO_STUB
+	isJackFakeThreadRunning = false;
+	jackFakeThread.join();
+#endif
 }
 
-void JackClient::setPlayPos(const uint value) {
-	playPos = value;
+bool JackClient::isRunning() const
+{
+#ifndef AUDIO_STUB
+	return audioWorker.getIsRunning();
+#else
+	return isJackFakeThreadRunning;
+#endif
+}
+
+QString JackClient::getClientName() const
+{
+	return clientName;
+}
+
+uint JackClient::getSamplerate()
+{
+	return samplerate;
 }
 
 int processAudio(
@@ -140,47 +261,33 @@ int processAudio(
 		void* arg
 ) {
 	auto jackObj = (JackClient* )arg;
-	sample_t* table = jackObj->getSampleTable()->data();
-	auto tableSize = jackObj->getSampleTable()->size();
 	sample_t* buffer = (sample_t* )jack_port_get_buffer(
-			jackObj->getPort(),
+			jackObj->ports[0],
 			nframes
 	);
-	if( !jackObj->getIsPlaying() ) {
+	// clear buffer:
+	if(
+			!jackObj->audioWorker.getIsRunning()
+	) {
 		memset(buffer, 0, sizeof(sample_t) * nframes);
 		return 0;
 	}
-	const uint samplesLeft =
-		tableSize - jackObj->getPlayPos();
-	// if we still have enough samples
-	// to fill the buffer completely:
-	if( nframes <= samplesLeft ) {
-		memcpy(
-				buffer,
-				table + jackObj->getPlayPos(),
-				sizeof(sample_t) * nframes
-		);
-		jackObj->setPlayPos( jackObj->getPlayPos() + nframes );
-	}
-	// if we don't have enough
-	// samples left to fill the
-	// buffer:
-	else {
-		// copy the rest of the table
-		memcpy(
-				buffer,
-				table + jackObj->getPlayPos(),
-				sizeof(sample_t) * samplesLeft
-		);
-		// ...and fill the rest of the
-		// buffer with zeros:
-		memset(
-				buffer+samplesLeft,
-				0,
-				sizeof(sample_t) * (nframes-samplesLeft)
-		);
-		jackObj->stop();
-	}
+	memcpy(
+			buffer,
+			jackObj->audioWorker.getSamplesInit()->data(),
+			sizeof(sample_t) * nframes
+	);
+	jackObj->audioWorker.getSamplesExit();
 
+	return 0;
+}
+
+int setBufferSizeCallback(
+		jack_nframes_t nframes,
+		void* arg
+)
+{
+	auto jackObj = (JackClient* )arg;
+	jackObj->bufferSize = nframes;
 	return 0;
 }

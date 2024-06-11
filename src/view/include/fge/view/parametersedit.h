@@ -2,9 +2,8 @@
 #define PARAMETERSEDIT_H
 
 #include "fge/view/parametervalueentry.h"
-#include "fge/view/parameter_utils.h"
+#include "fge/shared/parameter_utils.h"
 #include "fge/shared/data.h"
-#include "parameter_utils.h"
 #include <QDialog>
 #include <memory>
 
@@ -18,6 +17,7 @@ class ParametersEdit : public QDialog
 
 public:
     explicit ParametersEdit(
+				const QString& functionName,
 				ParameterBindings* parameters,
 				std::map<QString,ParameterDescription>* parameterDescriptions,
 				QWidget *parent = nullptr
@@ -26,14 +26,17 @@ public:
 
 		void updateView();
 signals:
-	void parametersChanged();
+	void parameterChanged(
+			const QString& parameterName,
+			const C& value
+	);
 
 private:
     Ui::ParametersEdit *ui;
 		std::vector<std::shared_ptr<ParameterValueEntry>> paramWidgets;
 		// Data:
 		ParameterBindings* parameters;
-		std::map<QString,ParameterDescription>* parameterDescriptions;
+		ParameterDescriptions* parameterDescriptions;
 };
 
 #endif // PARAMETERSEDIT_H

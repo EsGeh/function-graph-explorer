@@ -1,6 +1,8 @@
 add_library(shared
 	utils.cpp
 	data.cpp
+	parameter_utils.cpp
+	include/fge/shared/concurrency_utils.h
 )
 
 target_link_libraries(shared PUBLIC cpp_flags)

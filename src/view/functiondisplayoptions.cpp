@@ -1,10 +1,10 @@
 #include "fge/view/functiondisplayoptions.h"
-#include "include/fge/view/parameter_utils.h"
 #include "ui_functiondisplayoptions.h"
 #include <QMenuBar>
 #include <QAction>
 #include <qcheckbox.h>
 #include <qnamespace.h>
+#include <qspinbox.h>
 #include <variant>
 
 
@@ -18,10 +18,11 @@ const std::vector<Template> templates = {
 	{
 		.name = "Oscillation",
 		.formula = (QStringList {
-			"cos( freq * 2pi*x )"
+			"amp * cos( freq * 2pi*x )"
 		}).join("\n"),
 		.data = (QStringList {
-			"parameter 1 freq 1 0 44100",
+			"parameter 1 freq 1 0 1000 0 ramp=volume",
+			"parameter 1 amp 1 0 1 0 ramp=parameter",
 		}).join("\n")
 	},
 	{
@@ -30,7 +31,7 @@ const std::vector<Template> templates = {
 			"sgn(cos( freq * 2pi*x ))"
 		}).join("\n"),
 		.data = (QStringList {
-			"parameter 1 freq 1 0 44100",
+			"parameter 1 freq 1 0 1000 0 ramp=volume",
 		}).join("\n")
 	},
 	{
@@ -39,21 +40,23 @@ const std::vector<Template> templates = {
 			"2*frac(freq * x)-1"
 		}).join("\n"),
 		.data = (QStringList {
-			"parameter 1 freq 1 0 44100",
+			"parameter 1 freq 1 0 1000 0 ramp=volume",
 		}).join("\n")
 	},
 	{
-		.name = "Series",
+		.name = "Harm. Series",
 		.formula = (QStringList {
-			"var N := 4;",
 			"var acc := 0;",
 			"for( var k:=1; k<=N; k+=1 ) {",
-			"  acc += cos(k*freq*2pi*x);",
+  		"  acc += (1/decay)^(k-1) * cos(k*freq*2pi*x);",
 			"};",
-			"1/N*acc;"
+			"amp * 1/N * acc;"
 		}).join("\n"),
 		.data = (QStringList {
-			"parameter 1 freq 1 0 44100",
+			"parameter 1 freq 1 0 1000 0 ramp=volume",
+			"parameter 1 amp 1 0 1 0.05 ramp=parameter",
+			"parameter 1 N 1 1 16 1 ramp=volume",
+			"parameter 1 decay 1 1 100 1 ramp=parameter",
 		}).join("\n")
 	},
 	{
@@ -62,7 +65,7 @@ const std::vector<Template> templates = {
 			"exp( freq*i*2pi*x )"
 		}).join("\n"),
 		.data = (QStringList {
-			"parameter 1 freq 1 0 44100",
+			"parameter 1 freq 1 0 1000 0 ramp=volume",
 		}).join("\n")
 	},
 	{
@@ -118,7 +121,6 @@ const std::vector<Template> templates = {
 };
 
 FunctionDisplayOptions::FunctionDisplayOptions(
-		const std::vector<QString>& parameters,
 		const FunctionViewData& viewData,
 		const SamplingSettings& samplingSettings,
 		QWidget *parent
@@ -178,18 +180,15 @@ FunctionDisplayOptions::FunctionDisplayOptions(
 			ui->displayImaginary, &QCheckBox::stateChanged,
 			[this](bool value){ this->viewData.displayImaginary = value; }
 	);
+	// autoScrollOnPlayback:
+	connect(
+			ui->autoScrollOnPlayback, &QCheckBox::stateChanged,
+			[this](bool value){ this->viewData.autoScrollOnPlayback = value; }
+	);
 	// playback:
 	connect(
-			ui->duration, &QDoubleSpinBox::valueChanged,
-			[this](double value){ this->viewData.playbackDuration = value; }
-	);
-	connect(
 			ui->speed, &QDoubleSpinBox::valueChanged,
-			[this](double value){ this->viewData.playbackSpeed = value; }
-	);
-	connect(
-			ui->offset, &QDoubleSpinBox::valueChanged,
-			[this](double value){ this->viewData.playbackOffset = value; }
+			[this](double value){ this->playbackSettings.playbackSpeed = value; }
 	);
 	// samplingSettings:
 	connect(
@@ -201,8 +200,12 @@ FunctionDisplayOptions::FunctionDisplayOptions(
 			[this](int value){ this->samplingSettings.interpolation = value; }
 	);
 	connect(
-			ui->caching, &QCheckBox::stateChanged,
-			[this](int value){ this->samplingSettings.caching = value; }
+			ui->periodic, &QDoubleSpinBox::valueChanged,
+			[this](int value){ this->samplingSettings.periodic = value; }
+	);
+	connect(
+			ui->buffered, &QCheckBox::stateChanged,
+			[this](int value){ this->samplingSettings.buffered = value; }
 	);
 }
 
@@ -227,6 +230,11 @@ const FunctionViewData& FunctionDisplayOptions::getViewData() const
 	return viewData;
 }
 
+const PlaybackSettings& FunctionDisplayOptions::getPlaybackSettings() const
+{
+	return playbackSettings;
+}
+
 const SamplingSettings& FunctionDisplayOptions::getSamplingSettings() const
 {
 	return samplingSettings;
@@ -243,6 +251,11 @@ void FunctionDisplayOptions::setDataDescription(const QString& value ) {
 void FunctionDisplayOptions::setViewData(const FunctionViewData& value) {
 	this->viewData = value;
 	updateView();
+}
+
+void FunctionDisplayOptions::setPlaybackSettings(const PlaybackSettings& value)
+{
+	playbackSettings = value;
 }
 
 void FunctionDisplayOptions::setSamplingSettings(const SamplingSettings& value)
@@ -265,13 +278,14 @@ void FunctionDisplayOptions::updateView() {
 	ui->centeredY->setChecked( viewData.originCentered.second );
 	// displayImaginary:
 	ui->displayImaginary->setChecked( viewData.displayImaginary );
+	// autoScrollOnPlayback:
+	ui->autoScrollOnPlayback->setChecked( viewData.autoScrollOnPlayback );
 
-	ui->duration->setValue( viewData.playbackDuration );
-	ui->speed->setValue( viewData.playbackSpeed );
-	ui->offset->setValue( viewData.playbackOffset );
+	ui->speed->setValue( playbackSettings.playbackSpeed );
 
 	// samplingSettings:
 	ui->resolution->setValue( samplingSettings.resolution );
 	ui->interpolation->setValue( samplingSettings.interpolation );
-	ui->caching->setChecked( samplingSettings.caching );
+	ui->periodic->setValue( samplingSettings.periodic );
+	ui->buffered->setChecked( samplingSettings.buffered );
 }

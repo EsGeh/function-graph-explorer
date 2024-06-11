@@ -1,7 +1,7 @@
 #ifndef FUNCTIONVIEW_H
 #define FUNCTIONVIEW_H
 
-#include "fge/view/parameter_utils.h"
+#include "fge/shared/parameter_utils.h"
 #include "fge/view/viewdata.h"
 #include "fge/view/parametersedit.h"
 #include "fge/view/graphview.h"
@@ -20,17 +20,32 @@ class FunctionView : public QWidget
   Q_OBJECT
 
 public:
+
+	struct UpdateInfo {
+		std::optional<QString> formula = {};
+		std::optional<ParameterBindings> parameters = {};
+		std::optional<ParameterDescriptions> parameterDescriptions = {};
+		std::optional<StateDescriptions> stateDescriptions = {};
+		std::optional<bool> playbackEnabled = {};
+		std::optional<PlaybackSettings> playbackSettings = {};
+		std::optional<SamplingSettings> samplingSettings= {};
+	};
+
+public:
 	explicit FunctionView(
 			const QString& title,
+			const double* globalPlaybackSpeed,
 			QWidget *parent = nullptr
 	);
 	~FunctionView();
 
 	QString getFormula();
+	const ParameterDescriptions& getParameterDescriptions() const;
 	const ParameterBindings& getParameters() const;
 	StateDescriptions getStateDescriptions() const;
 	const FunctionViewData& getViewData() const;
 	const SamplingSettings& getSamplingSettings() const;
+	bool getIsPlaybackEnabled() const;
 
   void setFormula( const QString& str );
   void setParameters( const ParameterBindings& value );
@@ -41,14 +56,16 @@ public:
   );
   void setFormulaError( const QString& str );
 
+	void disablePlaybackPosition();
+	void setPlaybackTime( const double value );
+
 signals:
-  void formulaChanged();
-  void viewParamsChanged();
-  void playButtonPressed(
-			const T duration,
-			const T speed,
-			const T offset
+	void changed( UpdateInfo updateInfo );
+	void parameterChanged(
+			const QString& parameterName,
+			const C value
 	);
+  void viewParamsChanged();
 
 private:
 	// UI:
@@ -62,7 +79,9 @@ private:
 
 	FunctionDataDescription dataDescription;
 	FunctionViewData viewData;
+	PlaybackSettings playbackSettings;
 	SamplingSettings samplingSettings;
+	const double* globalPlaybackSpeed;
 };
 
 void updateParameters(
