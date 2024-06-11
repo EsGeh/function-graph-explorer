@@ -185,6 +185,14 @@ ErrorOrValue<std::vector<std::pair<C,C>>> ScheduledFunctionCollectionImpl::getGr
 
 // sampling for audio:
 
+double ScheduledFunctionCollectionImpl::getPlaybackSpeed() const
+{
+	LOG_FUNCTION_GET()
+	return getNetworkConst()->read([](auto& network){
+			return network->getPlaybackSpeed();
+	});
+}
+
 PlaybackSettings ScheduledFunctionCollectionImpl::getPlaybackSettings(
 		const Index index
 ) const
@@ -595,6 +603,15 @@ ParameterBindings ScheduledFunctionCollectionImpl::scheduleSetParameterValues(
 			);
 		}
 		return selectedParams;
+	});
+}
+
+void ScheduledFunctionCollectionImpl::setPlaybackSpeed( const double value )
+{
+	LOG_FUNCTION()
+	assert( !audioSchedulingEnabled );
+	return getNetwork()->write([value](auto& network) {
+		return network->setPlaybackSpeed( value );
 	});
 }
 

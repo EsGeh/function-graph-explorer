@@ -173,6 +173,8 @@ class ScheduledFunctionCollectionImpl:
 				const unsigned int resolution
 		) const override;
 
+		virtual double getPlaybackSpeed() const override;
+
 		virtual PlaybackSettings getPlaybackSettings(
 				const Index index
 		) const override;
@@ -223,6 +225,8 @@ class ScheduledFunctionCollectionImpl:
 				const ParameterBindings& parameters,
 				ParameterSignalDone signalizeDone
 		) override;
+
+		virtual void setPlaybackSpeed( const double value ) override;
 
 		virtual void setPlaybackSettings(
 				const Index index,

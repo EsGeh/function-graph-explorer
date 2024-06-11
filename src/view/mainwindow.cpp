@@ -3,6 +3,7 @@
 #include <QChart>
 #include <QDoubleSpinBox>
 #include <QCheckBox>
+#include <qspinbox.h>
 
 
 MainWindow::MainWindow(QWidget *parent)
@@ -23,7 +24,20 @@ MainWindow::MainWindow(QWidget *parent)
 		ui->audioEnabled,
 		&QCheckBox::stateChanged,
 		[this]( auto value ) {
+			if( value ) {
+				ui->playbackSpeed->setEnabled( false );
+			}
+			else {
+				ui->playbackSpeed->setEnabled( true );
+			}
 			emit isAudioEnabledChanged( value != 0 );
+		}
+	);
+	connect(
+		ui->playbackSpeed,
+		&QDoubleSpinBox::valueChanged,
+		[this]( auto value ) {
+			emit globalPlaybackSpeedChanged( value );
 		}
 	);
 }
@@ -73,6 +87,11 @@ void MainWindow::resetPlayback()
 	for( auto funcView : functionViews ) {
 		funcView->disablePlaybackPosition();
 	}
+}
+
+void MainWindow::setGlobalPlaybackSpeed( const double value )
+{
+	ui->playbackSpeed->setValue( value );
 }
 
 void MainWindow::setPlaybackTime( const double value )

@@ -2,6 +2,7 @@
 #include "include/fge/model/cache.h"
 #include "include/fge/model/function.h"
 #include "include/fge/model/function_collection.h"
+#include "include/fge/model/sampled_func_collection.h"
 #include <cstddef>
 #include <ctime>
 #include <memory>
@@ -211,6 +212,18 @@ ErrorOrValue<std::vector<std::pair<C,C>>> SampledFunctionCollectionImpl::getGrap
 
 // sampling for audio:
 
+double SampledFunctionCollectionImpl::getPlaybackSpeed() const
+{
+	LOG_FUNCTION()
+	return globalPlaybackSpeed;
+}
+
+void SampledFunctionCollectionImpl::setPlaybackSpeed( const double value )
+{
+	LOG_FUNCTION()
+	globalPlaybackSpeed = value;
+}
+
 PlaybackSettings SampledFunctionCollectionImpl::getPlaybackSettings(
 		const Index index
 ) const
@@ -318,7 +331,7 @@ float SampledFunctionCollectionImpl::audioFunction(
 		ret += (
 				getWithResolution(
 					function,
-					time * playbackSettings.playbackSpeed,
+					time * globalPlaybackSpeed * playbackSettings.playbackSpeed,
 					samplingSettings,
 					&buffer
 				).c_.real()

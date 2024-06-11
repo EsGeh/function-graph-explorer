@@ -16,7 +16,7 @@
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="mainLayout" stretch="0,0">
     <item>
-     <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,1,0,0">
+     <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,1,0,0,0,0">
       <item>
        <widget class="QLabel" name="label">
         <property name="text">
@@ -54,6 +54,23 @@
         </property>
        </widget>
       </item>
+      <item>
+       <widget class="QLabel" name="label_2">
+        <property name="text">
+         <string>speed:</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QDoubleSpinBox" name="playbackSpeed">
+        <property name="maximum">
+         <double>22050.000000000000000</double>
+        </property>
+        <property name="value">
+         <double>1.000000000000000</double>
+        </property>
+       </widget>
+      </item>
      </layout>
     </item>
     <item>
@@ -62,7 +79,7 @@
        <bool>true</bool>
       </property>
       <property name="alignment">
-       <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+       <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignTop</set>
       </property>
       <widget class="QWidget" name="scrollAreaWidgetContents">
        <property name="geometry">
@@ -77,7 +94,7 @@
         <item>
          <spacer name="verticalSpacer">
           <property name="orientation">
-           <enum>Qt::Vertical</enum>
+           <enum>Qt::Orientation::Vertical</enum>
           </property>
           <property name="sizeHint" stdset="0">
            <size>

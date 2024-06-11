@@ -90,6 +90,9 @@ class SampledFunctionCollectionImpl:
 
 		// sampling for audio:
 
+		virtual double getPlaybackSpeed() const override ;
+		virtual void setPlaybackSpeed( const double value ) override ;
+
 		virtual PlaybackSettings getPlaybackSettings(
 				const Index index
 		) const override;
@@ -155,9 +158,9 @@ class SampledFunctionCollectionImpl:
 
 	private:
 		SamplingSettings defSamplingSettings;
-		// AudioCallback audioCallback;
 		double masterEnvelope = 1;
 		double masterVolume = 1;
+		double globalPlaybackSpeed = 1;
 };
 
 

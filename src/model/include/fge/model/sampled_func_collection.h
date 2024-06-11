@@ -74,6 +74,9 @@ struct SampledFunctionCollection
 			const unsigned int samplerate
 	) = 0;
 
+	virtual double getPlaybackSpeed() const = 0;
+	virtual void setPlaybackSpeed( const double value ) = 0;
+
 	virtual PlaybackSettings getPlaybackSettings(
 			const Index index
 	) const = 0;

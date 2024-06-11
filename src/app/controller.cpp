@@ -65,6 +65,17 @@ Controller::Controller(
 	);
 
 	connect(
+			view,
+			&MainWindow::globalPlaybackSpeedChanged,
+			[this]( auto value ) {
+				modelWorker->write(this, "setPlaybackSpeed", [value](auto model){
+						model->setPlaybackSpeed( value );
+				},
+				[](auto){});
+			}
+	);
+
+	connect(
 		view,
 		&MainWindow::isAudioEnabledChanged,
 		[this]( bool value ) {
@@ -96,8 +107,9 @@ Controller::Controller(
 			[view](auto model){
 					model->resize( view->getFunctionViewCount() );
 			},
-			[this](auto model){
+			[this,view](auto model){
 				resizeView( model, 0 );
+				view->setGlobalPlaybackSpeed( model->getPlaybackSpeed() );
 			}
 	);
 }
