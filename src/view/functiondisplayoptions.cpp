@@ -37,10 +37,33 @@ const std::vector<Template> templates = {
 	{
 		.name = "Sawtooth Wave",
 		.formula = (QStringList {
-			"2*frac(freq * x)-1"
+			"frac(freq * x)"
 		}).join("\n"),
 		.data = (QStringList {
 			"parameter 1 freq 1 0 1000 0 ramp=volume",
+		}).join("\n")
+	},
+	{
+		.name = "Amp Envelope",
+		.formula = (QStringList {
+			"(0.5 -0.5*cos(2pi * (x%1)^(1/shape)))"
+		}).join("\n"),
+		.data = (QStringList {
+			"parameter 1 shape 1 0.1 8 0 ramp=parameter",
+		}).join("\n")
+	},
+	{
+		.name = "Random Stairs",
+		.formula = (QStringList {
+			"if( floor(x) != s ) {",
+  		"  r := complex(rnd(),rnd());",
+			"  s := floor(x);",
+			"};",
+			"r;"
+		}).join("\n"),
+		.data = (QStringList {
+			"state 1 s",
+			"state 1 r"
 		}).join("\n")
 	},
 	{

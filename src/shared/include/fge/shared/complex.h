@@ -189,7 +189,7 @@ namespace cmplx
    inline complex_t  frac(const complex_t v) { return complex_t(v.c_.real() - static_cast<long long>(v.c_.real()));  }
    inline complex_t trunc(const complex_t v) { return complex_t((double)static_cast<long long>(v.c_.real()));        }
 
-   inline complex_t modulus(const complex_t v0, const complex_t v1) { return complex_t(fmod(v0.c_.real() , v1.c_.real()),fmod(v0.c_.imag() , v1.c_.imag())); }
+   inline complex_t modulus(const complex_t v0, const complex_t v1) { return complex_t(fmod(v0.c_.real() , v1.c_.real()),0); }
    inline complex_t     pow(const complex_t v0, const complex_t v1) { return complex_t(std::pow(v0.c_,v1.c_)            ); }
    inline complex_t    logn(const complex_t v0, const complex_t v1) { return complex_t(std::log(v0.c_) / std::log(v1.c_)); }
    inline complex_t    root(const complex_t v0, const complex_t v1) { return pow(v0,complex_t(1.0) / v1);                  }

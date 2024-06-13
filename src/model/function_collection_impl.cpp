@@ -44,9 +44,17 @@ DECL_FUNC_BEGIN(PolarFunction,2,const C& x1, const C& x2)
 	return C(std::polar( T(x1), T(x2) ));
 DECL_FUNC_END(PolarFunction)
 
+DECL_FUNC_BEGIN(ComplexMod,2,const C& x1, const C& x2)
+	return C(fmod(x1.c_.real(), x2.c_.real()), fmod(x1.c_.imag(),x2.c_.imag()));
+DECL_FUNC_END(ComplexMod)
+
 DECL_FUNC_BEGIN(RandomFunction,0,)
-	return C(T(std::rand())/T(RAND_MAX), T(std::rand())/T(RAND_MAX));
+	return C(T(std::rand())/T(RAND_MAX), 0);
 DECL_FUNC_END(RandomFunction)
+
+DECL_FUNC_BEGIN(MidiToFreq,1,const C& x)
+	return C( 440.0 * powf(2,1.0/12.0 * (x.c_.real()-69.0)) ,0);
+DECL_FUNC_END(MidiToFreq)
 
 DECL_FUNC_BEGIN(Real_Compare,2,const C& x1, const C& x2)
 	T ret = 0;
@@ -66,7 +74,9 @@ static auto conjFunc = ConjFunction();
 static auto complexFunc = ComplexFunction();
 static auto polarFunc = PolarFunction();
 static auto realCompare = Real_Compare();
+static auto complexMod = ComplexMod();
 static auto randomFunc = RandomFunction();
+static auto mtof = MidiToFreq();
 
 Symbols symbols()
 {
@@ -87,7 +97,9 @@ Symbols symbols()
 			{ "complex", &complexFunc },
 			{ "polar", &polarFunc },
 			{ "real_cmp", &realCompare },
-			{ "rnd", &randomFunc }
+			{ "c_mod", &complexMod },
+			{ "rnd", &randomFunc },
+			{ "mtof", &mtof }
 		}
 	);
 }
