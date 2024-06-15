@@ -63,13 +63,6 @@ struct Model:
 
 };
 
-const SamplingSettings no_optimization_settings{
-	.resolution = 0,
-	.interpolation = 0,
-	.periodic = 0,
-	.buffered = false
-};
-
 std::shared_ptr<Model> modelFactory(
 		const SamplingSettings& defSamplingSettings = no_optimization_settings
 );

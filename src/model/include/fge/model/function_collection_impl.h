@@ -22,6 +22,7 @@ class FunctionCollectionImpl:
 		{
 			QString error;
 			FunctionInfo functionInfo;
+			SamplingSettings samplingSettings;
 		};
 
 		using FunctionOrInvalid = std::expected<
@@ -36,7 +37,9 @@ class FunctionCollectionImpl:
 		};
 
 	public:
-		FunctionCollectionImpl();
+		FunctionCollectionImpl(
+				const SamplingSettings& defSamplingSettings
+		);
 
 		virtual uint size() const override;
 		virtual void resize( const uint size ) override;
@@ -57,6 +60,15 @@ class FunctionCollectionImpl:
 				const Index index
 		) const override;
 
+		// Sampling Settings:
+		virtual SamplingSettings getSamplingSettings(
+				const Index index
+		) const override;
+		virtual void setSamplingSettings(
+				const Index index,
+				const SamplingSettings& value
+		) override;
+
 	private:
 		void updateFormulas(
 				const size_t startIndex,
@@ -64,6 +76,7 @@ class FunctionCollectionImpl:
 		);
 	private:
 		Symbols constants;
+		SamplingSettings defSamplingSettings;
 		std::vector<std::shared_ptr<NetworkEntry>> entries;
 };
 

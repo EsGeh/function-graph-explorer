@@ -37,6 +37,16 @@ class FunctionCollection
 				const Index index,
 				const ParameterBindings& parameters
 		) = 0;
+
+	// Sampling Settings:
+	virtual SamplingSettings getSamplingSettings(
+			const Index index
+	) const = 0;
+	virtual void setSamplingSettings(
+			const Index index,
+			const SamplingSettings& value
+	) = 0;
+
 };
 
 class FunctionCollectionWithInfo:

@@ -165,19 +165,24 @@ MaybeError FormulaFunction::init(
 /*******************
  * Fabric method:
  ******************/
+
+#include "fge/model/sampled_function.h"
+
 ErrorOrValue<std::shared_ptr<Function>> formulaFunctionFactory(
 		const QString& formulaStr,
 		const ParameterBindings& parameters,
 		const StateDescriptions& state,
-		const std::vector<Symbols>& additionalSymbols
+		const std::vector<Symbols>& additionalSymbols,
+		const SamplingSettings& samplingSettings
 )
 {
-	auto function = std::shared_ptr<FormulaFunction>(new FormulaFunction());
+	auto function = std::shared_ptr<SampledFormulaFunction>(new SampledFormulaFunction());
 	auto maybeError = function->init(
 			formulaStr,
 			parameters,
 			state,
-			additionalSymbols
+			additionalSymbols,
+			samplingSettings
 	);
 	if( maybeError.has_value() ) {
 		return std::unexpected(maybeError.value() );

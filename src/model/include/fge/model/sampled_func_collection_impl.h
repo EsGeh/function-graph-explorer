@@ -13,9 +13,7 @@ struct NodeInfo:
 {
 	bool isPlaybackEnabled = false;
 	double volumeEnvelope = 1;
-	SamplingSettings samplingSettings;
 	PlaybackSettings playbackSettings;
-	FunctionBuffer functionBuffer;
 };
 
 
@@ -157,42 +155,7 @@ class SampledFunctionCollectionImpl:
 		}
 
 	private:
-		SamplingSettings defSamplingSettings;
 		double masterEnvelope = 1;
 		double masterVolume = 1;
 		double globalPlaybackSpeed = 1;
 };
-
-
-/* Utilities */
-
-bool isBufferable(
-		std::shared_ptr<Function> function,
-		const SamplingSettings& samplingSettings
-);
-
-C getWithResolution(
-		std::shared_ptr<Function> function,
-		const C& x,
-		const SamplingSettings& samplingSettings,
-		const FunctionBuffer* buffer
-);
-
-C interpolate(
-		const C& x,
-		const std::vector<C> ys,
-		const int shift,
-		const uint resolution
-
-);
-
-int xToRasterIndex(
-		const T x,
-		const uint resolution
-);
-
-C rasterIndexToY(
-		std::shared_ptr<Function> function,
-		int x,
-		const uint resolution
-);

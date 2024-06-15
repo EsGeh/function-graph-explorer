@@ -1,4 +1,5 @@
 #include "fge/model/function_collection_impl.h"
+#include "include/fge/model/function.h"
 #include "include/fge/model/function_collection.h"
 
 
@@ -108,8 +109,11 @@ Symbols symbols()
  * FunctionCollectionImpl
 *********************/
 
-FunctionCollectionImpl::FunctionCollectionImpl()
+FunctionCollectionImpl::FunctionCollectionImpl(
+		const SamplingSettings& defSamplingSettings
+)
 	: constants( symbols() )
+	, defSamplingSettings( defSamplingSettings )
 {}
 
 uint FunctionCollectionImpl::size() const
@@ -162,7 +166,8 @@ void FunctionCollectionImpl::resize( const uint size ) {
 								.formula = (i>0)
 									? QString("%1(x)").arg( functionName(i-1) )
 									: "cos( 2pi * x )"
-						}
+						},
+						.samplingSettings = defSamplingSettings
 					})
 			});
 			entries.push_back( entry );
@@ -251,6 +256,7 @@ void FunctionCollectionImpl::updateFormulas(
 	for( size_t i=startIndex; i<entries.size(); i++ ) {
 		auto entry = entries.at(i);
 		FunctionInfo currentFunctionInfo = getFunctionInfo(i);
+		SamplingSettings samplingSettings = getSamplingSettings(i);
 		if( i==startIndex && functionInfo ) {
 			currentFunctionInfo = functionInfo.value();
 		}
@@ -261,20 +267,22 @@ void FunctionCollectionImpl::updateFormulas(
 				{
 					constants,
 					functionSymbols
-				}
+				},
+				samplingSettings
 		)
-		.transform([&currentFunctionInfo](auto function) -> ValidEntry {
-				return ValidEntry{
-					.function = function,
-					.parameterDescriptions = currentFunctionInfo.parameterDescriptions
+			.transform([&currentFunctionInfo](auto function) -> ValidEntry {
+					return ValidEntry{
+						.function = function,
+						.parameterDescriptions = currentFunctionInfo.parameterDescriptions
+					};
+			})
+			.transform_error([&currentFunctionInfo, &samplingSettings](auto error) -> InvalidEntry {
+				return InvalidEntry{
+					.error = error,
+					.functionInfo = currentFunctionInfo,
+					.samplingSettings = samplingSettings
 				};
-		})
-		.transform_error([currentFunctionInfo](auto error) -> InvalidEntry {
-			return InvalidEntry{
-				.error = error,
-				.functionInfo = currentFunctionInfo
-			};
-		});
+			});
 		if( !entry->info )
 		{
 			std::shared_ptr<Function> maybeFunction = {};
@@ -300,4 +308,31 @@ FunctionCollectionImpl::NodeInfo* FunctionCollectionImpl::getNodeInfo(
 ) const
 {
 	return entries.at(index)->info.get();
+}
+
+// Sampling Settings:
+SamplingSettings FunctionCollectionImpl::getSamplingSettings(
+		const Index index
+) const
+{
+	if( auto function = entries.at(index)->functionOrError; function.has_value() ) {
+		return function.value().function->getSamplingSettings();
+	}
+	else {
+		return entries.at(index)->functionOrError.error().samplingSettings;
+	}
+}
+
+void FunctionCollectionImpl::setSamplingSettings(
+		const Index index,
+		const SamplingSettings& value
+)
+{
+	if( auto function = entries.at(index)->functionOrError; function.has_value() ) {
+			function.value().function->setSamplingSettings( value );
+	}
+	else {
+		auto invalid = entries.at(index)->functionOrError.error();
+		invalid.samplingSettings = value;
+	}
 }

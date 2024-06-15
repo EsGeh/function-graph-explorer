@@ -49,6 +49,10 @@ public exprtk::ifunction<C>
 
 		C operator()(const C& x);
 
+		virtual SamplingSettings getSamplingSettings() const = 0;
+		virtual void setSamplingSettings(const SamplingSettings& samplingSettings) = 0;
+
+		virtual void update() = 0;
 		virtual void resetState() = 0;
 };
 
@@ -75,6 +79,13 @@ class Symbols {
 		symbol_table_t symbols;
 };
 
+const SamplingSettings no_optimization_settings{
+	.resolution = 0,
+	.interpolation = 0,
+	.periodic = 0,
+	.buffered = false
+};
+
 class FormulaFunction:
 	virtual public Function
 {
@@ -94,6 +105,12 @@ class FormulaFunction:
 		virtual StateDescriptions getStateDescriptions() const override;
 
 		virtual void resetState() override;
+		virtual void update() override {};
+
+		virtual SamplingSettings getSamplingSettings() const override {
+			return no_optimization_settings;
+		};
+		virtual void setSamplingSettings(const SamplingSettings& samplingSettings) override {};
 
 	protected:
 		FormulaFunction();
@@ -103,12 +120,6 @@ class FormulaFunction:
 				const StateDescriptions& stateDescrs,
 				const std::vector<Symbols>& additionalSymbols
 		);
-	friend ErrorOrValue<std::shared_ptr<Function>> formulaFunctionFactory(
-			const QString& formulaStr,
-			const ParameterBindings& parameters,
-			const StateDescriptions& state,
-			const std::vector<Symbols>& additionalSymbols
-	);
 
 	private:
 		QString formulaStr;
@@ -127,5 +138,6 @@ ErrorOrValue<std::shared_ptr<Function>> formulaFunctionFactory(
 		const QString& formulaStr,
 		const ParameterBindings& parameters,
 		const StateDescriptions& state,
-		const std::vector<Symbols>& additionalSymbols
+		const std::vector<Symbols>& additionalSymbols,
+		const SamplingSettings& samplingSettings
 );
