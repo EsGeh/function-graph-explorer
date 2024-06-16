@@ -105,17 +105,16 @@ const std::vector<Template> templates = {
 	{
 		.name = "DFT (buffered)",
 		.formula = (QStringList {
-			"var N := 256;",
 			"if( filled = 0 ) {",
-			"  for( var j:=0; j<N; j+=1 ) {",
-			"  for( var k:=0; k<N; k+=1 ) {",
-			"    buffer[j] += exp(-i*2pi*k*j/N) * f0(k/N);",
+			"  for( var j:=0; j<buffer[]; j+=1 ) {",
+			"  for( var k:=0; k<buffer[]; k+=1 ) {",
+			"    buffer[j] += exp(-i*2pi*k*j/buffer[]) * f0(k/buffer[]);",
 			"  };",
-			"  buffer[j] /= N;",
+			"  buffer[j] /= buffer[];",
 			"  };",
 			"  filled := 1;",
 			"};",
-			"buffer[x%N];"
+			"buffer[x%buffer[]];"
 		}).join("\n"),
 		.data = (QStringList {
 			"state 256 buffer",
@@ -125,16 +124,15 @@ const std::vector<Template> templates = {
 	{
 		.name = "Inverse DFT",
 		.formula = (QStringList {
-			"var N := 256;",
 			"if( filled = 0 ) {",
-			"  for( var j:=0; j<N; j+=1 ) {",
-			"  for( var k:=0; k<N; k+=1 ) {",
-			"    buffer[j] += exp(i*2pi*k*j/N) * f1(k);",
+			"  for( var j:=0; j<buffer[]; j+=1 ) {",
+			"  for( var k:=0; k<buffer[]; k+=1 ) {",
+			"    buffer[j] += exp(i*2pi*k*j/buffer[]) * f1(k);",
 			"  };",
 			"  };",
 			"  filled := 1;",
 			"};",
-			"buffer[(x*N)%N];"
+			"buffer[(x*buffer[])%buffer[]];"
 		}).join("\n"),
 		.data = (QStringList {
 			"state 256 buffer",
