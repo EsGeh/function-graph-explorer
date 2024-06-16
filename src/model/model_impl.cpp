@@ -110,9 +110,10 @@ ScheduledFunctionCollectionImpl::ScheduledFunctionCollectionImpl(
 				defSamplingSettings
 	), "NETWORK" )
 	, writeTasks( "TASKS" )
-	, modelWorkerThread([this](){ modelWorkerLoop(); } )
+	// , modelWorkerThread([this](){ modelWorkerLoop(); } )
 {
 	LOG_FUNCTION()
+	modelWorkerThread = std::thread([this](){ modelWorkerLoop(); } );
 }
 
 ScheduledFunctionCollectionImpl::~ScheduledFunctionCollectionImpl()
