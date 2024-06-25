@@ -139,6 +139,48 @@ const std::vector<Template> templates = {
 			"state 1 filled"
 		}).join("\n")
 	},
+	{
+		.name = "FFT",
+		.formula = (QStringList {
+			"var N := buffer[];",
+			"",
+			"if( filled = 0 ) {",
+			"",
+			"  var samples[32768];",
+			"  for( var k:=0; k<N; k+=1 ) {",
+			"    samples[k] := f0(k/N);",
+			"  }",
+			"",
+			"  bitrevcpy( buffer, samples );",
+			"  // s = 1, ... , log2(N)",
+			"  // m = 2, ... , N",
+			"  for( var s:=1; s+0.5<log2(N)+1; s+=1 ) {",
+			// "    print( 's = ', s );",
+			"    var m := floor(2^s+.1);",
+			"    var omega_step := exp( -2pi * i / m );",
+			"    // k = 0, ... , N-1",
+			"    for( var k:=0; k+0.5<N; k+=m ) {",
+			// "      print( 'k = ', k );",
+			"      var omega := 1;",
+			"      for( var j:=0; j+0.5<m/2; j+=1 ) {",
+			// "        print( 'j = ', j );",
+			"        var lower := buffer[k+j];",
+			"        var upper := omega * buffer[k+j+m/2];",
+			"        buffer[k+j] := lower + upper;",
+			"        buffer[k+j+m/2] := lower - upper;",
+			"        omega *= omega_step;",
+			"      }",
+			"    }",
+			"  };",
+			"  filled := 1;",
+			"};",
+			"buffer[floor(x)%N]/N;"
+		}).join("\n"),
+		.data = (QStringList {
+			"state 32768 buffer",
+			"state 1 filled"
+		}).join("\n")
+	},
 };
 
 FunctionDisplayOptions::FunctionDisplayOptions(

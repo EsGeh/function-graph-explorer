@@ -6,7 +6,7 @@
 
 Symbols::Symbols(
 		const std::map<QString,C>& constants,
-		const std::map<QString,exprtk::ifunction<C>*>& functions
+		const std::map<QString, function_t>& functions
 )
 	: symbols(symbol_table_t::symtab_mutability_type::e_immutable)
 {
@@ -28,10 +28,12 @@ void Symbols::addConstant(
 
 void Symbols::addFunction(
 		const QString& name,
-		exprtk::ifunction<C>* function
+		function_t function
 )
 {
-	symbols.add_function( name.toStdString(), *function );
+	std::visit([&](auto f){
+		symbols.add_function( name.toStdString(), *f );
+	}, function);
 }
 
 symbol_table_t& Symbols::get()

@@ -1,6 +1,9 @@
 #include "fge/model/function_collection_impl.h"
 #include "include/fge/model/function.h"
 #include "include/fge/model/function_collection.h"
+#include <exprtk.hpp>
+#include <qlogging.h>
+#include <QDebug>
 
 
 #define DECL_FUNC_BEGIN(CLASS, ORD, ...) \
@@ -66,6 +69,91 @@ DECL_FUNC_BEGIN(Real_Compare,2,const C& x1, const C& x2)
 	return C(ret, 0);
 DECL_FUNC_END(Real_Compare)
 
+uint bitInvImpl( const uint size, const uint value ) {
+	uint ret = 0;
+	uint valueCopy = value;
+	{
+		uint shift = sizeof(uint)*8 - size;
+		valueCopy <<= shift;
+		valueCopy >>= shift;
+		for( uint i=0; i<size; i++ ) {
+			ret <<= 1;
+			ret |= (valueCopy & uint(1));
+			valueCopy >>= 1;
+		}
+	}
+	return ret;
+}
+
+DECL_FUNC_BEGIN(BitInversion,2,const C& x1, const C& x2)
+	return C(
+		bitInvImpl( uint(x1.c_.real()), floor(x2.c_.real()) )
+	, 0);
+DECL_FUNC_END(BitInversion)
+
+struct BitRevCopy:
+	public exprtk::igeneric_function<C>
+{
+	using parameter_list_t = exprtk::igeneric_function<C>::parameter_list_t;
+
+	BitRevCopy()
+	: exprtk::igeneric_function<C>("VV")
+	{}
+
+	C operator()(parameter_list_t parameters) {
+		using generic_type = exprtk::igeneric_function<C>::generic_type;
+		using vector_t = generic_type::vector_view;
+		vector_t out(parameters[0]);
+		vector_t in(parameters[1]);
+		for( uint i=0; i<std::min(in.size(),out.size()); i++ ) {
+			out[i] = in[ bitInvImpl( ceil(log2(out.size())), i) ];
+		}
+		return C(0,0);
+	}
+};
+
+struct Print:
+	public exprtk::igeneric_function<C>
+{
+	using parameter_list_t = exprtk::igeneric_function<C>::parameter_list_t;
+
+	Print()
+	: exprtk::igeneric_function<C>()
+	{}
+
+	C operator()(parameter_list_t parameters) {
+ 		typedef typename generic_type::scalar_view scalar_t;
+		// typedef typename generic_type::vector_view vector_t;
+		typedef typename generic_type::string_view string_t;
+		
+		std::stringstream strstr;
+		for (std::size_t i = 0; i < parameters.size(); ++i)
+		{
+			generic_type& gt = parameters[i];
+
+			if (generic_type::e_scalar == gt.type)
+			{
+				scalar_t x(gt);
+				strstr << to_qstring( x.v_ ).toStdString();
+			}
+			/*
+			else if (generic_type::e_vector == gt.type)
+			{
+				vector_t vector(gt);
+			}
+			*/
+			else if (generic_type::e_string == gt.type)
+			{
+				string_t string(gt);
+				strstr << (char* )string.data_;
+			}
+		}
+		qDebug() << strstr.str();
+		return C(0,0);
+	}
+};
+
+static auto print_func = Print();
 static auto realFunc = RealFunction();
 static auto imagFunc = ImagFunction();
 
@@ -78,6 +166,8 @@ static auto realCompare = Real_Compare();
 static auto complexMod = ComplexMod();
 static auto randomFunc = RandomFunction();
 static auto mtof = MidiToFreq();
+static auto bitinv = BitInversion();
+static auto bit_rev_copy = BitRevCopy();
 
 Symbols symbols()
 {
@@ -90,6 +180,7 @@ Symbols symbols()
 
 		// functions:
 		{
+			{ "print", &print_func },
 			{ "abs", &absFunc },
 			{ "real", &realFunc },
 			{ "imag", &imagFunc },
@@ -100,7 +191,9 @@ Symbols symbols()
 			{ "real_cmp", &realCompare },
 			{ "c_mod", &complexMod },
 			{ "rnd", &randomFunc },
-			{ "mtof", &mtof }
+			{ "mtof", &mtof },
+			{ "bitinv", &bitinv },
+			{ "bitrevcpy", &bit_rev_copy }
 		}
 	);
 }

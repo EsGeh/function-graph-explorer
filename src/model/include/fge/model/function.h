@@ -62,9 +62,14 @@ public exprtk::ifunction<C>
 
 class Symbols {
 	public:
+		using function_t = std::variant<
+			exprtk::igeneric_function<C>*,
+			exprtk::ifunction<C>*
+		>;
+	public:
 		Symbols(
 				const std::map<QString,C>& constants = {},
-				const std::map<QString,exprtk::ifunction<C>*>& functions = {}
+				const std::map<QString, function_t>& functions = {}
 		);
 		void addConstant(
 				const QString& name,
@@ -72,7 +77,7 @@ class Symbols {
 		);
 		void addFunction(
 				const QString& name,
-				exprtk::ifunction<C>* function
+				function_t function
 		);
 		symbol_table_t& get();
 	private:
