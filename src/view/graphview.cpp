@@ -91,9 +91,14 @@ void GraphView::setPlaybackCursor( const double value )
 	playbackCursorEnabled = true;
 	playbackCursor = value;
 	if( viewData->autoScrollOnPlayback ) {
+		// Only update if the cursor is far
+		// away from the current view window.
+		// Too frequent updates would keep the
+		// GUI thread too busy which tends to
+		// starve the audio thread.
 		if(
-				playbackCursor > viewData->getXRange().second
-				|| playbackCursor < viewData->getXRange().first
+				(playbackCursor - viewData->getXRange().second ) > 0.5
+				|| (viewData->getXRange().first - playbackCursor) > 0.5
 		)
 		{
 			viewData->origin.first = floor( playbackCursor );
