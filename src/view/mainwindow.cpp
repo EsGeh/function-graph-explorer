@@ -1,4 +1,5 @@
 #include "fge/view/mainwindow.h"
+#include "include/fge/view/tipsdialog.h"
 #include "ui_mainwindow.h"
 #include <QChart>
 #include <QDoubleSpinBox>
@@ -9,10 +10,14 @@
 MainWindow::MainWindow(QWidget *parent)
 		: QMainWindow(parent)
 		, ui(new Ui::MainWindow)
+		, tipsDialog( nullptr )
+		, helpDialog( nullptr )
 		, functionViews()
 {
 	ui->setupUi(this);
 	ui->time->setEnabled(false);
+	tipsDialog = new TipsDialog(this);
+	helpDialog = new HelpDialog(this);
 	connect(
 		ui->functionCount,
 		&QSpinBox::valueChanged,
@@ -41,6 +46,28 @@ MainWindow::MainWindow(QWidget *parent)
 			emit globalPlaybackSpeedChanged( value );
 		}
 	);
+	{
+		auto cornerMenuBar = new QMenuBar(ui->menuBar);
+		QMenu* helpMenu = cornerMenuBar->addMenu("Help");
+		ui->menuBar->setCornerWidget( cornerMenuBar );
+		{
+			auto action = helpMenu->addAction( "Tips" );
+			connect( action, &QAction::triggered,
+					[this]() {
+						tipsDialog->show();
+					}
+			);
+		}
+		{
+			auto action = helpMenu->addAction( "Key Codes" );
+			connect( action, &QAction::triggered,
+					[this]() {
+						helpDialog->show();
+					}
+			);
+		}
+	}
+	tipsDialog->show();
 }
 
 MainWindow::~MainWindow()

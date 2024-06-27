@@ -2,6 +2,8 @@
 #define MAINWINDOW_H
 
 #include "fge/view/functionview.h"
+#include "fge/view/tipsdialog.h"
+#include "fge/view/helpdialog.h"
 
 #include <QMainWindow>
 
@@ -39,6 +41,8 @@ signals:
 
 private:
 	Ui::MainWindow *ui;
+	TipsDialog* tipsDialog;
+	HelpDialog* helpDialog;
 	std::vector<FunctionView*> functionViews;
 	
 	// Data:

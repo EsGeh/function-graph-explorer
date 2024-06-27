@@ -19,6 +19,7 @@ const unsigned int viewResolution = 4410;
 
 int main(int argc, char *argv[])
 {
+	std::srand(std::time(0));
 #ifndef NDEBUG
 	qSetMessagePattern("[%{time hh:mm:ss}] [%{threadid}] %{message}");
 #endif

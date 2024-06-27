@@ -87,7 +87,7 @@
          <x>0</x>
          <y>0</y>
          <width>692</width>
-         <height>292</height>
+         <height>270</height>
         </rect>
        </property>
        <layout class="QVBoxLayout" name="verticalLayout">
@@ -110,6 +110,31 @@
     </item>
    </layout>
   </widget>
+  <widget class="QMenuBar" name="menuBar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>712</width>
+     <height>22</height>
+    </rect>
+   </property>
+  </widget>
+  <action name="actionInfo">
+   <property name="text">
+    <string>Keys</string>
+   </property>
+  </action>
+  <action name="actionInfo_2">
+   <property name="text">
+    <string>Info</string>
+   </property>
+  </action>
+  <action name="actionTips">
+   <property name="text">
+    <string>Tips</string>
+   </property>
+  </action>
  </widget>
  <resources/>
  <connections/>
