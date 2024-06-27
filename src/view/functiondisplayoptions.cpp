@@ -44,6 +44,17 @@ const std::vector<Template> templates = {
 		}).join("\n")
 	},
 	{
+		.name = "Advanced Sawtooth Wave",
+		.formula = (QStringList {
+			"var x_ := x * freq;",
+			"if( (x_%1) < shape, 1/shape*(x_%1), 1-1/(1-shape)*((x_-shape)%1) );"
+		}).join("\n"),
+		.data = (QStringList {
+			"parameter 1 freq 1 0 1000 0 ramp=volume",
+			"parameter 1 shape 1 0 1 0 ramp=parameter"
+		}).join("\n")
+	},
+	{
 		.name = "Amp Envelope",
 		.formula = (QStringList {
 			"(0.5 -0.5*cos(2pi * (x%1)^(1/shape)))"
