@@ -80,6 +80,9 @@ ScheduledFunctionCollectionImpl::ScheduledFunctionCollectionImpl(
 {
 	LOG_FUNCTION()
 	modelWorkerThread = std::thread([this](){ modelWorkerLoop(); } );
+	getNetwork()->write([](auto network) {
+			network->setMasterEnvelope( 0 );
+	});
 }
 
 ScheduledFunctionCollectionImpl::~ScheduledFunctionCollectionImpl()
