@@ -13,13 +13,18 @@ class MainWindow;
 }
 QT_END_NAMESPACE
 
+struct Resources {
+	std::vector<QString> tips;
+};
+
 class MainWindow : public QMainWindow
 {
   Q_OBJECT
 
 public:
   MainWindow(
-    QWidget *parent = nullptr
+			const Resources* resources,
+    	QWidget *parent = nullptr
   );
   ~MainWindow();
 

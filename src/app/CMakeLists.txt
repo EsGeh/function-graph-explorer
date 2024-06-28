@@ -2,6 +2,8 @@ add_executable(${TARGET_NAME}
 	main.cpp
 	controller.cpp
 	controller.h
+	resources.cpp
+	resources.h
 )
 
 set_target_properties(${TARGET_NAME} PROPERTIES

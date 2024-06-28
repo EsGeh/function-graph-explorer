@@ -1,6 +1,7 @@
+#include "controller.h"
+#include "resources.h"
 #include "fge/model/model.h"
 #include "fge/view/mainwindow.h"
-#include "controller.h"
 #include "fge/audio/jack.h"
 #include "fge/shared/config.h"
 
@@ -46,7 +47,10 @@ int main(int argc, char *argv[])
 	auto model = modelFactory(
 			defSamplingSettings
 	);
-	auto view = MainWindow();
+	Resources resources = loadResources();
+	auto view = MainWindow(
+			&resources
+	);
 	Controller controller(
 			model.get(),
 			&view,

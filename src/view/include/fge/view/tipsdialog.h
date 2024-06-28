@@ -12,13 +12,17 @@ class TipsDialog : public QDialog
     Q_OBJECT
 
 public:
-    explicit TipsDialog(QWidget *parent = nullptr);
+    explicit TipsDialog(
+				const std::vector<QString>* tips,
+				QWidget *parent = nullptr
+		);
     ~TipsDialog();
 
 private:
 		void nextTip();
 private:
     Ui::TipsDialog *ui;
+		const std::vector<QString>* tips;
 		uint currentTip;
 };
 

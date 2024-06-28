@@ -7,7 +7,10 @@
 #include <qspinbox.h>
 
 
-MainWindow::MainWindow(QWidget *parent)
+MainWindow::MainWindow(
+		const Resources* resources,
+		QWidget *parent
+)
 		: QMainWindow(parent)
 		, ui(new Ui::MainWindow)
 		, tipsDialog( nullptr )
@@ -16,7 +19,10 @@ MainWindow::MainWindow(QWidget *parent)
 {
 	ui->setupUi(this);
 	ui->time->setEnabled(false);
-	tipsDialog = new TipsDialog(this);
+	tipsDialog = new TipsDialog(
+			&resources->tips,
+			this
+	);
 	helpDialog = new HelpDialog(this);
 	connect(
 		ui->functionCount,
