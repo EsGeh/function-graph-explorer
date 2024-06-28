@@ -52,39 +52,6 @@
  * Utils:
 ************************/
 
-template <auto function, typename... Args>
-struct WritePrepare;
-
-template <auto function>
-struct WritePrepare<function>
-{
-	// static_assert( IsSetter<function>::value );
-	template <typename TaskQueue>
-	static void prepare(
-			TaskQueue& tasksQueue
-	)
-	{
-		Ramping::rampMasterEnv( tasksQueue, 0 );
-	}
-};
-
-template <>
-struct WritePrepare<&ScheduledFunctionCollectionImpl::setIsPlaybackEnabled>
-{
-	template <typename TaskQueue>
-	static void prepare(
-			TaskQueue& tasksQueue,
-			const std::shared_ptr<SampledFunctionCollectionImpl> network,
-			const uint index, const bool value
-	)
-	{
-		if( value ) {
-			Ramping::adjustMasterVolume(tasksQueue, network);
-		}
-		Ramping::rampMasterEnv( tasksQueue, 0 );
-	}
-};
-
 template <typename TaskQueue>
 static void postWrite(
 		TaskQueue& tasksQueue,
@@ -110,7 +77,6 @@ ScheduledFunctionCollectionImpl::ScheduledFunctionCollectionImpl(
 				defSamplingSettings
 	), "NETWORK" )
 	, writeTasks( "TASKS" )
-	// , modelWorkerThread([this](){ modelWorkerLoop(); } )
 {
 	LOG_FUNCTION()
 	modelWorkerThread = std::thread([this](){ modelWorkerLoop(); } );
@@ -237,7 +203,7 @@ void ScheduledFunctionCollectionImpl::prepareResize()
 		return;
 	}
 	writeTasks.write([](auto& tasksQueue) {
-			WritePrepare<&ScheduledFunctionCollectionImpl::resize>::prepare(tasksQueue);
+		Ramping::rampMasterEnv( tasksQueue, 0 );
 	});
 }
 
@@ -249,7 +215,7 @@ void ScheduledFunctionCollectionImpl::prepareSet(const Index index)
 	}
 	// ramp down first:
 	writeTasks.write([](auto& tasksQueue) {
-			WritePrepare<&ScheduledFunctionCollectionImpl::set>::prepare(tasksQueue);
+		Ramping::rampMasterEnv( tasksQueue, 0 );
 	});
 }
 
@@ -260,7 +226,7 @@ void ScheduledFunctionCollectionImpl::prepareSetParameterValues(const Index inde
 		return;
 	}
 	writeTasks.write([](auto& tasksQueue) {
-			WritePrepare<&ScheduledFunctionCollectionImpl::setParameterValues>::prepare(tasksQueue);
+		Ramping::rampMasterEnv( tasksQueue, 0 );
 	});
 }
 
@@ -272,11 +238,10 @@ void ScheduledFunctionCollectionImpl::prepareSetIsPlaybackEnabled(const Index in
 	}
 	writeTasks.write([this,index,value](auto& tasksQueue) {
 	getNetwork()->read([&tasksQueue,index,value](auto& network) {
-			WritePrepare<&ScheduledFunctionCollectionImpl::setIsPlaybackEnabled>::prepare(
-					tasksQueue,
-					network,
-					index, value
-			);
+		if( value ) {
+			Ramping::adjustMasterVolume(tasksQueue, network);
+		}
+		Ramping::rampMasterEnv( tasksQueue, 0 );
 	});
 	});
 }
@@ -288,9 +253,7 @@ void ScheduledFunctionCollectionImpl::prepareSetSamplingSettings(const Index ind
 		return;
 	}
 	writeTasks.write([](auto& tasksQueue) {
-			WritePrepare<&ScheduledFunctionCollectionImpl::setSamplingSettings>::prepare(
-					tasksQueue
-			);
+		Ramping::rampMasterEnv( tasksQueue, 0 );
 	});
 }
 
@@ -322,7 +285,7 @@ void ScheduledFunctionCollectionImpl::resize( const uint size )
 		return;
 	}
 	auto future = writeTasks.write([&](auto& tasksQueue) {
-		WritePrepare<&ScheduledFunctionCollectionImpl::resize>::prepare(tasksQueue);
+		Ramping::rampMasterEnv( tasksQueue, 0 );
 		// schedule model change:
 		return makeSetter<::resize>(
 				tasksQueue,
@@ -394,26 +357,21 @@ MaybeError ScheduledFunctionCollectionImpl::bulkUpdate(
 				|| update.parameters.has_value()
 				|| update.stateDescriptions.has_value()
 		) {
-			WritePrepare<&ScheduledFunctionCollectionImpl::set>::prepare(tasksQueue);
+			Ramping::rampMasterEnv( tasksQueue, 0 );
 		}
 		if( update.playbackEnabled.has_value() ) {
 			getNetwork()->read([&tasksQueue,index,value = update.playbackEnabled.value()](auto& network) {
-					WritePrepare<&ScheduledFunctionCollectionImpl::setIsPlaybackEnabled>::prepare(
-							tasksQueue,
-							network,
-							index, value
-					);
+				if( value ) {
+					Ramping::adjustMasterVolume(tasksQueue, network);
+				}
+				Ramping::rampMasterEnv( tasksQueue, 0 );
 			});
 		}
 		if( update.playbackSettings.has_value() ) {
-			WritePrepare<&ScheduledFunctionCollectionImpl::setPlaybackSettings>::prepare(
-					tasksQueue
-			);
+			Ramping::rampMasterEnv( tasksQueue, 0 );
 		}
 		if( update.samplingSettings.has_value() ) {
-			WritePrepare<&ScheduledFunctionCollectionImpl::setSamplingSettings>::prepare(
-					tasksQueue
-			);
+			Ramping::rampMasterEnv( tasksQueue, 0 );
 		}
 		// SET:
 		return [this,&tasksQueue,index,update]()
@@ -497,7 +455,7 @@ MaybeError ScheduledFunctionCollectionImpl::set(
 	}
 	auto future = writeTasks.write([&](auto& tasksQueue) {
 		// ramp down first:
-		WritePrepare<&ScheduledFunctionCollectionImpl::set>::prepare(tasksQueue);
+		Ramping::rampMasterEnv( tasksQueue, 0 );
 		// schedule model change:
 		return makeSetter<::set>(
 					tasksQueue,
@@ -551,7 +509,7 @@ MaybeError ScheduledFunctionCollectionImpl::setParameterValues(
 				return future;
 			}
 			// ramp down first:
-			WritePrepare<&ScheduledFunctionCollectionImpl::setParameterValues>::prepare(tasksQueue);
+			Ramping::rampMasterEnv( tasksQueue, 0 );
 			ParameterBindings volumeFadeParameters;
 			for( auto [name, value] : volumeFadeParametersView ) {
 				// qDebug() << "FADE parameter:" << name;
@@ -630,9 +588,7 @@ void ScheduledFunctionCollectionImpl::setPlaybackSettings(
 	}
 	auto future = writeTasks.write([&](auto& tasksQueue) {
 		// ramp down first:
-		WritePrepare<&ScheduledFunctionCollectionImpl::setPlaybackSettings>::prepare(
-				tasksQueue
-		);
+		Ramping::rampMasterEnv( tasksQueue, 0 );
 		// schedule model change:
 		return makeSetter<::setPlaybackSettings>(
 				tasksQueue,
@@ -660,11 +616,10 @@ void ScheduledFunctionCollectionImpl::setIsPlaybackEnabled(
 	auto future = writeTasks.write([&](auto& tasksQueue) {
 		// ramp down first:
 		getNetwork()->read([&](auto& network) {
-			WritePrepare<&ScheduledFunctionCollectionImpl::setIsPlaybackEnabled>::prepare(
-					tasksQueue,
-					network,
-					index, value
-			);
+			if( value ) {
+				Ramping::adjustMasterVolume(tasksQueue, network);
+			}
+			Ramping::rampMasterEnv( tasksQueue, 0 );
 		});
 		// schedule model change:
 		return makeSetter<::setIsPlaybackEnabled>(
@@ -691,9 +646,7 @@ void ScheduledFunctionCollectionImpl::setSamplingSettings(
 	}
 	auto future = writeTasks.write([&](auto& tasksQueue) {
 		// ramp down first:
-		WritePrepare<&ScheduledFunctionCollectionImpl::setSamplingSettings>::prepare(
-				tasksQueue
-		);
+		Ramping::rampMasterEnv( tasksQueue, 0 );
 		// schedule model change:
 		return makeSetter<::setSamplingSettings>(
 				tasksQueue,
@@ -867,7 +820,7 @@ void ScheduledFunctionCollectionImpl::betweenAudio(
 		;
 		for( auto task : finishedRamps ) {
 			if( !task->delayedUpdates.empty() ) {
-				WritePrepare<&ScheduledFunctionCollectionImpl::setParameterValues>::prepare(tasksQueue);
+				Ramping::rampMasterEnv( tasksQueue, 0 );
 			}
 			makeSetter<::updateBuffers>(
 					tasksQueue,
