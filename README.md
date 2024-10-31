@@ -23,11 +23,13 @@ Examples:
 
 This project is in an early stage. Functionality is still incomplete and might change rapidly.
 
-Screenshots:
+## Screenshots:
 
 ![screenshot3](doc/screenshot3.jpg)
 
-Demo Video:
+## Demos:
+
+[Demo Video](https://youtube.com/watch?v=EP8U7SJlOHM):
 
 [![Demo Video](https://img.youtube.com/vi/EP8U7SJlOHM/0.jpg)](https://youtube.com/watch?v=EP8U7SJlOHM)
 
