@@ -25,6 +25,8 @@ This project is in an early stage. Functionality is still incomplete and might c
 
 ![screenshot3](doc/screenshot3.jpg)
 
+[![Demo Video](https://img.youtube.com/vi/EP8U7SJlOHM/0.jpg)](https://youtube.com/watch?v=EP8U7SJlOHM)
+
 # Concept
 
 The data model is based on the idea of chaining mathematical functions.
