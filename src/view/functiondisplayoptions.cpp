@@ -242,21 +242,21 @@ FunctionDisplayOptions::FunctionDisplayOptions(
 	);
 	// originCentered:
 	connect(
-			ui->centeredX, &QCheckBox::stateChanged,
+			ui->centeredX, &QCheckBox::checkStateChanged,
 			[this](bool value){ this->viewData.originCentered.first = value; }
 	);
 	connect(
-			ui->centeredY, &QCheckBox::stateChanged,
+			ui->centeredY, &QCheckBox::checkStateChanged,
 			[this](bool value){ this->viewData.originCentered.second = value; }
 	);
 	// displayImaginary:
 	connect(
-			ui->displayImaginary, &QCheckBox::stateChanged,
+			ui->displayImaginary, &QCheckBox::checkStateChanged,
 			[this](bool value){ this->viewData.displayImaginary = value; }
 	);
 	// autoScrollOnPlayback:
 	connect(
-			ui->autoScrollOnPlayback, &QCheckBox::stateChanged,
+			ui->autoScrollOnPlayback, &QCheckBox::checkStateChanged,
 			[this](bool value){ this->viewData.autoScrollOnPlayback = value; }
 	);
 	// playback:
@@ -278,7 +278,7 @@ FunctionDisplayOptions::FunctionDisplayOptions(
 			[this](int value){ this->samplingSettings.periodic = value; }
 	);
 	connect(
-			ui->buffered, &QCheckBox::stateChanged,
+			ui->buffered, &QCheckBox::checkStateChanged,
 			[this](int value){ this->samplingSettings.buffered = value; }
 	);
 }

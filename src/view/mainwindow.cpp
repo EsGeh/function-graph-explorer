@@ -33,7 +33,7 @@ MainWindow::MainWindow(
 	);
 	connect(
 		ui->audioEnabled,
-		&QCheckBox::stateChanged,
+		&QCheckBox::checkStateChanged,
 		[this]( auto value ) {
 			if( value ) {
 				ui->playbackSpeed->setEnabled( false );

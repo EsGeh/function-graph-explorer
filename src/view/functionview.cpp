@@ -83,7 +83,7 @@ FunctionView::FunctionView(
 	);
 	connect(
 		ui->playbackEnabled,
-		&QCheckBox::stateChanged,
+		&QCheckBox::checkStateChanged,
 		[this](auto value) {
 			if( !value) {
 				disablePlaybackPosition();
