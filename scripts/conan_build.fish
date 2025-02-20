@@ -31,6 +31,10 @@ argparse \
 	'b/build=!validate_build_type' \
 	-- $argv
 and begin
+	if set --query _flag_help
+		print_help
+		exit 0
+	end
 	if set --query _flag_build
 		set BUILD_TYPE $_flag_build
 	end
