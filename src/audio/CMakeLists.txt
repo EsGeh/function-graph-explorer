@@ -1,11 +1,6 @@
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/../../cmake")
 include (FindPkgConfig)
 
-set(UI_DIR ui)
-set(CMAKE_AUTOUIC ON)
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTOUIC_SEARCH_PATHS ${UI_DIR})
-
 qt_add_library(audio
 	jack.cpp
 	include/fge/audio/jack.h
