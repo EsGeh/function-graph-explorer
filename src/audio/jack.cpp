@@ -12,7 +12,9 @@
 using namespace std::chrono_literals;
 #endif
 
-// jack callback functions:
+/********************
+ * jack callback function
+*********************/
 
 int processAudio(
 		jack_nframes_t nframes,
@@ -35,55 +37,34 @@ void AudioWorker::init(
 )
 {
 	this->callbacks = callbacks;
-	this->samplerate = samplerate;
+	resize(size, samplerate);
+}
+
+void AudioWorker::resize(
+		const uint size,
+		const uint samplerate
+)
+{
 	qDebug() << "buffer size:" << size;
-	for( uint i=0; i<count; i++ ) {
-		buffer[i].resize(size);
-	}
-}
-
-SampleTable* AudioWorker::getSamplesInit() {
-	if( !hasData.try_acquire() ) {
-		qDebug() << "INTERNAL XRUN!";
-	}
-	return &buffer[readIndex];
-}
-
-void AudioWorker::getSamplesExit() {
-	readIndex = (readIndex + 1) % count;
-	// signal the worker
-	// thread, we are done
-	buffersNotFull.release();
+	this->samplerate = samplerate;
+	this->ringBuffer.init( size );
 }
 
 void AudioWorker::run() {
-	readIndex = 0;
-	writeIndex = 0;
 	position = 0;
 	stopWorkerSignal = false;
 	isRunning = true;
-	// init buffersNotFull = 2:
-	{
-		while( buffersNotFull.try_acquire() ) {};
-		for( uint i=0; i<count; i++) {
-			buffersNotFull.release();
-		}
-	}
-	// init hasData = 0:
-	{
-		while( hasData.try_acquire() ) {};
-	}
-	buffersNotFull.acquire();
-	fillBuffer(writeIndex);
-	writeIndex = (writeIndex + 1) % count;
-	hasData.release();
-	// fill next buffer
+	// repeatedly fill buffer:
 	worker = std::thread([this]{
 		while(!stopWorkerSignal) {
-			buffersNotFull.acquire();
-			fillBuffer(writeIndex);
-			writeIndex = (writeIndex + 1) % count;
-			hasData.release();
+			ringBuffer.write([this](auto buffer){
+				callbacks.valuesToBuffer(
+						buffer,
+						position,
+						samplerate
+				);
+				this->position += ringBuffer.getSize();
+			});
 			callbacks.betweenAudioCallback(position, samplerate);
 		}
 		qDebug().nospace() << "AUDIO THREAD done: ";
@@ -97,21 +78,11 @@ void AudioWorker::run() {
 
 void AudioWorker::stop() {
 	stopWorkerSignal = true;
-	buffersNotFull.release();
 	worker.join();
 }
 
 bool AudioWorker::getIsRunning() const {
 	return isRunning;
-}
-
-void AudioWorker::fillBuffer(const uint index) {
-	callbacks.valuesToBuffer(
-			&buffer[index],
-			position,
-			samplerate
-	);
-	this->position += buffer[index].size();
 }
 
 /********************
@@ -262,6 +233,17 @@ uint JackClient::getSamplerate()
 	return samplerate;
 }
 
+void JackClient::setBufferSize(
+		const uint32_t size
+)
+{
+	bufferSize = size;
+	audioWorker.resize(
+			size,
+			samplerate
+	);
+}
+
 int processAudio(
 		jack_nframes_t nframes,
 		void* arg
@@ -278,13 +260,7 @@ int processAudio(
 		memset(buffer, 0, sizeof(sample_t) * nframes);
 		return 0;
 	}
-	memcpy(
-			buffer,
-			jackObj->audioWorker.getSamplesInit()->data(),
-			sizeof(sample_t) * nframes
-	);
-	jackObj->audioWorker.getSamplesExit();
-
+	jackObj->audioWorker.fillBuffer( buffer );
 	return 0;
 }
 
@@ -294,6 +270,6 @@ int setBufferSizeCallback(
 )
 {
 	auto jackObj = (JackClient* )arg;
-	jackObj->bufferSize = nframes;
+	jackObj->setBufferSize( nframes );
 	return 0;
 }

@@ -1,6 +1,7 @@
 #ifndef JACK_H
 #define JACK_H
 
+#include "fge/audio/sample_ring_buffer.h"
 #include "fge/shared/utils.h"
 #include <jack/jack.h>
 #include <semaphore>
@@ -33,38 +34,39 @@ struct Callbacks {
 	SchedulerCallback betweenAudioCallback;
 };
 
-/**
-Work a little bit ahead 
-to ensure, that there is
-always audio data for
-jack to play.
-Prefills [an] audio buffer[s]
-by invoking a callback.
-*/
 
+/**
+ * Work a little bit ahead 
+ * and fill a ring buffer
+ * with audio data to ensure
+ * that there is always
+ * audio data for jack to play.
+ */
 class AudioWorker
 {
-	const static uint count = 2;
 	public:
 		void init(
 				const Callbacks& callbacks,
 				const uint size,
 				const uint samplerate
 		);
+		void resize(
+				const uint size,
+				const uint samplerate
+		);
 
-		// Get the (hopefully)
-		// already prefilled buffer.
-		// Always call `getSamplesExit()`
-		// after done with the buffer,
-		// so that the worker may
-		// continue.
-		SampleTable* getSamplesInit();
-
-		// Signalise we are done
-		// with the current buffer
-		// so the worker thread
-		// may continue.
-		void getSamplesExit();
+		void fillBuffer(
+				sample_t* buffer
+		)
+		{
+			ringBuffer.read([buffer, size=ringBuffer.getSize()](auto srcBuffer) {
+				memcpy(
+						buffer,
+						srcBuffer->data(),
+						sizeof(sample_t) * size
+				);
+			});
+		}
 
 		// Start worker thread
 		void run();
@@ -74,19 +76,10 @@ class AudioWorker
 		// Is worker thread running?
 		bool getIsRunning() const;
 	private:
-		void fillBuffer(const uint index);
-	private:
-		// worker thread:
-		std::counting_semaphore<2> buffersNotFull{2};
-		std::counting_semaphore<2> hasData{0};
-		// std::mutex lock;
+		SampleRingBuffer ringBuffer;
 		std::thread worker;
 		std::atomic<bool> stopWorkerSignal = true;
 		std::atomic<bool> isRunning = false;
-		// buffers:
-		SampleTable buffer[count];
-		uint readIndex = 0;
-		uint writeIndex = 0;
 		// audio callback:
 		Callbacks callbacks;
 		PlaybackPosition position = 0;
@@ -121,12 +114,11 @@ class JackClient {
 		QString getClientName() const;
 		uint getSamplerate();
 
-	friend int processAudio(
-			jack_nframes_t nframes,
-			void* arg
-	);
+		void setBufferSize(
+				const uint32_t size
+		);
 
-	friend int setBufferSizeCallback(
+	friend int processAudio(
 			jack_nframes_t nframes,
 			void* arg
 	);
