@@ -7,6 +7,10 @@
 
 #include <QApplication>
 #include <QDebug>
+#include <csignal>
+#include <qapplication.h>
+#include <qlogging.h>
+#include <signal.h>
 #include <thread>
 
 
@@ -18,8 +22,22 @@ const auto defSamplingSettings = SamplingSettings{
 };
 const unsigned int viewResolution = 4410;
 
+void handle_signal(int sig) {
+	if( sig == SIGINT || sig == SIGTERM) {
+		QApplication::exit(0);
+	}
+}
+
 int main(int argc, char *argv[])
 {
+	
+	struct sigaction sig;
+	sig.sa_handler = &handle_signal;
+	sigemptyset( &sig.sa_mask );
+	sig.sa_flags = 0;
+	if( sigaction(SIGINT,&sig,nullptr) ) { std::perror( "signal handler error" ); }
+	if( sigaction(SIGTERM,&sig,nullptr) ) { std::perror( "signal handler error" ); }
+
 	std::srand(std::time(0));
 #ifndef NDEBUG
 	qSetMessagePattern("[%{time hh:mm:ss}] [%{threadid}] %{message}");

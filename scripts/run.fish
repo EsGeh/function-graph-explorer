@@ -28,6 +28,10 @@ argparse \
 	'b/build=!validate_build_type' \
 	-- $argv
 and begin
+	if set --query _flag_help
+		print_help
+		exit
+	end
 	if set --query _flag_build
 		set BUILD_TYPE $_flag_build
 	end
@@ -50,9 +54,15 @@ end
 echo "running '$EXE[1]'"
 $EXE[1] &
 
+set proc_id $last_pid
+
+function int_handler --on-signal SIGINT
+	kill -s SIGTERM $proc_id
+end
+
 sleep 1
 
 jack_connect fge:out system:playback_1
 jack_connect fge:out system:playback_2
 
-wait $last_pid
+wait $proc_id
