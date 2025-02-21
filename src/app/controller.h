@@ -8,8 +8,6 @@
 #include <QObject>
 #include <QThread>
 #include <QTimer>
-#include <concepts>
-#include <mutex>
 #include <qnamespace.h>
 #include <ranges>
 #include <utility>
@@ -27,18 +25,18 @@
  * Since changes to the model may
  * take some time (due to audio ramping),
  * in order for the gui not being
- * blocked, the `ModelWorker`s update
+ * blocked, the `ModelUpdateQueue`s update
  * slots immediately return and queue
  * up the model update.
  * A signal is sent after the update
  * has actually taken place.
 */
-class ModelWorker: public QObject
+class ModelUpdateQueue: public QObject
 {
 	Q_OBJECT
 
 public:
-	explicit ModelWorker(
+	explicit ModelUpdateQueue(
 			Model* model,
 			QObject *parent = nullptr
 	)
@@ -49,14 +47,14 @@ public:
 		timer = new QTimer(this);
 
 		connect(workerThread, &QThread::finished, this, &QObject::deleteLater);
-		connect(timer, &QTimer::timeout, this, &ModelWorker::tick);
+		connect(timer, &QTimer::timeout, this, &ModelUpdateQueue::tick);
 
 		this->moveToThread( workerThread );
 		workerThread->start();
-		QMetaObject::invokeMethod(this, &ModelWorker::printThreadId, Qt::QueuedConnection );
+		QMetaObject::invokeMethod(this, &ModelUpdateQueue::printThreadId, Qt::QueuedConnection );
 	};
 
-	~ModelWorker() {
+	~ModelUpdateQueue() {
 		delete timer;
 	}
 
@@ -75,7 +73,7 @@ public:
 	}
 
 	void printThreadId() {
-		qDebug() << "GUI WORKER THREAD:" << (unsigned long )QThread::currentThreadId();
+		qDebug() << "MODEL UPDATE THREAD:" << (unsigned long )QThread::currentThreadId();
 	}
 
 	void startTimer() {
@@ -137,7 +135,7 @@ public:
 			Function f,
 			Continuation doneCallback
 	) {
-		qDebug() << "ModelWorker::write" << updateName;
+		qDebug() << "ModelUpdateQueue::write" << updateName;
 		if constexpr ( std::same_as<decltype(f(model)),void> ) {
 			QMetaObject::invokeMethod(
 					this,
@@ -210,7 +208,7 @@ private:
 	MainWindow* view;
 	JackClient* jack;
 	const uint viewResolution;
-	ModelWorker* modelWorker;
+	ModelUpdateQueue* modelUpdateQueue;
 
 };
 

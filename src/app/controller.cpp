@@ -1,9 +1,5 @@
 #include "controller.h"
-#include <mutex>
 #include <qnamespace.h>
-#include <qobjectdefs.h>
-#include <scoped_allocator>
-#include <QtConcurrent>
 
 #ifdef LOG_CONTROLLER
 #include <source_location>
@@ -32,14 +28,14 @@ Controller::Controller(
 
 	// INITIALIZE:
 
-	// modelWorker:
-	modelWorker = new ModelWorker( model, this );
+	// modelUpdateQueue:
+	modelUpdateQueue = new ModelUpdateQueue( model, this );
 	assert( view->getFunctionViewCount() == 1 );
 
 	// CONNECTIONS:
 	connect(
-		modelWorker,
-		&ModelWorker::writeDone,
+		modelUpdateQueue,
+		&ModelUpdateQueue::writeDone,
 		this,
 		&Controller::writeDoneCallback
 	);
@@ -50,7 +46,7 @@ Controller::Controller(
 		&MainWindow::functionCountChanged,
 		this,
 		[this]( uint value ) {
-			modelWorker->write( this, "resize",
+			modelUpdateQueue->write( this, "resize",
 					[value](auto model) {
 						auto oldSize = model->size();
 						model->resize( value );
@@ -68,7 +64,7 @@ Controller::Controller(
 			view,
 			&MainWindow::globalPlaybackSpeedChanged,
 			[this]( auto value ) {
-				modelWorker->write(this, "setPlaybackSpeed", [value](auto model){
+				modelUpdateQueue->write(this, "setPlaybackSpeed", [value](auto model){
 						model->setPlaybackSpeed( value );
 				},
 				[](auto){});
@@ -88,11 +84,11 @@ Controller::Controller(
 		}
 	);
 	connect(
-		modelWorker,
-		&ModelWorker::tick,
+		modelUpdateQueue,
+		&ModelUpdateQueue::tick,
 		this,
 		[this]() {
-			modelWorker->read( this,
+			modelUpdateQueue->read( this,
 					[](auto model) {
 						return double(model->getPosition()) / double(model->getSamplerate());
 					},
@@ -102,7 +98,7 @@ Controller::Controller(
 	);
 
 	// SET INITIAL model size:
-	modelWorker->write(
+	modelUpdateQueue->write(
 			this, "initialize model size",
 			[view](auto model){
 					model->resize( view->getFunctionViewCount() );
@@ -127,7 +123,7 @@ void Controller::exit()
 {
 	LOG_FUNCTION()
 	stopPlayback().get();
-	modelWorker->exit();
+	modelUpdateQueue->exit();
 }
 
 void Controller::writeDoneCallback(
@@ -157,7 +153,7 @@ void Controller::resizeView(
 				&FunctionView::changed,
 				this,
 				[this,index](auto updateInfo) {
-					modelWorker->write(
+					modelUpdateQueue->write(
 							this,
 							"update",
 							[index,updateInfo](auto model){
@@ -200,7 +196,7 @@ void Controller::resizeView(
 				&FunctionView::parameterChanged,
 				this,
 				[this,index](auto parameterName, auto value) {
-					modelWorker->write( this, "parameterChanged",
+					modelUpdateQueue->write( this, "parameterChanged",
 							[this,index, parameterName, value](auto model) -> MaybeError {
 								// update parameters asynchronously:
 								ParameterBindings parameters = { { parameterName, value } };
@@ -208,7 +204,7 @@ void Controller::resizeView(
 									return model->scheduleSetParameterValues(
 											index, parameters,
 											[this](auto index, auto parameters) {
-												modelWorker->write(this,"async parameter done",
+												modelUpdateQueue->write(this,"async parameter done",
 														[](auto model) {
 															model->postSetAny();
 														},
@@ -251,13 +247,13 @@ void Controller::resizeView(
 				);
 			}
 		);
-		// view -> modelWorker
+		// view -> modelUpdateQueue
 		connect(
 			functionView,
 			&FunctionView::viewParamsChanged,
 			this,
 			[this,index]{
-				modelWorker->read(
+				modelUpdateQueue->read(
 						this,
 						[](auto){},
 						[this,index](auto model){
@@ -300,7 +296,7 @@ void Controller::setViewGraph(const Model* model, const uint iFunction) {
 
 void Controller::startPlayback()
 {
-	modelWorker->write( this, "setAudioSchedulingEnabled(true)",
+	modelUpdateQueue->write( this, "setAudioSchedulingEnabled(true)",
 			[jack = this->jack](auto model){
 				auto maybeError = jack->start(
 						Callbacks{
@@ -319,7 +315,7 @@ void Controller::startPlayback()
 				}
 			},
 			[this](auto){
-				modelWorker->startTimer();
+				modelUpdateQueue->startTimer();
 			}
 	);
 }
@@ -328,8 +324,8 @@ std::future<void> Controller::stopPlayback()
 {
 	std::shared_ptr<std::promise<void>> promise = std::make_shared<std::promise<void>>();
 	auto future = promise->get_future();
-	modelWorker->stopTimer();
-	modelWorker->write( this, "setAudioSchedulingEnabled(false)",
+	modelUpdateQueue->stopTimer();
+	modelUpdateQueue->write( this, "setAudioSchedulingEnabled(false)",
 			[this,promise](auto model){
 				model->setAudioSchedulingEnabled(false);
 				jack->stop();
