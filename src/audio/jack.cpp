@@ -3,6 +3,9 @@
 #include <jack/types.h>
 #include <QDebug>
 #include <thread>
+#ifdef __gnu_linux__
+#include <pthread.h>
+#endif
 
 #ifdef DEBUG_CONCURRENCY
 #include <chrono>
@@ -86,6 +89,9 @@ void AudioWorker::run() {
 		qDebug().nospace() << "AUDIO THREAD done: ";
 		isRunning = false;
 	});
+#ifdef __gnu_linux__
+	pthread_setname_np( worker.native_handle(), "AUDIO WORKER" );
+#endif
 	qDebug().nospace() << "AUDIO THREAD: " << to_qstring( worker.get_id() );
 }
 

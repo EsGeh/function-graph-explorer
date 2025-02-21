@@ -13,6 +13,9 @@
 #include <ranges>
 #include <algorithm>
 #include <thread>
+#ifdef __gnu_linux__
+#include <pthread.h>
+#endif
 
 
 #ifndef NDEBUG
@@ -80,6 +83,9 @@ ScheduledFunctionCollectionImpl::ScheduledFunctionCollectionImpl(
 {
 	LOG_FUNCTION()
 	modelWorkerThread = std::thread([this](){ modelWorkerLoop(); } );
+#ifdef __gnu_linux__
+	pthread_setname_np( modelWorkerThread.native_handle(), "MODEL WORKER" );
+#endif
 	getNetwork()->write([](auto network) {
 			network->setMasterEnvelope( 0 );
 	});

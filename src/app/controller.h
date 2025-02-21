@@ -45,6 +45,7 @@ public:
 		: model(model)
 	{
 		workerThread = new QThread(parent);
+		workerThread->setObjectName("MODEL UPDATE QUEUE");
 		timer = new QTimer(this);
 
 		connect(workerThread, &QThread::finished, this, &QObject::deleteLater);
