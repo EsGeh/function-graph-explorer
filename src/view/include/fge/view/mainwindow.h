@@ -4,6 +4,8 @@
 #include "fge/view/functionview.h"
 #include "fge/view/tipsdialog.h"
 #include "fge/view/helpdialog.h"
+#include "fge/view/statistics.h"
+#include "statistics.h"
 
 #include <QMainWindow>
 
@@ -38,6 +40,9 @@ public:
 	void resetPlayback();
 	void setGlobalPlaybackSpeed( const double value );
 	void setPlaybackTime( const double value );
+	void setStatistics(
+			const Statistics& statistics
+	);
 
 signals:
 	void functionCountChanged(const uint count);
@@ -48,6 +53,7 @@ private:
 	Ui::MainWindow *ui;
 	TipsDialog* tipsDialog;
 	HelpDialog* helpDialog;
+	StatisticsDialog* statsDialog;
 	std::vector<FunctionView*> functionViews;
 	
 	// Data:

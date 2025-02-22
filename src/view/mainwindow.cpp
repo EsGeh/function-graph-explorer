@@ -1,4 +1,5 @@
 #include "fge/view/mainwindow.h"
+#include "include/fge/view/statistics.h"
 #include "include/fge/view/tipsdialog.h"
 #include "ui_mainwindow.h"
 #include <QChart>
@@ -24,6 +25,7 @@ MainWindow::MainWindow(
 			this
 	);
 	helpDialog = new HelpDialog(this);
+	statsDialog = new StatisticsDialog(this);
 	connect(
 		ui->functionCount,
 		&QSpinBox::valueChanged,
@@ -69,6 +71,14 @@ MainWindow::MainWindow(
 			connect( action, &QAction::triggered,
 					[this]() {
 						helpDialog->show();
+					}
+			);
+		}
+		{
+			auto action = helpMenu->addAction( "Statistics" );
+			connect( action, &QAction::triggered,
+					[this]() {
+						statsDialog->show();
 					}
 			);
 		}
@@ -143,4 +153,11 @@ void MainWindow::setPlaybackTime( const double value )
 		}
 		funcView->setPlaybackTime( value );
 	}
+}
+
+void MainWindow::setStatistics(
+		const Statistics& statistics
+)
+{
+	statsDialog->set( statistics );
 }

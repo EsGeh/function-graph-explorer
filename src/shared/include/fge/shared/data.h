@@ -4,6 +4,7 @@
 #include <QString>
 #include <optional>
 #include <expected>
+#include <chrono>
 #include "fge/shared/complex_adaptor.h"
 
 using uint = unsigned int;
@@ -40,6 +41,12 @@ struct ParameterDescription {
 	double max = 1;
 	double step = 0;
 	FadeType rampType = FadeType::RampVolume;
+};
+
+struct Statistics {
+	std::chrono::microseconds avg_time{0};
+	std::chrono::microseconds max_time{0};
+	std::chrono::microseconds deadline{0};
 };
 
 using ParameterDescriptions = std::map<QString,ParameterDescription>;

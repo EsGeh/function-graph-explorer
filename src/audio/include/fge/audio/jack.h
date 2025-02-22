@@ -3,6 +3,7 @@
 
 #include "fge/audio/sample_ring_buffer.h"
 #include "fge/shared/utils.h"
+#include <chrono>
 #include <jack/jack.h>
 #include <semaphore>
 #include <thread>
@@ -75,6 +76,7 @@ class AudioWorker
 
 		// Is worker thread running?
 		bool getIsRunning() const;
+		const Statistics& getStatistics() const;
 	private:
 		SampleRingBuffer ringBuffer;
 		std::thread worker;
@@ -84,6 +86,8 @@ class AudioWorker
 		Callbacks callbacks;
 		PlaybackPosition position = 0;
 		uint samplerate = 0;
+
+		Statistics statistics;
 };
 
 
@@ -113,6 +117,7 @@ class JackClient {
 
 		QString getClientName() const;
 		uint getSamplerate();
+		const Statistics& getStatistics() const;
 
 		void setBufferSize(
 				const uint32_t size

@@ -94,6 +94,8 @@ Controller::Controller(
 					},
 					[view = this->view](auto model, auto pos){ view->setPlaybackTime( pos ); }
 			);
+			auto stats = this->jack->getStatistics();
+			this->view->setStatistics( stats );
 		}
 	);
 

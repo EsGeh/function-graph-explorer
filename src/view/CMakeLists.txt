@@ -12,6 +12,7 @@ qt_add_library(view
 	parametervalueentry.cpp
 	tipsdialog.cpp
 	helpdialog.cpp
+	statistics.cpp
 	include/fge/view/mainwindow.h
 	include/fge/view/functionview.h
 	include/fge/view/graphview.h
@@ -20,6 +21,7 @@ qt_add_library(view
 	include/fge/view/parametervalueentry.h
 	include/fge/view/tipsdialog.h
 	include/fge/view/helpdialog.h
+	include/fge/view/statistics.h
 	${UI_DIR}/mainwindow.ui
 	${UI_DIR}/functionview.ui
 	${UI_DIR}/functiondisplayoptions.ui
@@ -27,6 +29,7 @@ qt_add_library(view
 	${UI_DIR}/parametervalueentry.ui
 	${UI_DIR}/tipsdialog.ui
 	${UI_DIR}/helpdialog.ui
+	${UI_DIR}/statistics.ui
 )
 
 target_link_libraries(view PUBLIC cpp_flags)
