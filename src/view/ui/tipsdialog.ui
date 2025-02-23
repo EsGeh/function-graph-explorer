@@ -16,6 +16,9 @@
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
     <widget class="QTextEdit" name="textEdit">
+     <property name="focusPolicy">
+      <enum>Qt::FocusPolicy::NoFocus</enum>
+     </property>
      <property name="readOnly">
       <bool>true</bool>
      </property>
@@ -34,13 +37,6 @@ li.checked::marker { content: &quot;\2612&quot;; }
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout">
      <item>
-      <widget class="QPushButton" name="nextTipBtn">
-       <property name="text">
-        <string>Next Tip</string>
-       </property>
-      </widget>
-     </item>
-     <item>
       <widget class="QPushButton" name="closeBtn">
        <property name="text">
         <string>Close</string>
@@ -50,6 +46,13 @@ li.checked::marker { content: &quot;\2612&quot;; }
        </property>
        <property name="flat">
         <bool>false</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="nextTipBtn">
+       <property name="text">
+        <string>Next Tip</string>
        </property>
       </widget>
      </item>

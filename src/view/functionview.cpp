@@ -1,6 +1,7 @@
 #include "fge/view/functionview.h"
 #include "ui_functionview.h"
 #include <qcheckbox.h>
+#include <qnamespace.h>
 
 FunctionView::FunctionView(
 		const QString& title,
@@ -27,6 +28,9 @@ FunctionView::FunctionView(
 	);
 	ui->parametersBtn->setVisible( parameters.size() > 0 );
 	ui->verticalLayout->addWidget( graphView, 1 );
+	setFocusProxy(
+			ui->formulaEdit
+	);
 
 	parametersDialog = new ParametersEdit(
 			"Function Parameters for " + title,
@@ -71,14 +75,7 @@ FunctionView::FunctionView(
 		ui->optionsBtn,
 		&QAbstractButton::clicked,
 		[this]() {
-			displayDialog->setFormula( ui->formulaEdit->text() );
-			displayDialog->setDataDescription(
-					functionDataDescriptionToString( dataDescription )
-			);
-			displayDialog->setViewData( viewData );
-			displayDialog->setPlaybackSettings( playbackSettings );
-			displayDialog->setSamplingSettings( samplingSettings ),
-			displayDialog->show();
+			openDisplayDialog();
 		}
 	);
 	connect(
@@ -206,6 +203,46 @@ void FunctionView::setPlaybackTime( const double value )
 	graphView->setPlaybackCursor(
 			value * (*globalPlaybackSpeed) * playbackSettings.playbackSpeed
 	);
+}
+
+void FunctionView::openDisplayDialog()
+{
+	displayDialog->setFormula( ui->formulaEdit->text() );
+	displayDialog->setDataDescription(
+			functionDataDescriptionToString( dataDescription )
+	);
+	displayDialog->setViewData( viewData );
+	displayDialog->setPlaybackSettings( playbackSettings );
+	displayDialog->setSamplingSettings( samplingSettings ),
+	displayDialog->show();
+}
+
+void FunctionView::keyPressEvent(QKeyEvent *event)
+{
+	// qDebug() << "FunctionView: key press" << event->key() ;
+	if( event->modifiers() & Qt::ControlModifier ) {
+		// '^f' for "Function" or '^e' for "Edit":
+		if( event->key() == Qt::Key_F ) {
+			ui->formulaEdit ->setFocus();
+			return;
+		}
+		// '^g' for "Graph":
+		if( event->key() == Qt::Key_G ) {
+			graphView->setFocus();
+			return;
+		}
+		// ^Return: "Edit":
+		if( event->key() == Qt::Key_Return ) {
+			openDisplayDialog();
+			return;
+		}
+		// ^p: "Play":
+		if( event->key() == Qt::Key_P ) {
+			ui->playbackEnabled->toggle();
+			return;
+		}
+	}
+	QWidget::keyPressEvent( event );
 }
 
 void updateParameters(

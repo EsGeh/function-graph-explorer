@@ -1,6 +1,7 @@
 #ifndef CONTROLLER_H
 #define CONTROLLER_H
 
+#include "application.h"
 #include "fge/model/model.h"
 #include "fge/view/mainwindow.h"
 #include "fge/audio/jack.h"
@@ -178,10 +179,11 @@ class Controller : public QObject
 
 public:
 	Controller(
-		Model* model,
-		MainWindow* view,
-		JackClient* jack,
-		const uint viewResolution
+			Application* application,
+			Model* model,
+			MainWindow* view,
+			JackClient* jack,
+			const uint viewResolution
 	);
 	~Controller();
 	void run();
@@ -205,6 +207,7 @@ private:
 	std::future<void> stopPlayback();
 
 private:
+	Application* application;
 	MainWindow* view;
 	JackClient* jack;
 	const uint viewResolution;

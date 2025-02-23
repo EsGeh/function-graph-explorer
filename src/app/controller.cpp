@@ -16,12 +16,14 @@
 #endif
 
 Controller::Controller(
+		Application* application,
 	Model* model,
 	MainWindow* view,
 	JackClient* jack,
 	const uint viewResolution
 )
-	: view(view)
+	: application(application)
+	, view(view)
 	, jack(jack)
 	, viewResolution(viewResolution)
 {
@@ -61,6 +63,20 @@ Controller::Controller(
 	);
 
 	connect(
+			application, &Application::togglePlaybackEnabled,
+			[this]() {
+				modelUpdateQueue->read( this,
+						[](auto model) {
+							return model->getAudioSchedulingEnabled();
+						},
+						[this](auto model, auto isEnabled) {
+							this->view->setPlaybackEnabled( !isEnabled );
+						}
+				);
+			}
+	);
+
+	connect(
 			view,
 			&MainWindow::globalPlaybackSpeedChanged,
 			[this]( auto value ) {
@@ -94,7 +110,7 @@ Controller::Controller(
 					},
 					[view = this->view](auto model, auto pos){ view->setPlaybackTime( pos ); }
 			);
-			auto stats = this->jack->getStatistics();
+			const auto stats = this->jack->getStatistics();
 			this->view->setStatistics( stats );
 		}
 	);
@@ -333,7 +349,9 @@ std::future<void> Controller::stopPlayback()
 				jack->stop();
 				promise->set_value();
 			},
-			[](auto) {
+			[this](auto) {
+				const auto stats = this->jack->getStatistics();
+				this->view->setStatistics( stats );
 			}
 	);
 	return future;

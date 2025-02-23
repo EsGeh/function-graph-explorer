@@ -93,6 +93,8 @@ void AudioWorker::run() {
 void AudioWorker::stop() {
 	stopWorkerSignal = true;
 	worker.join();
+	statistics.avg_time = 0s;
+	statistics.max_time = 0s;
 }
 
 bool AudioWorker::getIsRunning() const {

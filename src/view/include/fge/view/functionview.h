@@ -68,6 +68,13 @@ signals:
   void viewParamsChanged();
 
 private:
+	void openDisplayDialog();
+
+// event handlers:
+private:
+	virtual void keyPressEvent(QKeyEvent *event) override;
+
+private:
 	// UI:
 	Ui::FunctionView *ui;
   GraphView* graphView;

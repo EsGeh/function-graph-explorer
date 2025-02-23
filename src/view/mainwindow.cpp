@@ -5,8 +5,11 @@
 #include <QChart>
 #include <QDoubleSpinBox>
 #include <QCheckBox>
+#include <qmainwindow.h>
+#include <qnamespace.h>
 #include <qspinbox.h>
 
+using namespace std::chrono_literals;
 
 MainWindow::MainWindow(
 		const Resources* resources,
@@ -20,6 +23,8 @@ MainWindow::MainWindow(
 {
 	ui->setupUi(this);
 	ui->time->setEnabled(false);
+	statsDisplay = new QLabel();
+	ui->statusBar->addPermanentWidget( statsDisplay );
 	tipsDialog = new TipsDialog(
 			&resources->tips,
 			this
@@ -83,7 +88,7 @@ MainWindow::MainWindow(
 			);
 		}
 	}
-	tipsDialog->show();
+	this->setStatistics( Statistics{ 0us, 0us, 1us } );
 }
 
 MainWindow::~MainWindow()
@@ -97,6 +102,11 @@ FunctionView* MainWindow::getFunctionView(const size_t index) const {
 
 size_t MainWindow::getFunctionViewCount() const {
 	return ui->functionCount->value();
+}
+
+void MainWindow::setPlaybackEnabled(const bool value)
+{
+	ui->audioEnabled->setChecked(value);
 }
 
 void MainWindow::resizeFunctionView(const size_t size) {
@@ -160,4 +170,53 @@ void MainWindow::setStatistics(
 )
 {
 	statsDialog->set( statistics );
+	statsDisplay->setText( QString("CPU: %1%, Peak: %2%")
+		.arg(
+			QString::number(
+				statistics.avg_time.count() * 100
+				/ statistics.deadline.count()
+			)
+			// 2
+		)
+		.arg(
+			QString::number(
+				statistics.max_time.count() * 100
+				/ statistics.deadline.count()
+			)
+			// 2
+		)
+	);
 }
+
+void MainWindow::keyPressEvent(QKeyEvent *event)
+{
+	// qDebug() << "MainWindow: key press" << event->key() ;
+	if( event->modifiers() & Qt::ControlModifier ) {
+		// ^1 ... ^9: select f1 ... f9
+		if( event->key() >= Qt::Key_1 && event->key() <= Qt::Key_9 ) {
+			uint index = event->key() - Qt::Key_1;
+			if( index < getFunctionViewCount() ) {
+				auto functionView = getFunctionView( index );
+				functionView->setFocus();
+				ui->scrollArea->ensureWidgetVisible( functionView );
+				return;
+			}
+		}
+		// ^+ / ^-: add / remove function:
+		if( event->key() == Qt::Key_Plus ) {
+			ui->functionCount->setValue( ui->functionCount->value()+1 );
+			return;
+		}
+		if( event->key() == Qt::Key_Minus ) {
+			ui->functionCount->setValue( ui->functionCount->value()-1 );
+			return;
+		}
+		// ^_: start / stop playback
+		if( event->key() == Qt::Key_Space ) {
+			ui->audioEnabled->toggle();
+			return;
+		}
+	}
+	QMainWindow::keyPressEvent( event );
+}
+

@@ -36,7 +36,6 @@ private:
 
 	void resizeEvent(QResizeEvent* event) override;
 	void wheelEvent(QWheelEvent *event) override;
-	void keyPressEvent(QKeyEvent *event) override;
 
 	// std::pair<T,T> getScale() const;
 	void updateAxes();
@@ -46,6 +45,11 @@ private:
 	void zoomView(QPoint direction);
 	void resetTranslation();
 	void resetZoom();
+
+protected:
+	virtual void focusInEvent(QFocusEvent* event) override;
+	virtual void focusOutEvent(QFocusEvent* event) override;
+	void keyPressEvent(QKeyEvent *event) override;
 
 private:
 	// Data:

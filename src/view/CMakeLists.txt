@@ -13,6 +13,7 @@ qt_add_library(view
 	tipsdialog.cpp
 	helpdialog.cpp
 	statistics.cpp
+	include/fge/view/data.h
 	include/fge/view/mainwindow.h
 	include/fge/view/functionview.h
 	include/fge/view/graphview.h

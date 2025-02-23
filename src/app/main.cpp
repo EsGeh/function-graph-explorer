@@ -4,11 +4,13 @@
 #include "fge/view/mainwindow.h"
 #include "fge/audio/jack.h"
 #include "fge/shared/config.h"
+#include "application.h"
 
 #include <QApplication>
 #include <QDebug>
 #include <csignal>
 #include <qapplication.h>
+#include <qcoreevent.h>
 #include <qlogging.h>
 #include <signal.h>
 #include <thread>
@@ -24,7 +26,7 @@ const unsigned int viewResolution = 4410;
 
 void handle_signal(int sig) {
 	if( sig == SIGINT || sig == SIGTERM) {
-		QApplication::exit(0);
+		Application::exit(0);
 	}
 }
 
@@ -61,7 +63,7 @@ int main(int argc, char *argv[])
 		qInfo().nospace() << "done";
 	}
 
-	QApplication a(argc, argv);
+	Application a(argc, argv);
 	auto model = modelFactory(
 			defSamplingSettings
 	);
@@ -70,6 +72,7 @@ int main(int argc, char *argv[])
 			&resources
 	);
 	Controller controller(
+			&a,
 			model.get(),
 			&view,
 			&jack,

@@ -1,6 +1,7 @@
 #include "fge/view/graphview.h"
 #include <QValueAxis>
 #include <QtCharts/QLineSeries>
+#include <qchartview.h>
 #include <qevent.h>
 #include <qgraphicsitem.h>
 #include <qnamespace.h>
@@ -15,10 +16,16 @@ GraphView::GraphView(
 	, series( nullptr )
 	, playbackTimeMarker( nullptr )
 {
+	setFocusPolicy(Qt::StrongFocus);
 	setAlignment(Qt::AlignRight);
 	setBackgroundBrush(QBrush(Qt::white));
 	setAutoFillBackground(true);
 	setRenderHint(QPainter::Antialiasing);
+
+	this->setLineWidth( 2 );
+	this->setFrameStyle( QFrame::Box );
+	this->setStyleSheet("color: rgba(0,0,0,0);");
+
 
 	QChart *chart = new QChart();
 	chart->legend()->hide();
@@ -121,6 +128,77 @@ void GraphView::resizeEvent(QResizeEvent* event)
 {
 	QChartView::resizeEvent(event);
 	updateTimeMarker();
+}
+
+void GraphView::updateAxes() {
+	QChart *chart = this->chart();
+	chart->axes(Qt::Horizontal).first()->setRange(
+			viewData->getXRange().first,
+			viewData->getXRange().second
+	);
+	chart->axes(Qt::Vertical).first()->setRange(
+			viewData->getYRange().first,
+			viewData->getYRange().second
+	);
+}
+
+void GraphView::updateTimeMarker()
+{
+	if( !playbackTimeMarker ) {
+		QPen pen("#555555");
+		pen.setWidth(2);
+		playbackTimeMarker = new QGraphicsLineItem();
+		scene()->addItem( playbackTimeMarker );
+		playbackTimeMarker->setPen( pen );
+	}
+	playbackTimeMarker->setLine(
+			QLineF(
+				chart()->mapToPosition(
+					QPointF(
+						playbackCursor,
+						viewData->getYRange().first
+					)
+				),
+				chart()->mapToPosition(
+					QPointF(
+						playbackCursor,
+						viewData->getYRange().second
+					)
+				)
+			)
+	);
+	playbackTimeMarker->setVisible( playbackCursorEnabled );
+	playbackTimeMarker->setZValue(100);
+}
+
+void GraphView::moveView(QPoint direction)
+{
+	viewData->origin.first += direction.x() * (viewData->getXRange().second - viewData->getXRange().first)/4;
+	viewData->origin.second += direction.y() * (viewData->getYRange().second - viewData->getYRange().first)/4;
+}
+
+void GraphView::zoomView(QPoint direction)
+{
+	viewData->scaleExp.first += direction.x();
+	viewData->scaleExp.second += direction.y();
+}
+
+void GraphView::resetTranslation()
+{
+	viewData->origin = {0,0};
+}
+
+void GraphView::resetZoom()
+{
+	viewData->scaleExp = {0,0};
+}
+
+void GraphView::focusInEvent(QFocusEvent* event) {
+	this->setStyleSheet("color: black;");
+}
+
+void GraphView::focusOutEvent(QFocusEvent* event) {
+	this->setStyleSheet("color: rgba(0,0,0,0);");
 }
 
 template <typename T> int sgn(T val) {
@@ -229,6 +307,7 @@ void GraphView::keyPressEvent(QKeyEvent *event)
 		{
 			zoomView( direction );
 			emit viewChanged();
+			return;
 		}
 	}
 	// translation:
@@ -245,69 +324,10 @@ void GraphView::keyPressEvent(QKeyEvent *event)
 		{
 			moveView( direction );
 			emit viewChanged();
+			return;
 		}
 	}
-}
-
-void GraphView::updateAxes() {
-	QChart *chart = this->chart();
-	chart->axes(Qt::Horizontal).first()->setRange(
-			viewData->getXRange().first,
-			viewData->getXRange().second
-	);
-	chart->axes(Qt::Vertical).first()->setRange(
-			viewData->getYRange().first,
-			viewData->getYRange().second
-	);
-}
-
-void GraphView::updateTimeMarker()
-{
-	if( !playbackTimeMarker ) {
-		QPen pen("#555555");
-		pen.setWidth(2);
-		playbackTimeMarker = new QGraphicsLineItem();
-		scene()->addItem( playbackTimeMarker );
-		playbackTimeMarker->setPen( pen );
-	}
-	playbackTimeMarker->setLine(
-			QLineF(
-				chart()->mapToPosition(
-					QPointF(
-						playbackCursor,
-						viewData->getYRange().first
-					)
-				),
-				chart()->mapToPosition(
-					QPointF(
-						playbackCursor,
-						viewData->getYRange().second
-					)
-				)
-			)
-	);
-	playbackTimeMarker->setVisible( playbackCursorEnabled );
-	playbackTimeMarker->setZValue(100);
-}
-
-void GraphView::moveView(QPoint direction)
-{
-	viewData->origin.first += direction.x() * (viewData->getXRange().second - viewData->getXRange().first)/4;
-	viewData->origin.second += direction.y() * (viewData->getYRange().second - viewData->getYRange().first)/4;
-}
-
-void GraphView::zoomView(QPoint direction)
-{
-	viewData->scaleExp.first += direction.x();
-	viewData->scaleExp.second += direction.y();
-}
-
-void GraphView::resetTranslation()
-{
-	viewData->origin = {0,0};
-}
-
-void GraphView::resetZoom()
-{
-	viewData->scaleExp = {0,0};
+	// qDebug() << "GraphView::keyPressEvent:" << event->text();
+	event->ignore();
+	QWidget::keyPressEvent( event );
 }
