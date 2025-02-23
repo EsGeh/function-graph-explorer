@@ -5,4 +5,5 @@
 
 struct Resources {
 	std::vector<QString> tips;
+	QString help;
 };

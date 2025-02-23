@@ -29,7 +29,7 @@ MainWindow::MainWindow(
 			&resources->tips,
 			this
 	);
-	helpDialog = new HelpDialog(this);
+	helpDialog = new HelpDialog( resources->help, this);
 	statsDialog = new StatisticsDialog(this);
 	connect(
 		ui->functionCount,
@@ -64,18 +64,18 @@ MainWindow::MainWindow(
 		QMenu* helpMenu = cornerMenuBar->addMenu("Help");
 		ui->menuBar->setCornerWidget( cornerMenuBar );
 		{
-			auto action = helpMenu->addAction( "Tips" );
-			connect( action, &QAction::triggered,
-					[this]() {
-						tipsDialog->show();
-					}
-			);
-		}
-		{
 			auto action = helpMenu->addAction( "Key Codes" );
 			connect( action, &QAction::triggered,
 					[this]() {
 						helpDialog->show();
+					}
+			);
+		}
+		{
+			auto action = helpMenu->addAction( "Tips" );
+			connect( action, &QAction::triggered,
+					[this]() {
+						tipsDialog->show();
 					}
 			);
 		}
