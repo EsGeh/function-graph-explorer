@@ -1,4 +1,5 @@
 #include "fge/view/functionview.h"
+#include "fge/view/keybindings.h"
 #include "ui_functionview.h"
 #include <qcheckbox.h>
 #include <qnamespace.h>
@@ -17,8 +18,8 @@ FunctionView::FunctionView(
 		, samplingSettings()
 		, globalPlaybackSpeed( globalPlaybackSpeed )
 {
+	addFunctionViewKeys(this);
 	ui->setupUi(this);
-
 	ui->formulaLabel->setText( title );
 	statusBar = new QStatusBar();
 	statusBar->setVisible(false);
@@ -205,6 +206,13 @@ void FunctionView::setPlaybackTime( const double value )
 	);
 }
 
+void FunctionView::focusFormula() {
+	ui->formulaEdit-> setFocus();
+}
+void FunctionView::focusGraph() {
+	graphView->setFocus();
+}
+
 void FunctionView::openDisplayDialog()
 {
 	displayDialog->setFormula( ui->formulaEdit->text() );
@@ -217,32 +225,9 @@ void FunctionView::openDisplayDialog()
 	displayDialog->show();
 }
 
-void FunctionView::keyPressEvent(QKeyEvent *event)
+void FunctionView::togglePlaybackEnabled()
 {
-	// qDebug() << "FunctionView: key press" << event->key() ;
-	if( event->modifiers() & Qt::ControlModifier ) {
-		// '^f' for "Function" or '^e' for "Edit":
-		if( event->key() == Qt::Key_F ) {
-			ui->formulaEdit ->setFocus();
-			return;
-		}
-		// '^g' for "Graph":
-		if( event->key() == Qt::Key_G ) {
-			graphView->setFocus();
-			return;
-		}
-		// ^Return: "Edit":
-		if( event->key() == Qt::Key_Return ) {
-			openDisplayDialog();
-			return;
-		}
-		// ^p: "Play":
-		if( event->key() == Qt::Key_P ) {
-			ui->playbackEnabled->toggle();
-			return;
-		}
-	}
-	QWidget::keyPressEvent( event );
+	ui->playbackEnabled->toggle();
 }
 
 void updateParameters(

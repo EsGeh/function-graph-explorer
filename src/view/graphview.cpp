@@ -1,4 +1,5 @@
 #include "fge/view/graphview.h"
+#include "fge/view/keybindings.h"
 #include <QValueAxis>
 #include <QtCharts/QLineSeries>
 #include <qchartview.h>
@@ -16,6 +17,7 @@ GraphView::GraphView(
 	, series( nullptr )
 	, playbackTimeMarker( nullptr )
 {
+	addGraphViewKeyCodes(this);
 	setFocusPolicy(Qt::StrongFocus);
 	setAlignment(Qt::AlignRight);
 	setBackgroundBrush(QBrush(Qt::white));
@@ -240,94 +242,4 @@ void GraphView::wheelEvent(QWheelEvent *event) {
 		moveView( step );
 		emit viewChanged();
 	}
-}
-
-void GraphView::keyPressEvent(QKeyEvent *event)
-{
-	if( event->modifiers() & Qt::ControlModifier ) {
-		if( event->key() == Qt::Key_0 )
-		{
-			resetTranslation();
-			resetZoom();
-			emit viewChanged();
-			return;
-		}
-	}
-	QPoint direction = {0,0};
-	// scale:
-	if( event->modifiers() & Qt::ControlModifier ) {
-		if( event->modifiers() & Qt::ShiftModifier ) {
-			if( event->key() == Qt::Key_Down )
-			{
-				direction = {0,1};
-			}
-			else if( event->key() == Qt::Key_Up )
-			{
-				direction = {0,-1};
-			}
-		}
-		else if( event->modifiers() & Qt::AltModifier ) {
-			if( event->key() == Qt::Key_Down )
-			{
-				direction = {1,0};
-			}
-			else if( event->key() == Qt::Key_Up )
-			{
-				direction = {-1,0};
-			}
-		}
-		else
-		{
-			if( event->key() == Qt::Key_Plus )
-			{
-				direction = {-1,-1};
-			}
-			else if( event->key() == Qt::Key_Minus )
-			{
-				direction = {1,1};
-			}
-			else if( event->key() == Qt::Key_Down )
-			{
-				direction = {0,-1};
-			}
-			else if( event->key() == Qt::Key_Up )
-			{
-				direction = {0,1};
-			}
-			else if( event->key() == Qt::Key_Left )
-			{
-				direction = {-1,0};
-			}
-			else if( event->key() == Qt::Key_Right )
-			{
-				direction = {1,0};
-			}
-		}
-		if( direction != QPoint{0,0} )
-		{
-			zoomView( direction );
-			emit viewChanged();
-			return;
-		}
-	}
-	// translation:
-	else {
-		if( event->key() == Qt::Key_Left )
-			direction.setX( -1 );
-		else if( event->key() == Qt::Key_Right )
-			direction.setX( 1 );
-		else if( event->key() == Qt::Key_Down )
-			direction.setY( -1 );
-		else if( event->key() == Qt::Key_Up )
-			direction.setY( 1 );
-		if( direction != QPoint{0,0} )
-		{
-			moveView( direction );
-			emit viewChanged();
-			return;
-		}
-	}
-	// qDebug() << "GraphView::keyPressEvent:" << event->text();
-	event->ignore();
-	QWidget::keyPressEvent( event );
 }

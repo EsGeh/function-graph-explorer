@@ -1,10 +1,13 @@
 #include "fge/view/mainwindow.h"
+#include "fge/view/keybindings.h"
 #include "include/fge/view/statistics.h"
 #include "include/fge/view/tipsdialog.h"
 #include "ui_mainwindow.h"
 #include <QChart>
 #include <QDoubleSpinBox>
 #include <QCheckBox>
+#include <QShortcut>
+#include <qkeysequence.h>
 #include <qmainwindow.h>
 #include <qnamespace.h>
 #include <qspinbox.h>
@@ -21,6 +24,7 @@ MainWindow::MainWindow(
 		, helpDialog( nullptr )
 		, functionViews()
 {
+	addMainWindoKeycodes(this);
 	ui->setupUi(this);
 	ui->time->setEnabled(false);
 	statsDisplay = new QLabel();
@@ -188,35 +192,26 @@ void MainWindow::setStatistics(
 	);
 }
 
-void MainWindow::keyPressEvent(QKeyEvent *event)
+void MainWindow::focusFunction(const uint index)
 {
-	// qDebug() << "MainWindow: key press" << event->key() ;
-	if( event->modifiers() & Qt::ControlModifier ) {
-		// ^1 ... ^9: select f1 ... f9
-		if( event->key() >= Qt::Key_1 && event->key() <= Qt::Key_9 ) {
-			uint index = event->key() - Qt::Key_1;
-			if( index < getFunctionViewCount() ) {
-				auto functionView = getFunctionView( index );
-				functionView->setFocus();
-				ui->scrollArea->ensureWidgetVisible( functionView );
-				return;
-			}
-		}
-		// ^+ / ^-: add / remove function:
-		if( event->key() == Qt::Key_Plus ) {
-			ui->functionCount->setValue( ui->functionCount->value()+1 );
-			return;
-		}
-		if( event->key() == Qt::Key_Minus ) {
-			ui->functionCount->setValue( ui->functionCount->value()-1 );
-			return;
-		}
-		// ^_: start / stop playback
-		if( event->key() == Qt::Key_Space ) {
-			ui->audioEnabled->toggle();
-			return;
-		}
+	if( index < getFunctionViewCount() ) {
+		auto functionView = getFunctionView( index );
+		functionView->setFocus();
+		ui->scrollArea->ensureWidgetVisible( functionView );
 	}
-	QMainWindow::keyPressEvent( event );
 }
 
+void MainWindow::addFunction()
+{
+	ui->functionCount->setValue( ui->functionCount->value()+1 );
+}
+
+void MainWindow::removeFunction()
+{
+	ui->functionCount->setValue( ui->functionCount->value()-1 );
+}
+
+void MainWindow::togglePlaybackEnabled()
+{
+	ui->audioEnabled->toggle();
+}

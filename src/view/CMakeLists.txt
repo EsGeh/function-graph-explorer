@@ -13,6 +13,7 @@ qt_add_library(view
 	tipsdialog.cpp
 	helpdialog.cpp
 	statistics.cpp
+	keybindings.cpp
 	include/fge/view/data.h
 	include/fge/view/mainwindow.h
 	include/fge/view/functionview.h
@@ -23,6 +24,7 @@ qt_add_library(view
 	include/fge/view/tipsdialog.h
 	include/fge/view/helpdialog.h
 	include/fge/view/statistics.h
+	include/fge/view/keybindings.h
 	${UI_DIR}/mainwindow.ui
 	${UI_DIR}/functionview.ui
 	${UI_DIR}/functiondisplayoptions.ui

@@ -29,6 +29,18 @@ public:
 signals:
 	void viewChanged();
 
+public slots:
+
+	void updateAxes();
+	void updateTimeMarker();
+
+	// Actions:
+	void moveView(QPoint direction);
+	void zoomView(QPoint direction);
+	void resetView() { resetZoom(); resetTranslation(); }
+	void resetTranslation();
+	void resetZoom();
+
 private:
 
 	QSize minimumSizeHint() const override;
@@ -37,19 +49,9 @@ private:
 	void resizeEvent(QResizeEvent* event) override;
 	void wheelEvent(QWheelEvent *event) override;
 
-	// std::pair<T,T> getScale() const;
-	void updateAxes();
-	void updateTimeMarker();
-
-	void moveView(QPoint direction);
-	void zoomView(QPoint direction);
-	void resetTranslation();
-	void resetZoom();
-
 protected:
 	virtual void focusInEvent(QFocusEvent* event) override;
 	virtual void focusOutEvent(QFocusEvent* event) override;
-	void keyPressEvent(QKeyEvent *event) override;
 
 private:
 	// Data:

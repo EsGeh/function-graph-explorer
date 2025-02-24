@@ -39,6 +39,7 @@ public:
 	);
 	~FunctionView();
 
+	// Get:
 	QString getFormula();
 	const ParameterDescriptions& getParameterDescriptions() const;
 	const ParameterBindings& getParameters() const;
@@ -47,6 +48,7 @@ public:
 	const SamplingSettings& getSamplingSettings() const;
 	bool getIsPlaybackEnabled() const;
 
+	// Set:
   void setFormula( const QString& str );
   void setParameters( const ParameterBindings& value );
 	void setSamplingSettings(const SamplingSettings& value);
@@ -59,6 +61,12 @@ public:
 	void disablePlaybackPosition();
 	void setPlaybackTime( const double value );
 
+	// Actions:
+		void focusFormula();
+		void focusGraph();
+		void openDisplayDialog();
+		void togglePlaybackEnabled();
+
 signals:
 	void changed( UpdateInfo updateInfo );
 	void parameterChanged(
@@ -66,13 +74,6 @@ signals:
 			const C value
 	);
   void viewParamsChanged();
-
-private:
-	void openDisplayDialog();
-
-// event handlers:
-private:
-	virtual void keyPressEvent(QKeyEvent *event) override;
 
 private:
 	// UI:

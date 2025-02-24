@@ -43,13 +43,16 @@ public:
 			const Statistics& statistics
 	);
 
+	// Actions:
+		void focusFunction(const uint index);
+		void addFunction();
+		void removeFunction();
+		void togglePlaybackEnabled();
+
 signals:
 	void functionCountChanged(const uint count);
 	void globalPlaybackSpeedChanged(const double playbackSpeed);
 	void isAudioEnabledChanged(const bool value);
-
-private:
-	virtual void keyPressEvent(QKeyEvent *event) override;
 
 private:
 	Ui::MainWindow *ui;
