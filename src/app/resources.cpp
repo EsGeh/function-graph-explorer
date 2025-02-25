@@ -1,34 +1,39 @@
 #include "resources.h"
 
+#include <QFile>
+#include <QDirIterator>
+#include <qdir.h>
+
 
 Resources loadResources() {
 	Resources resources;
-	using std::filesystem::path;
-	path resourcesDir = defaultResourcesDir;
+	resources.tips = {};
+	// using std::filesystem::path;
+	QString resourcesDir = defaultResourcesDir;
 	if( auto fromEnv = std::getenv( RES_DIR_ENV_VAR.c_str() ) ) {
 		resourcesDir = fromEnv;
 	}
-	// load tips:
-	for( const auto& entry : std::filesystem::directory_iterator( resourcesDir / "tips") ) {
-		if( entry.path().extension() != ".md" ) { continue; }
-		std::ostringstream strstr;
-		std::ifstream file( entry.path(), std::ios::out);
-		if( ! file.is_open() ) {
-			throw std::runtime_error( "failed to load resources" );
-		}
-		strstr << file.rdbuf();
-		resources.tips.push_back( QString( strstr.str().c_str() ) );
-	}
-	// load help:
+	// resources.tips:
 	{
-		const auto path = resourcesDir / "help" / "help.md";
-		std::ostringstream strstr;
-		std::ifstream file( path, std::ios::out);
-		if( ! file.is_open() ) {
-			throw std::runtime_error( "failed to load resources" );
+		QDirIterator it( resourcesDir + "/tips", QDirIterator::Subdirectories );
+		while( it.hasNext() )
+		{
+			const auto path = it.next();
+			if( !path.endsWith( ".md" ) ) { continue; }
+			QFile file(path);
+			if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+				throw std::runtime_error( "failed to load resources" );
+			QTextStream stream(&file);
+			resources.tips.push_back( stream.readAll() );
 		}
-		strstr << file.rdbuf();
-		resources.help = QString( strstr.str().c_str() );
+	}
+	// resources.help:
+	{
+		QFile file( resourcesDir + "/help/help.md");
+		if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+			throw std::runtime_error( "failed to load resources" );
+		QTextStream stream(&file);
+		resources.help = stream.readAll();
 	}
 	return resources;
 }

@@ -1,0 +1,8 @@
+<RCC>
+    <qresource prefix="/">
+        <file>resources/help/help.md</file>
+        <file>resources/tips/fourier.md</file>
+        <file>resources/tips/magic_frequencies.md</file>
+        <file>resources/tips/sinusoids.md</file>
+    </qresource>
+</RCC>

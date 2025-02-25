@@ -1,5 +1,6 @@
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
 
 add_executable(${TARGET_NAME}
 	main.cpp
@@ -9,6 +10,7 @@ add_executable(${TARGET_NAME}
 	resources.h
 	application.h
 	application.cpp
+  resources.qrc
 )
 
 set_target_properties(${TARGET_NAME} PROPERTIES
