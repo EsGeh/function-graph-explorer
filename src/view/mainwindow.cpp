@@ -27,8 +27,7 @@ MainWindow::MainWindow(
 	addMainWindoKeycodes(this);
 	ui->setupUi(this);
 	ui->time->setEnabled(false);
-	statsDisplay = new QLabel();
-	ui->statusBar->addPermanentWidget( statsDisplay );
+	statsDisplay = ui->statsLabel;
 	tipsDialog = new TipsDialog(
 			&resources->tips,
 			this
@@ -174,20 +173,20 @@ void MainWindow::setStatistics(
 )
 {
 	statsDialog->set( statistics );
-	statsDisplay->setText( QString("CPU: %1%, Peak: %2%")
+	statsDisplay->setText( QString("CPU: %1% < %2%")
 		.arg(
 			QString::number(
 				statistics.avg_time.count() * 100
 				/ statistics.deadline.count()
-			)
-			// 2
+			),
+			2
 		)
 		.arg(
 			QString::number(
 				statistics.max_time.count() * 100
 				/ statistics.deadline.count()
-			)
-			// 2
+			),
+			2
 		)
 	);
 }
