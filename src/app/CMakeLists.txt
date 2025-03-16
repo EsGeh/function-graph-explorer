@@ -1,7 +1,3 @@
-set(CMAKE_AUTOUIC ON)
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTORCC ON)
-
 add_executable(${TARGET_NAME}
 	main.cpp
 	controller.cpp
@@ -15,6 +11,7 @@ add_executable(${TARGET_NAME}
 
 set_target_properties(${TARGET_NAME} PROPERTIES
 	AUTOMOC ON
+	AUTORCC ON
 )
 
 find_package(Qt6 REQUIRED COMPONENTS Concurrent)

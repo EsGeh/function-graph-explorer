@@ -2,10 +2,14 @@
 #include "fge/view/keybindings.h"
 #include <QValueAxis>
 #include <QtCharts/QLineSeries>
+#include <qboxlayout.h>
 #include <qchartview.h>
 #include <qevent.h>
 #include <qgraphicsitem.h>
 #include <qnamespace.h>
+#include <QLayout>
+#include <QGraphicsLayout>
+#include <qtversion.h>
 
 
 GraphView::GraphView(
@@ -19,27 +23,47 @@ GraphView::GraphView(
 {
 	addGraphViewKeyCodes(this);
 	setFocusPolicy(Qt::StrongFocus);
-	setAlignment(Qt::AlignRight);
-	setBackgroundBrush(QBrush(Qt::white));
+	setBackgroundBrush(
+			this->palette().color( QPalette::Window )
+	);
 	setAutoFillBackground(true);
 	setRenderHint(QPainter::Antialiasing);
 
 	this->setLineWidth( 2 );
 	this->setFrameStyle( QFrame::Box );
-	this->setStyleSheet("color: rgba(0,0,0,0);");
+	this->setStyleSheet( "color: rgba(0,0,0,0);" );
 
-
-	QChart *chart = new QChart();
-	chart->legend()->hide();
+	QChart* chart = new QChart();
   setChart( chart );
+	chart->setDropShadowEnabled( false );
+	chart->layout()->setContentsMargins( 0, 0, 0, 0 );
+	chart->setBackgroundRoundness(0);
+
+	chart->setBackgroundBrush(
+			this->palette().color( QPalette::Window )
+	);
+	auto bgPenColor = this->palette().color( QPalette::WindowText );
+	bgPenColor.setAlphaF( 0.5 );
+	chart->setBackgroundPen(
+			bgPenColor
+	);
+	chart->legend()->hide();
 	// X:
 	{
 		QValueAxis* axis = new QValueAxis();
+		axis->setLabelsColor( 
+			bgPenColor
+		);
+		axis->setGridLineColor( bgPenColor );
 		chart->addAxis( axis, Qt::AlignBottom );
 	}
 	// Y:
 	{
 		QValueAxis* axis = new QValueAxis();
+		axis->setLabelsColor( 
+			bgPenColor
+		);
+		axis->setGridLineColor( bgPenColor );
 		chart->addAxis( axis, Qt::AlignLeft );
 	}
 
@@ -53,28 +77,22 @@ void GraphView::setGraph(
 	reset();
 	QChart *chart = this->chart();
 
-	// imaginary:
-	if(viewData->displayImaginary) {
-		series = new QLineSeries();
-		for( auto value: values ) {
-			*series << QPointF( value.first.c_.real(), value.second.c_.imag() );
-		}
-		QPen pen("#33cc33");
-		pen.setWidth(2);
-		series->setPen(pen);
-		chart->addSeries(series);
-		series->attachAxis( chart->axes(Qt::Horizontal).first() );
-		series->attachAxis( chart->axes(Qt::Vertical).first() );
-	}
 	// real:
 	{
 		series = new QLineSeries();
 		for( auto value: values ) {
 			*series << QPointF( value.first.c_.real(), value.second.c_.real() );
 		}
-		QPen pen("#3399ff");
-		pen.setWidth(2);
-		series->setPen(pen);
+		chart->addSeries(series);
+		series->attachAxis( chart->axes(Qt::Horizontal).first() );
+		series->attachAxis( chart->axes(Qt::Vertical).first() );
+	}
+	// imaginary:
+	if(viewData->displayImaginary) {
+		series = new QLineSeries();
+		for( auto value: values ) {
+			*series << QPointF( value.first.c_.real(), value.second.c_.imag() );
+		}
 		chart->addSeries(series);
 		series->attachAxis( chart->axes(Qt::Horizontal).first() );
 		series->attachAxis( chart->axes(Qt::Vertical).first() );
@@ -147,10 +165,13 @@ void GraphView::updateAxes() {
 void GraphView::updateTimeMarker()
 {
 	if( !playbackTimeMarker ) {
-		QPen pen("#555555");
-		pen.setWidth(2);
 		playbackTimeMarker = new QGraphicsLineItem();
 		scene()->addItem( playbackTimeMarker );
+		QPen pen(
+				this->palette().color( QPalette::Highlight )
+				// "#555555"
+		);
+		pen.setWidth(2);
 		playbackTimeMarker->setPen( pen );
 	}
 	playbackTimeMarker->setLine(
@@ -196,11 +217,17 @@ void GraphView::resetZoom()
 }
 
 void GraphView::focusInEvent(QFocusEvent* event) {
-	this->setStyleSheet("color: black;");
+	this->setStyleSheet( "color: palette(highlight);" );
+	this->chart()->setBackgroundBrush(
+			this->palette().color( QPalette::AlternateBase )
+	);
 }
 
 void GraphView::focusOutEvent(QFocusEvent* event) {
-	this->setStyleSheet("color: rgba(0,0,0,0);");
+	this->setStyleSheet( "color: rgba(0,0,0,0);" );
+	this->chart()->setBackgroundBrush(
+			this->palette().color( QPalette::Window )
+	);
 }
 
 template <typename T> int sgn(T val) {
