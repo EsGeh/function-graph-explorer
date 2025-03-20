@@ -1,7 +1,6 @@
 #include "fge/view/mainwindow.h"
 #include "fge/view/keybindings.h"
 #include "include/fge/view/statistics.h"
-#include "include/fge/view/tipsdialog.h"
 #include "ui_mainwindow.h"
 #include <QChart>
 #include <QDoubleSpinBox>
@@ -33,6 +32,10 @@ MainWindow::MainWindow(
 			this
 	);
 	helpDialog = new HelpDialog( resources->help, this);
+	aboutDialog = new AboutDialog(
+			resources->about,
+			this
+	);
 	statsDialog = new StatisticsDialog(this);
 	connect(
 		ui->functionCount,
@@ -87,6 +90,15 @@ MainWindow::MainWindow(
 			connect( action, &QAction::triggered,
 					[this]() {
 						statsDialog->show();
+					}
+			);
+		}
+		{
+			auto action = helpMenu->addAction( "About" );
+			connect( action, &QAction::triggered,
+					[this]() {
+						aboutDialog->show();
+						aboutDialog->adjustSize();
 					}
 			);
 		}

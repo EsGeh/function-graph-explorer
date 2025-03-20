@@ -1,5 +1,7 @@
 #include "resources.h"
 
+#include "fge/shared/config.h"
+
 #include <QFile>
 #include <QDirIterator>
 #include <qdir.h>
@@ -34,6 +36,13 @@ Resources loadResources() {
 			throw std::runtime_error( "failed to load resources" );
 		QTextStream stream(&file);
 		resources.help = stream.readAll();
+	}
+	// resources.about:
+	{
+		resources.about = QString("%1 %2").arg(
+				PROJECT_NAME,
+				PROJECT_VERSION
+		);
 	}
 	return resources;
 }

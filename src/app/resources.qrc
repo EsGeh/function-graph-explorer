@@ -4,5 +4,6 @@
         <file>resources/tips/fourier.md</file>
         <file>resources/tips/magic_frequencies.md</file>
         <file>resources/tips/sinusoids.md</file>
+        <file>resources/logo_fge.svg</file>
     </qresource>
 </RCC>

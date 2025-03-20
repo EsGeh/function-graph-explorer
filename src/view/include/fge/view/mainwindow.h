@@ -5,6 +5,7 @@
 #include "fge/view/functionview.h"
 #include "fge/view/tipsdialog.h"
 #include "fge/view/helpdialog.h"
+#include "fge/view/aboutdialog.h"
 #include "fge/view/statistics.h"
 #include "statistics.h"
 
@@ -59,6 +60,7 @@ private:
 	QLabel* statsDisplay;
 	TipsDialog* tipsDialog;
 	HelpDialog* helpDialog;
+	AboutDialog* aboutDialog;
 	StatisticsDialog* statsDialog;
 	std::vector<FunctionView*> functionViews;
 	

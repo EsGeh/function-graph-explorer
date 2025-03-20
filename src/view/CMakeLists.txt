@@ -12,6 +12,7 @@ qt_add_library(view
 	parametervalueentry.cpp
 	tipsdialog.cpp
 	helpdialog.cpp
+	aboutdialog.cpp
 	statistics.cpp
 	keybindings.cpp
 	include/fge/view/data.h
@@ -23,6 +24,7 @@ qt_add_library(view
 	include/fge/view/parametervalueentry.h
 	include/fge/view/tipsdialog.h
 	include/fge/view/helpdialog.h
+	include/fge/view/aboutdialog.h
 	include/fge/view/statistics.h
 	include/fge/view/keybindings.h
 	${UI_DIR}/mainwindow.ui
@@ -32,6 +34,7 @@ qt_add_library(view
 	${UI_DIR}/parametervalueentry.ui
 	${UI_DIR}/tipsdialog.ui
 	${UI_DIR}/helpdialog.ui
+	${UI_DIR}/aboutdialog.ui
 	${UI_DIR}/statistics.ui
 )
 
@@ -40,6 +43,7 @@ target_link_libraries(view PUBLIC cpp_flags)
 find_package(Qt6 REQUIRED COMPONENTS Core)
 find_package(Qt6 REQUIRED COMPONENTS Widgets)
 find_package(Qt6 REQUIRED COMPONENTS Charts)
+find_package(Qt6 REQUIRED COMPONENTS SvgWidgets)
 
 
 target_include_directories(view PUBLIC include)
@@ -48,3 +52,4 @@ target_link_libraries(view PUBLIC shared)
 target_link_libraries(view PUBLIC Qt6::Charts)
 target_link_libraries(view PUBLIC Qt6::Widgets)
 target_link_libraries(view PUBLIC Qt6::Charts)
+target_link_libraries(view PRIVATE Qt6::SvgWidgets)
