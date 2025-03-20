@@ -9,6 +9,7 @@
 #include <qnamespace.h>
 #include <QLayout>
 #include <QGraphicsLayout>
+#include <qsizepolicy.h>
 #include <qtversion.h>
 
 
@@ -22,6 +23,11 @@ GraphView::GraphView(
 	, playbackTimeMarker( nullptr )
 {
 	addGraphViewKeyCodes(this);
+	QSizePolicy policy(
+			QSizePolicy::MinimumExpanding,
+			QSizePolicy::MinimumExpanding
+	);
+	setSizePolicy( policy );
 	setFocusPolicy(Qt::StrongFocus);
 	setBackgroundBrush(
 			this->palette().color( QPalette::Window )
@@ -37,6 +43,7 @@ GraphView::GraphView(
   setChart( chart );
 	chart->setDropShadowEnabled( false );
 	chart->layout()->setContentsMargins( 0, 0, 0, 0 );
+	chart->setMargins( QMargins(10,10,10,10) );
 	chart->setBackgroundRoundness(0);
 
 	chart->setBackgroundBrush(
@@ -173,11 +180,11 @@ void GraphView::setPlaybackCursor(
 
 
 QSize GraphView::minimumSizeHint() const {
-	return {200, 200};
+	return {200, 300};
 }
 
 QSize GraphView::sizeHint() const {
-	return {200, 200};
+	return {200, 300};
 }
 
 void GraphView::resizeEvent(QResizeEvent* event)
