@@ -125,23 +125,47 @@ void GraphView::disablePlaybackCursor()
 	updateTimeMarker();
 }
 
-void GraphView::setPlaybackCursor( const double value )
+void GraphView::setPlaybackCursor(
+		const double value,
+		const double speed
+)
 {
 	playbackCursorEnabled = true;
 	playbackCursor = value;
 	if( viewData->autoScrollOnPlayback ) {
-		// Only update if the cursor is far
-		// away from the current view window.
-		// Too frequent updates would keep the
-		// GUI thread too busy which tends to
-		// starve the audio thread.
-		if(
-				(playbackCursor - viewData->getXRange().second ) > 0.5
-				|| (viewData->getXRange().first - playbackCursor) > 0.5
-		)
+		// if the playback cursor is out of view,
+		// move the view window such that it is
+		// in view again:
+		auto xViewRange = viewData->getXRange();
+		auto xViewSize = xViewRange.second - xViewRange.first;
+		if( xViewSize/speed >= 1 )
 		{
-			viewData->origin.first = floor( playbackCursor );
-			emit viewChanged();
+			if(
+					(playbackCursor - xViewRange.second ) > 0.1
+					|| (xViewRange.first - playbackCursor) > 0.1
+			)
+			{
+				viewData->origin.first = floor( playbackCursor );
+				emit viewChanged();
+			}
+		}
+		// if the view is zoomed in a lot,
+		// (= view window is very short)
+		// or playback speed is very high
+		// the cursor would
+		// run out of view at every frame.
+		// The following heuristics avoid
+		// updating the view at every frame:
+		else {
+			// update if out ouf view for > 1sec:
+			if(
+					playbackCursor - (xViewRange.first + speed) > 0.1
+					|| ((xViewRange.second - speed) - playbackCursor) > 0.1
+			)
+			{
+				viewData->origin.first = floor( playbackCursor );
+				emit viewChanged();
+			}
 		}
 	}
 	updateTimeMarker();

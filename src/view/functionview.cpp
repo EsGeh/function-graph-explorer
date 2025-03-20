@@ -202,7 +202,8 @@ void FunctionView::disablePlaybackPosition()
 void FunctionView::setPlaybackTime( const double value )
 {
 	graphView->setPlaybackCursor(
-			value * (*globalPlaybackSpeed) * playbackSettings.playbackSpeed
+			value * (*globalPlaybackSpeed) * playbackSettings.playbackSpeed,
+			(*globalPlaybackSpeed) * playbackSettings.playbackSpeed
 	);
 }
 

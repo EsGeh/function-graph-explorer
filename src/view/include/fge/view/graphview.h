@@ -24,7 +24,10 @@ public:
 	void reset();
 
 	void disablePlaybackCursor();
-	void setPlaybackCursor( const double value );
+	void setPlaybackCursor(
+			const double value,
+			const double speed // playback speed
+	);
 
 signals:
 	void viewChanged();
