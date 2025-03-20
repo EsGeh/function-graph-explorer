@@ -1,5 +1,7 @@
 # Function Graph Explorer
 
+![fge logo](doc/logo/logo_fge.svg)
+
 This is an educational tool for the exploration of function graphs, the Fourier Transform, filter design and audio signal analysis.
 The user may enter mathematical functions by typing formulae such as "f(x) = x^2" and is immediately being presented with the corresponding graph representation.
 Additionally, every function can be listened to on the speakers by interpreting it as an audio signal.
