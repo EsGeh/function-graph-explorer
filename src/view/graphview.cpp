@@ -80,6 +80,12 @@ void GraphView::setGraph(
 	// real:
 	{
 		series = new QLineSeries();
+		{
+			QPen pen;
+			pen.setColor( "#00cbcb" );
+			pen.setWidth( 2 );
+			series->setPen( pen );
+		}
 		for( auto value: values ) {
 			*series << QPointF( value.first.c_.real(), value.second.c_.real() );
 		}
@@ -90,6 +96,12 @@ void GraphView::setGraph(
 	// imaginary:
 	if(viewData->displayImaginary) {
 		series = new QLineSeries();
+		{
+			QPen pen;
+			pen.setColor( "#004bab" );
+			pen.setWidth( 2 );
+			series->setPen( pen );
+		}
 		for( auto value: values ) {
 			*series << QPointF( value.first.c_.real(), value.second.c_.imag() );
 		}
@@ -169,7 +181,6 @@ void GraphView::updateTimeMarker()
 		scene()->addItem( playbackTimeMarker );
 		QPen pen(
 				this->palette().color( QPalette::Highlight )
-				// "#555555"
 		);
 		pen.setWidth(2);
 		playbackTimeMarker->setPen( pen );
