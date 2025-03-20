@@ -9,6 +9,7 @@
 #include <QApplication>
 #include <QDebug>
 #include <csignal>
+#include <memory>
 #include <qapplication.h>
 #include <qcoreevent.h>
 #include <qlogging.h>
@@ -29,6 +30,8 @@ void handle_signal(int sig) {
 		Application::exit(0);
 	}
 }
+
+const QString jackClientName = "fge";
 
 int main(int argc, char *argv[])
 {
@@ -52,15 +55,14 @@ int main(int argc, char *argv[])
 	qDebug().nospace() << "MAIN THREAD / GUI THREAD: " << to_qstring(std::this_thread::get_id());
 	#endif
 
-	JackClient jack("fge");
-	{
-		qInfo().nospace() << "start jack client '" << jack.getClientName() << "'...";
-		auto maybeError = jack.init();
-		if( maybeError ) {
+	std::shared_ptr<JackClient> maybeJack = nullptr;
+	try {
+		qInfo().nospace() << "start jack client '" << jackClientName << "'...";
+		maybeJack = std::make_shared<JackClient>( jackClientName );
+	}
+	catch( QString jackErr ) {
 			qWarning().noquote() << "Failed to start Jack. No Audio.";
-			qWarning().noquote() << maybeError.value() ;
-		}
-		qInfo().nospace() << "done";
+			qWarning().noquote() << jackErr;
 	}
 
 	Application a(argc, argv);
@@ -75,7 +77,7 @@ int main(int argc, char *argv[])
 			&a,
 			model.get(),
 			&view,
-			&jack,
+			maybeJack,
 			viewResolution
 	);
 	controller.run();
@@ -83,7 +85,6 @@ int main(int argc, char *argv[])
 	auto ret = a.exec();
 
 	controller.exit();
-	jack.exit();
 
 	qInfo().nospace() << "exit.";
 	return ret;

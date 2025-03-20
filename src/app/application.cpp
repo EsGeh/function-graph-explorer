@@ -110,8 +110,3 @@ Application::Application(int& argc, char **argv)
 
 	qApp->setPalette(darkPalette);
 }
-
-bool Application::notify(QObject *receiver, QEvent *event)
-{
-	return QApplication::notify(receiver,event);
-}

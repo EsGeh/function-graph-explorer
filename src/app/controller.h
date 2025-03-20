@@ -9,6 +9,7 @@
 #include <QObject>
 #include <QThread>
 #include <QTimer>
+#include <memory>
 #include <qnamespace.h>
 #include <ranges>
 #include <utility>
@@ -182,7 +183,7 @@ public:
 			Application* application,
 			Model* model,
 			MainWindow* view,
-			JackClient* jack,
+			std::shared_ptr<JackClient> maybeJack,
 			const uint viewResolution
 	);
 	~Controller();
@@ -209,7 +210,7 @@ private:
 private:
 	Application* application;
 	MainWindow* view;
-	JackClient* jack;
+	std::shared_ptr<JackClient> maybeJack;
 	const uint viewResolution;
 	ModelUpdateQueue* modelUpdateQueue;
 

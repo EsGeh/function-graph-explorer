@@ -17,14 +17,14 @@
 
 Controller::Controller(
 		Application* application,
-	Model* model,
-	MainWindow* view,
-	JackClient* jack,
-	const uint viewResolution
+		Model* model,
+		MainWindow* view,
+		std::shared_ptr<JackClient> maybeJack,
+		const uint viewResolution
 )
 	: application(application)
 	, view(view)
-	, jack(jack)
+	, maybeJack(maybeJack)
 	, viewResolution(viewResolution)
 {
 
@@ -63,20 +63,6 @@ Controller::Controller(
 	);
 
 	connect(
-			application, &Application::togglePlaybackEnabled,
-			[this]() {
-				modelUpdateQueue->read( this,
-						[](auto model) {
-							return model->getAudioSchedulingEnabled();
-						},
-						[this](auto model, auto isEnabled) {
-							this->view->setPlaybackEnabled( !isEnabled );
-						}
-				);
-			}
-	);
-
-	connect(
 			view,
 			&MainWindow::globalPlaybackSpeedChanged,
 			[this]( auto value ) {
@@ -99,21 +85,26 @@ Controller::Controller(
 			}
 		}
 	);
-	connect(
-		modelUpdateQueue,
-		&ModelUpdateQueue::tick,
-		this,
-		[this]() {
-			modelUpdateQueue->read( this,
-					[](auto model) {
-						return double(model->getPosition()) / double(model->getSamplerate());
-					},
-					[view = this->view](auto model, auto pos){ view->setPlaybackTime( pos ); }
-			);
-			const auto stats = this->jack->getStatistics();
-			this->view->setStatistics( stats );
-		}
-	);
+
+	if( this->maybeJack ) {
+		connect(
+			modelUpdateQueue,
+			&ModelUpdateQueue::tick,
+			this,
+			[this]() {
+				modelUpdateQueue->read( this,
+						[](auto model) {
+							return double(model->getPosition()) / double(model->getSamplerate());
+						},
+						[view = this->view](auto model, auto pos){
+							view->setPlaybackTime( pos );
+						}
+				);
+				const auto stats = this->maybeJack->getStatistics();
+				this->view->setStatistics( stats );
+			}
+		);
+	}
 
 	// SET INITIAL model size:
 	modelUpdateQueue->write(
@@ -315,21 +306,26 @@ void Controller::setViewGraph(const Model* model, const uint iFunction) {
 void Controller::startPlayback()
 {
 	modelUpdateQueue->write( this, "setAudioSchedulingEnabled(true)",
-			[jack = this->jack](auto model){
-				auto maybeError = jack->start(
-						Callbacks{
-							// audio callback:
-							.valuesToBuffer = [model](std::vector<float>* buffer, const PlaybackPosition position, const uint samplerate) {
-								model->valuesToBuffer( buffer, position, samplerate );
-							},
-							// update:
-							.betweenAudioCallback = [model](auto position, auto samplerate) {
-								model->betweenAudio( position, samplerate );
+			[maybeJack = this->maybeJack](auto model){
+				if( maybeJack ) {
+					auto maybeError = maybeJack->start(
+							Callbacks{
+								// audio callback:
+								.valuesToBuffer = [model](std::vector<float>* buffer, const PlaybackPosition position, const uint samplerate) {
+									model->valuesToBuffer( buffer, position, samplerate );
+								},
+								// update:
+								.betweenAudioCallback = [model](auto position, auto samplerate) {
+									model->betweenAudio( position, samplerate );
+								}
 							}
-						}
-				);
-				if( !maybeError ) {
-						model->setAudioSchedulingEnabled(true);
+					);
+					if( !maybeError ) {
+							model->setAudioSchedulingEnabled(true);
+					}
+				}
+				else {
+					qWarning() << "WARNING: No jack client. Failed to start playback.";
 				}
 			},
 			[this](auto){
@@ -344,14 +340,21 @@ std::future<void> Controller::stopPlayback()
 	auto future = promise->get_future();
 	modelUpdateQueue->stopTimer();
 	modelUpdateQueue->write( this, "setAudioSchedulingEnabled(false)",
-			[this,promise](auto model){
-				model->setAudioSchedulingEnabled(false);
-				jack->stop();
+			[maybeJack= this->maybeJack,promise](auto model){
+				if( maybeJack ) {
+					model->setAudioSchedulingEnabled(false);
+					maybeJack->stop();
+				}
+				else {
+					qWarning() << "WARNING: No jack client. Failed to stop playback.";
+				}
 				promise->set_value();
 			},
 			[this](auto) {
-				const auto stats = this->jack->getStatistics();
-				this->view->setStatistics( stats );
+				if( this->maybeJack ) {
+					const auto stats = maybeJack->getStatistics();
+					this->view->setStatistics( stats );
+				}
 			}
 	);
 	return future;
